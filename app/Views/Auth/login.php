@@ -46,12 +46,12 @@
                 <?php endif; ?>
 
                 <div class="input-group mb-3">
-                    <input type="password" name="password" class="form-control <?php if (session('errors.password')) : ?>is-invalid<?php endif ?>" 
+                    <input type="password" name="password" id="passwordInput" class="form-control <?php if (session('errors.password')) : ?>is-invalid<?php endif ?>" 
                            placeholder="<?=lang('Auth.password')?>" required>
                     <div class="input-group-append">
-                        <div class="input-group-text">
-                            <span class="fas fa-lock"></span>
-                        </div>
+                        <button class="btn btn-outline-secondary" type="button" id="togglePasswordBtn" style="border: 1px solid #ced4da; border-left: none; background-color: #fff; color: #495057; border-top-right-radius: .25rem; border-bottom-right-radius: .25rem;">
+                            <i class="fas fa-eye" id="togglePasswordIcon"></i>
+                        </button>
                     </div>
                     <div class="invalid-feedback">
                         <?= session('errors.password') ?>
@@ -98,4 +98,22 @@
 </div>
 <!-- /.login-box -->
 
+<?= $this->endSection() ?>
+
+<?= $this->section('pageScripts') ?>
+<script>
+$(document).ready(function() {
+    $('#togglePasswordBtn').on('click', function() {
+        const passwordInput = $('#passwordInput');
+        const icon = $('#togglePasswordIcon');
+        if (passwordInput.attr('type') === 'password') {
+            passwordInput.attr('type', 'text');
+            icon.removeClass('fa-eye').addClass('fa-eye-slash');
+        } else {
+            passwordInput.attr('type', 'password');
+            icon.removeClass('fa-eye-slash').addClass('fa-eye');
+        }
+    });
+});
+</script>
 <?= $this->endSection() ?>
