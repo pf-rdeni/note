@@ -364,8 +364,8 @@
                                             </td>
                                             <td class="text-center align-middle">
                                                 <?php if ($t['receipt_image']): ?>
-                                                    <a href="<?= base_url($t['receipt_image']) ?>" target="_blank" 
-                                                       class="btn btn-outline-success btn-sm" title="Lihat Struk">
+                                                    <a href="<?= base_url($t['receipt_image']) ?>" 
+                                                       class="btn btn-outline-success btn-sm view-image-popup" title="Lihat Struk">
                                                         <i class="fas fa-receipt"></i>
                                                     </a>
                                                 <?php else: ?>
@@ -445,8 +445,8 @@
                                     <?php endif; ?>
                                     <div class="txn-actions">
                                         <?php if ($t['receipt_image']): ?>
-                                            <a href="<?= base_url($t['receipt_image']) ?>" target="_blank" 
-                                               class="btn btn-outline-success btn-sm">
+                                            <a href="<?= base_url($t['receipt_image']) ?>" 
+                                               class="btn btn-outline-success btn-sm view-image-popup">
                                                 <i class="fas fa-receipt mr-1"></i>Struk
                                             </a>
                                         <?php endif; ?>
@@ -766,8 +766,8 @@
                                     </button>
                                     <img src="" alt="Preview Struk" class="receipt-preview-img" id="editReceiptPreviewImg">
                                     <small class="text-muted d-block mt-1" id="editReceiptFileName"></small>
-                                    <a href="#" id="edit_receipt_link" target="_blank" class="btn btn-xs btn-outline-info mt-1 d-none" id="editReceiptViewLink">
-                                        <i class="fas fa-external-link-alt mr-1"></i> Lihat Full
+                                    <a href="#" id="edit_receipt_link" class="btn btn-xs btn-outline-info mt-1 d-none view-image-popup">
+                                        <i class="fas fa-image mr-1"></i> Lihat Full
                                     </a>
                                 </div>
                             </div>

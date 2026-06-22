@@ -167,7 +167,18 @@ $(document).ready(function() {
             responsive: true
         });
     }
-    
+    // =================================================================
+    // IMAGE POPUP PREVIEW GLOBAL HANDLER
+    // =================================================================
+    $(document).on('click', '.view-image-popup', function(e) {
+        e.preventDefault();
+        const imageUrl = $(this).attr('href') || $(this).data('url');
+        if (imageUrl) {
+            $('#modalViewImageTarget').attr('src', imageUrl);
+            $('#modalViewImage').modal('show');
+        }
+    });
+
     console.log('Backend scripts initialized');
 });
 

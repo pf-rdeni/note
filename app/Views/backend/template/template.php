@@ -64,6 +64,23 @@ $bodyClass = 'hold-transition sidebar-mini layout-fixed';
                 </a>
             </div>
         </nav>
+
+        <!-- Modal View Struk / Bukti -->
+        <div class="modal fade" id="modalViewImage" tabindex="-1" role="dialog" aria-hidden="true" style="z-index: 1070;">
+            <div class="modal-dialog modal-dialog-centered" role="document">
+                <div class="modal-content">
+                    <div class="modal-header border-0 pb-0">
+                        <h5 class="modal-title font-weight-bold text-dark"><i class="fas fa-receipt mr-1 text-primary"></i> Preview Lampiran</h5>
+                        <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+                            <span aria-hidden="true">&times;</span>
+                        </button>
+                    </div>
+                    <div class="modal-body text-center p-3">
+                        <img src="" id="modalViewImageTarget" class="img-fluid rounded" style="max-height: 70vh; object-fit: contain; width: 100%;">
+                    </div>
+                </div>
+            </div>
+        </div>
     </div>
     
     <!-- Scripts -->
