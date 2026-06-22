@@ -235,6 +235,28 @@
                 padding-bottom: calc(10px + env(safe-area-inset-bottom)) !important;
             }
 
+            /* Override for Image Preview Modal on mobile to prevent cut-off */
+            #modalViewImage.modal {
+                padding-right: 0 !important;
+            }
+            #modalViewImage .modal-dialog {
+                margin: 12px !important;
+                max-width: calc(100% - 24px) !important;
+                width: calc(100% - 24px) !important;
+                height: auto !important;
+                min-height: auto !important;
+            }
+            #modalViewImage .modal-content {
+                border-radius: 12px !important;
+                min-height: auto !important;
+                height: auto !important;
+            }
+            #modalViewImage .modal-body {
+                flex: none !important;
+                height: 50vh !important;
+                min-height: 280px !important;
+            }
+
             /* Form controls mobile - touch friendly */
             .form-control,
             .custom-select {

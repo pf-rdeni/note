@@ -71,7 +71,7 @@ $bodyClass = 'hold-transition sidebar-mini layout-fixed';
                 <div class="modal-content" style="border-radius: 12px; overflow: hidden; border: none; box-shadow: 0 10px 30px rgba(0,0,0,0.25);">
                     <div class="modal-header border-bottom-0 bg-light d-flex align-items-center justify-content-between py-2 px-3">
                         <h5 class="modal-title font-weight-bold text-dark text-sm mb-0">
-                            <i class="fas fa-receipt mr-1 text-primary"></i> Preview Lampiran
+                            <i class="fas fa-receipt mr-1 text-primary"></i> <span class="d-none d-sm-inline">Preview Lampiran</span>
                         </h5>
                         <div class="d-flex align-items-center">
                             <!-- Zoom Controls -->
