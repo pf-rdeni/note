@@ -2,7 +2,7 @@
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <meta name="description" content="Aplikasi Split Bill Keluarga">
-    <meta name="author" content="Antigravity">
+    <meta name="author" content="Deni Rusandi">
     
     <title><?= $title ?? 'Split Bill Keluarga' ?></title>
     <link rel="icon" href="<?= base_url('template/backend/dist/img/AdminLTELogo.png') ?>" type="image/png" sizes="32x32">

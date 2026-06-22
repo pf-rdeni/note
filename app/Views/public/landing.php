@@ -5,178 +5,376 @@
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <title>Split Bill Keluarga | Kelola Keuangan Perjalanan Bersama</title>
 
-    <!-- Google Font: Source Sans Pro -->
-    <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Source+Sans+Pro:300,400,400i,700&display=fallback">
+    <!-- Google Font: Plus Jakarta Sans -->
+    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
     <!-- Font Awesome -->
     <link rel="stylesheet" href="<?= base_url('template/backend/plugins/fontawesome-free/css/all.min.css') ?>">
-    <!-- Theme style (Bootstrap + AdminLTE utility classes) -->
+    <!-- Theme style (Bootstrap utility classes) -->
     <link rel="stylesheet" href="<?= base_url('template/backend/dist/css/adminlte.min.css') ?>">
     
     <style>
+        :root {
+            --primary: #4f46e5;
+            --primary-hover: #4338ca;
+            --primary-light: #e0e7ff;
+            --dark: #0f172a;
+            --gray-light: #f8fafc;
+            --text-muted: #64748b;
+        }
+
         body {
-            background: linear-gradient(135deg, #1e3c72 0%, #2a5298 100%);
-            color: #ffffff;
-            font-family: 'Source Sans Pro', sans-serif;
+            background-color: #f8fafc;
+            color: var(--dark);
+            font-family: 'Plus Jakarta Sans', sans-serif;
             min-height: 100vh;
+            margin: 0;
+            overflow-x: hidden;
+            position: relative;
+        }
+
+        /* Ambient Blobs in Background */
+        .blob {
+            position: absolute;
+            border-radius: 50%;
+            filter: blur(100px);
+            z-index: -1;
+            opacity: 0.55;
+            animation: floatBlob 12s infinite alternate ease-in-out;
+        }
+        .blob-1 {
+            width: 350px;
+            height: 350px;
+            background: #c7d2fe; /* Indigo soft */
+            top: -100px;
+            left: -100px;
+        }
+        .blob-2 {
+            width: 450px;
+            height: 450px;
+            background: #dbeafe; /* Blue soft */
+            bottom: -150px;
+            right: -100px;
+            animation-delay: 2s;
+        }
+        .blob-3 {
+            width: 300px;
+            height: 300px;
+            background: #fbcfe8; /* Rose soft */
+            top: 40%;
+            left: 30%;
+            animation-delay: 4s;
+        }
+
+        @keyframes floatBlob {
+            0% { transform: translate(0, 0) scale(1); }
+            100% { transform: translate(40px, 30px) scale(1.15); }
+        }
+
+        /* Top Header */
+        header {
+            padding: 24px 0;
+            z-index: 10;
+        }
+        .header-container {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            max-width: 1100px;
+            margin: 0 auto;
+            padding: 0 24px;
+        }
+        .brand-logo {
+            font-size: 1.35rem;
+            font-weight: 800;
+            color: var(--dark);
+            text-decoration: none;
+            display: flex;
+            align-items: center;
+            letter-spacing: -0.5px;
+            transition: transform 0.2s;
+        }
+        .brand-logo:hover {
+            transform: scale(1.02);
+            color: var(--dark);
+            text-decoration: none;
+        }
+        .brand-logo i {
+            background: linear-gradient(135deg, #6366f1 0%, #3b82f6 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            margin-right: 8px;
+        }
+
+        /* Hero Wrapper */
+        .hero-section {
+            max-width: 1100px;
+            margin: 0 auto;
+            padding: 60px 24px 100px;
+            text-align: center;
+        }
+
+        /* Feature Badge */
+        .hero-badge {
+            background-color: rgba(99, 102, 241, 0.08);
+            border: 1px solid rgba(99, 102, 241, 0.15);
+            color: var(--primary);
+            font-size: 0.8rem;
+            font-weight: 700;
+            padding: 6px 14px;
+            border-radius: 99px;
+            display: inline-flex;
+            align-items: center;
+            margin-bottom: 24px;
+            letter-spacing: 0.5px;
+            text-transform: uppercase;
+        }
+
+        /* Typography */
+        .hero-title {
+            font-size: 3.2rem;
+            font-weight: 800;
+            line-height: 1.2;
+            letter-spacing: -1.5px;
+            color: var(--dark);
+            max-width: 800px;
+            margin: 0 auto 20px;
+        }
+        .hero-title span {
+            background: linear-gradient(135deg, #6366f1 0%, #3b82f6 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+        
+        .hero-subtitle {
+            font-size: 1.15rem;
+            color: var(--text-muted);
+            max-width: 620px;
+            margin: 0 auto 40px;
+            line-height: 1.6;
+            font-weight: 400;
+        }
+
+        /* CTA Buttons */
+        .cta-group {
+            display: flex;
+            justify-content: center;
+            gap: 16px;
+            margin-bottom: 70px;
+        }
+        .btn-premium {
+            padding: 14px 28px;
+            font-weight: 600;
+            border-radius: 12px;
+            font-size: 1rem;
+            transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            text-decoration: none !important;
+        }
+        .btn-premium-primary {
+            background: linear-gradient(135deg, #6366f1 0%, #3b82f6 100%);
+            color: #ffffff !important;
+            border: none;
+            box-shadow: 0 4px 14px rgba(99, 102, 241, 0.35);
+        }
+        .btn-premium-primary:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 20px rgba(99, 102, 241, 0.45);
+        }
+        .btn-premium-secondary {
+            background: #ffffff;
+            color: var(--dark) !important;
+            border: 1px solid #e2e8f0;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.02);
+        }
+        .btn-premium-secondary:hover {
+            background-color: var(--gray-light);
+            border-color: #cbd5e1;
+            transform: translateY(-2px);
+        }
+
+        /* Features Cards Grid */
+        .features-grid {
+            margin-top: 20px;
+        }
+        .feature-card {
+            background: rgba(255, 255, 255, 0.7);
+            backdrop-filter: blur(12px);
+            -webkit-backdrop-filter: blur(12px);
+            border: 1px solid rgba(255, 255, 255, 0.6);
+            border-radius: 20px;
+            padding: 32px;
+            text-align: left;
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.02);
+            height: 100%;
+        }
+        .feature-card:hover {
+            transform: translateY(-5px);
+            background: #ffffff;
+            box-shadow: 0 15px 35px rgba(99, 102, 241, 0.08);
+            border-color: rgba(99, 102, 241, 0.2);
+        }
+        .feature-icon-wrapper {
+            width: 48px;
+            height: 48px;
+            border-radius: 12px;
+            background: rgba(99, 102, 241, 0.08);
             display: flex;
             align-items: center;
             justify-content: center;
-            padding: 20px;
-        }
-        .landing-card {
-            background: rgba(255, 255, 255, 0.1);
-            backdrop-filter: blur(10px);
-            -webkit-backdrop-filter: blur(10px);
-            border: 1px solid rgba(255, 255, 255, 0.2);
-            border-radius: 20px;
-            max-width: 800px;
-            width: 100%;
-            padding: 50px 40px;
-            box-shadow: 0 15px 35px rgba(0, 0, 0, 0.3);
-        }
-        .logo-icon {
-            font-size: 4rem;
-            color: #00e5ff;
+            font-size: 1.35rem;
+            color: var(--primary);
             margin-bottom: 20px;
-            animation: float 3s ease-in-out infinite;
+            transition: all 0.3s;
         }
-        @keyframes float {
-            0%, 100% { transform: translateY(0); }
-            50% { transform: translateY(-10px); }
-        }
-        .app-title {
-            font-size: 2.8rem;
-            font-weight: 700;
-            letter-spacing: -1px;
-            margin-bottom: 10px;
-        }
-        .app-subtitle {
-            font-size: 1.2rem;
-            color: #e0e0e0;
-            margin-bottom: 40px;
-            font-weight: 300;
-        }
-        .feature-item {
-            background: rgba(255, 255, 255, 0.05);
-            border-radius: 12px;
-            padding: 20px;
-            margin-bottom: 20px;
-            border: 1px solid rgba(255, 255, 255, 0.05);
-            transition: all 0.3s ease;
-        }
-        .feature-item:hover {
-            background: rgba(255, 255, 255, 0.08);
-            transform: translateY(-2px);
-        }
-        .feature-icon {
-            font-size: 1.8rem;
-            color: #00e5ff;
-            margin-right: 15px;
+        .feature-card:hover .feature-icon-wrapper {
+            background: var(--primary);
+            color: #ffffff;
+            transform: scale(1.05);
         }
         .feature-title {
-            font-weight: 600;
-            font-size: 1.1rem;
-            margin-bottom: 5px;
+            font-size: 1.15rem;
+            font-weight: 700;
+            color: var(--dark);
+            margin-bottom: 8px;
         }
         .feature-desc {
-            font-size: 0.9rem;
-            color: #cccccc;
+            font-size: 0.92rem;
+            color: var(--text-muted);
+            line-height: 1.5;
             margin-bottom: 0;
         }
-        .btn-cta {
-            padding: 12px 30px;
-            font-weight: 600;
-            border-radius: 10px;
-            font-size: 1.1rem;
-            transition: all 0.3s ease;
-        }
-        .btn-login {
-            background-color: #00e5ff;
-            color: #1e3c72;
-            border: none;
-        }
-        .btn-login:hover {
-            background-color: #00b8d4;
-            color: #1e3c72;
-            transform: translateY(-2px);
-            box-shadow: 0 5px 15px rgba(0, 229, 255, 0.4);
-        }
-        .btn-register {
-            background-color: transparent;
-            color: #ffffff;
-            border: 2px solid #ffffff;
-        }
-        .btn-register:hover {
-            background-color: rgba(255, 255, 255, 0.1);
-            color: #ffffff;
-            transform: translateY(-2px);
+
+        /* Footer */
+        footer {
+            border-top: 1px solid rgba(226, 232, 240, 0.8);
+            padding: 30px 24px;
+            text-align: center;
+            margin-top: 40px;
         }
         .footer-text {
-            margin-top: 40px;
-            font-size: 0.85rem;
-            color: #a0aec0;
+            font-size: 0.88rem;
+            color: var(--text-muted);
+            margin-bottom: 0;
+            font-weight: 500;
+        }
+
+        /* Responsive Mobile Adjustments */
+        @media (max-width: 768px) {
+            .hero-title {
+                font-size: 2.2rem;
+                letter-spacing: -1px;
+            }
+            .hero-subtitle {
+                font-size: 1rem;
+            }
+            .cta-group {
+                flex-direction: column;
+                gap: 12px;
+                max-width: 320px;
+                margin: 0 auto 50px;
+            }
+            .btn-premium {
+                width: 100%;
+                padding: 12px 24px;
+            }
+            .hero-section {
+                padding: 40px 16px 60px;
+            }
+            .feature-card {
+                padding: 24px;
+                margin-bottom: 16px;
+            }
         }
     </style>
 </head>
 <body>
 
-    <div class="landing-card text-center">
-        <div>
-            <i class="fas fa-wallet logo-icon"></i>
-        </div>
-        <h1 class="app-title">Split Bill Keluarga</h1>
-        <p class="app-subtitle">Solusi cerdas kelola talangan & adjustment keuangan saat trip bersama keluarga secara adil dan otomatis.</p>
-        
-        <div class="row text-left mt-5">
-            <div class="col-md-6">
-                <div class="feature-item d-flex align-items-start">
-                    <i class="fas fa-users-cog feature-icon"></i>
-                    <div>
-                        <div class="feature-title">Multi-Tenant & Grup</div>
-                        <p class="feature-desc">Pisahkan data keuangan antar grup perjalanan Anda dengan aman dan terisolasi.</p>
-                    </div>
-                </div>
-            </div>
-            <div class="col-md-6">
-                <div class="feature-item d-flex align-items-start">
-                    <i class="fas fa-calculator feature-icon"></i>
-                    <div>
-                        <div class="feature-title">Kalkulasi Otomatis</div>
-                        <p class="feature-desc">Perhitungan Shared & Individual Adjustment yang presisi untuk nominal penagihan lunas.</p>
-                    </div>
-                </div>
-            </div>
-            <div class="col-md-6">
-                <div class="feature-item d-flex align-items-start">
-                    <i class="fas fa-history feature-icon"></i>
-                    <div>
-                        <div class="feature-title">Riwayat Transaksi</div>
-                        <p class="feature-desc">Rekapitulasi ala Excel yang mudah dipahami lengkap dengan tanggal, deskripsi, & bukti.</p>
-                    </div>
-                </div>
-            </div>
-            <div class="col-md-6">
-                <div class="feature-item d-flex align-items-start">
-                    <i class="fas fa-check-circle feature-icon"></i>
-                    <div>
-                        <div class="feature-title">Konfirmasi Settlement</div>
-                        <p class="feature-desc">Unggah bukti transfer dan tandai pembayaran lunas hanya dalam satu tombol.</p>
-                    </div>
-                </div>
-            </div>
-        </div>
+    <!-- Blobs in background -->
+    <div class="blob blob-1"></div>
+    <div class="blob blob-2"></div>
+    <div class="blob blob-3"></div>
 
-        <div class="mt-5 d-flex justify-content-center flex-wrap" style="gap: 15px;">
-            <a href="<?= url_to('login') ?>" class="btn btn-cta btn-login">
-                <i class="fas fa-sign-in-alt mr-2"></i>Masuk Ke Aplikasi
+    <!-- Header Navigation -->
+    <header>
+        <div class="header-container">
+            <a href="<?= base_url() ?>" class="brand-logo">
+                <i class="fas fa-wallet mr-2"></i><span>Split Bill</span>
             </a>
-            <a href="<?= url_to('register') ?>" class="btn btn-cta btn-register">
+        </div>
+    </header>
+
+    <!-- Hero & Features Content -->
+    <main class="hero-section">
+        <div class="hero-badge">
+            <i class="fas fa-sparkles mr-1 text-warning"></i> Kelola Keuangan Praktis
+        </div>
+        <h1 class="hero-title">
+            Kelola Talangan & <span>Split Bill</span> Keluarga Tanpa Ribet
+        </h1>
+        <p class="hero-subtitle">
+            Solusi cerdas kalkulasi otomatis penagihan yang adil untuk perjalanan (trip) keluarga atau kelompok. Transparan, cepat, dan teratur.
+        </p>
+
+        <!-- CTA Groups -->
+        <div class="cta-group">
+            <a href="<?= url_to('login') ?>" class="btn-premium btn-premium-primary">
+                <i class="fas fa-sign-in-alt mr-2"></i>Masuk ke Aplikasi
+            </a>
+            <a href="<?= url_to('register') ?>" class="btn-premium btn-premium-secondary">
                 <i class="fas fa-user-plus mr-2"></i>Daftar Akun Baru
             </a>
         </div>
 
-        <p class="footer-text">&copy; <?= date('Y') ?> Split Bill Keluarga. Developed by Antigravity.</p>
-    </div>
+        <!-- Features grid (2x2 cards layout) -->
+        <div class="features-grid text-left">
+            <div class="row">
+                <div class="col-md-6 mb-4">
+                    <div class="feature-card">
+                        <div class="feature-icon-wrapper">
+                            <i class="fas fa-users-cog"></i>
+                        </div>
+                        <h4 class="feature-title">Multi-Tenant & Grup</h4>
+                        <p class="feature-desc">Pisahkan data keuangan antar grup perjalanan Anda dengan aman, teratur, dan terisolasi.</p>
+                    </div>
+                </div>
+                <div class="col-md-6 mb-4">
+                    <div class="feature-card">
+                        <div class="feature-icon-wrapper">
+                            <i class="fas fa-calculator"></i>
+                        </div>
+                        <h4 class="feature-title">Kalkulasi Otomatis</h4>
+                        <p class="feature-desc">Perhitungan pembagian Shared & Individual Adjustment yang presisi untuk nominal penagihan lunas secara instan.</p>
+                    </div>
+                </div>
+                <div class="col-md-6 mb-4">
+                    <div class="feature-card">
+                        <div class="feature-icon-wrapper">
+                            <i class="fas fa-history"></i>
+                        </div>
+                        <h4 class="feature-title">Riwayat & Bukti</h4>
+                        <p class="feature-desc">Rekapitulasi transaksi yang detail dan transparan, lengkap dengan tanggal, deskripsi, & preview struk.</p>
+                    </div>
+                </div>
+                <div class="col-md-6 mb-4">
+                    <div class="feature-card">
+                        <div class="feature-icon-wrapper">
+                            <i class="fas fa-check-circle"></i>
+                        </div>
+                        <h4 class="feature-title">Konfirmasi Terima</h4>
+                        <p class="feature-desc">Unggah bukti transfer Anda, tunggu verifikasi satu tombol dari penerima, dan saldo otomatis seimbang.</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <!-- Footer -->
+    <footer>
+        <p class="footer-text">&copy; <?= date('Y') ?> Split Bill Keluarga. Developed by Deni Rusandi.</p>
+    </footer>
 
 </body>
 </html>
