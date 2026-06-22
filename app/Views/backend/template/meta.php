@@ -153,8 +153,12 @@
             }
 
             /* Padding bawah agar konten tidak tertutup bottom nav */
-            .content-wrapper {
-                padding-bottom: 70px !important;
+            .content-wrapper,
+            section.content {
+                padding-bottom: 85px !important;
+            }
+            .main-footer {
+                display: none !important;
             }
             
             /* Kompakkan header content */
