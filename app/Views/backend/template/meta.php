@@ -94,7 +94,7 @@
             right: 0;
             height: 60px;
             background: #343a40;
-            z-index: 1050;
+            z-index: 1030;
             box-shadow: 0 -2px 12px rgba(0,0,0,0.25);
             border-top: 1px solid rgba(255,255,255,0.08);
         }

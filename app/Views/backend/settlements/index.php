@@ -345,12 +345,35 @@
                         </div>
 
                         <div class="form-group">
-                            <label for="proof_image">File Bukti Transfer <span class="text-muted">(Opsional)</span></label>
-                            <div class="custom-file">
-                                <input type="file" class="custom-file-input" id="proof_image" name="proof_image" accept="image/*">
-                                <label class="custom-file-label" for="proof_image">Pilih berkas gambar (opsional)...</label>
+                            <label>File Bukti Transfer <span class="text-muted">(Opsional)</span></label>
+                            <!-- Hidden file inputs -->
+                            <input type="file" class="d-none proof-file-input" id="proof_image" name="proof_image" 
+                                   accept="image/*" capture="environment">
+                            <input type="file" class="d-none proof-gallery-input" id="proof_image_gallery" 
+                                   accept="image/*">
+                            
+                            <div class="receipt-upload-area" id="proofUploadArea">
+                                <!-- Pilihan tombol -->
+                                <div class="receipt-upload-actions" id="proofUploadActions">
+                                    <label for="proof_image" class="btn-capture mb-0" title="Ambil foto bukti transfer langsung dengan kamera">
+                                        <i class="fas fa-camera"></i>
+                                        Foto Bukti
+                                    </label>
+                                    <label for="proof_image_gallery" class="btn-gallery mb-0" title="Pilih dari galeri foto">
+                                        <i class="fas fa-images"></i>
+                                        Dari Galeri
+                                    </label>
+                                </div>
+                                <!-- Preview gambar -->
+                                <div class="receipt-preview-container" id="proofPreviewContainer">
+                                    <button type="button" class="btn-remove-receipt" id="btnRemoveProof" title="Hapus foto">
+                                        <i class="fas fa-times"></i>
+                                    </button>
+                                    <img src="" alt="Preview Bukti" class="receipt-preview-img" id="proofPreviewImg">
+                                    <small class="text-muted d-block mt-1" id="proofFileName"></small>
+                                </div>
                             </div>
-                            <small class="form-text text-muted">Format: JPG, JPEG, PNG. Maks 2MB. Kosongkan jika belum ada bukti.</small>
+                            <small class="form-text text-muted">Format JPG/PNG, maks 5MB. Unggah sebagai bukti pembayaran transfer.</small>
                         </div>
 
                         <div class="form-group">
@@ -379,10 +402,73 @@ $(document).ready(function() {
         theme: 'bootstrap4'
     });
 
-    // Custom label file upload bootstrap
-    $('#proof_image').on('change', function() {
-        let fileName = $(this).val().split('\\').pop();
-        $(this).next('.custom-file-label').addClass("selected").html(fileName);
+    // =============================================
+    // PROOF UPLOAD: Kamera & Galeri Handler (Modal Settlements)
+    // =============================================
+    function setupProofUpload(cameraInputId, galleryInputId, previewContainerId, previewImgId, fileNameId, removeBtn) {
+        const cameraInput  = document.getElementById(cameraInputId);
+        const galleryInput = document.getElementById(galleryInputId);
+        const previewCont  = document.getElementById(previewContainerId);
+        const previewImg   = document.getElementById(previewImgId);
+        const fileNameEl   = document.getElementById(fileNameId);
+        const removeBtnEl  = document.getElementById(removeBtn);
+
+        function handleFile(file, targetInput) {
+            if (!file) return;
+            // Sinkronkan ke input utama (cameraInput) untuk submit
+            try {
+                const dt = new DataTransfer();
+                dt.items.add(file);
+                cameraInput.files = dt.files;
+            } catch(e) { /* Safari fallback */ }
+
+            const reader = new FileReader();
+            reader.onload = function(e) {
+                previewImg.src = e.target.result;
+                previewCont.style.display = 'block';
+                if (fileNameEl) fileNameEl.textContent = file.name + ' (' + (file.size/1024).toFixed(1) + ' KB)';
+            };
+            reader.readAsDataURL(file);
+        }
+
+        if (cameraInput) {
+            cameraInput.addEventListener('change', function() {
+                if (this.files && this.files[0]) handleFile(this.files[0], this);
+            });
+        }
+        if (galleryInput) {
+            galleryInput.addEventListener('change', function() {
+                if (this.files && this.files[0]) {
+                    handleFile(this.files[0], this);
+                    try {
+                        const dt = new DataTransfer();
+                        dt.items.add(this.files[0]);
+                        cameraInput.files = dt.files;
+                    } catch(e) {}
+                }
+            });
+        }
+        if (removeBtnEl) {
+            removeBtnEl.addEventListener('click', function() {
+                if (cameraInput)  cameraInput.value  = '';
+                if (galleryInput) galleryInput.value = '';
+                previewImg.src = '';
+                previewCont.style.display = 'none';
+                if (fileNameEl) fileNameEl.textContent = '';
+            });
+        }
+    }
+
+    setupProofUpload('proof_image', 'proof_image_gallery', 'proofPreviewContainer', 'proofPreviewImg', 'proofFileName', 'btnRemoveProof');
+
+    // Reset file input dan preview saat modal ditutup
+    $('#modalPaySettlement').on('hidden.bs.modal', function () {
+        $('#proof_image').val('');
+        $('#proof_image_gallery').val('');
+        $('#proofPreviewImg').attr('src', '');
+        $('#proofPreviewContainer').hide();
+        $('#proofFileName').text('');
+        $('#note').val('');
     });
 
     // Event Klik Tombol Konfirmasi Transfer
