@@ -398,6 +398,14 @@ class Transactions extends BaseController
             return redirect()->back()->with('error', 'Hanya admin grup yang dapat menghapus transaksi.');
         }
 
+        // Hapus file struk dari disk jika ada
+        if (!empty($transaction['receipt_image'])) {
+            $receiptPath = FCPATH . $transaction['receipt_image'];
+            if (file_exists($receiptPath) && is_file($receiptPath)) {
+                unlink($receiptPath);
+            }
+        }
+
         $this->transactionModel->delete($transactionId);
 
         return redirect()->to('backend/transactions?trip_id=' . $transaction['trip_id'] . ($transaction['period_id'] ? '&period_id=' . $transaction['period_id'] : ''))->with('success', 'Transaksi berhasil dihapus.');
