@@ -745,6 +745,12 @@ $(document).ready(function() {
         dropdownParent: $('#modalTransaction')
     });
 
+    // Custom label file upload bootstrap
+    $('.receipt-file-input').on('change', function() {
+        let fileName = $(this).val().split('\\').pop();
+        $(this).next('.custom-file-label').addClass("selected").html(fileName || 'Pilih foto struk...');
+    });
+
     // Event Handler Hapus Transaksi (Konfirmasi SweetAlert2)
     $('.btn-delete-trans').on('click', function(e) {
         e.preventDefault();

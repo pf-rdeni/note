@@ -202,12 +202,7 @@ class Transactions extends BaseController
         $receiptPath = null;
         $receiptFile = $this->request->getFile('receipt_image');
         if ($receiptFile && $receiptFile->isValid() && !$receiptFile->hasMoved()) {
-            if (!is_dir(FCPATH . 'uploads/receipts')) {
-                mkdir(FCPATH . 'uploads/receipts', 0777, true);
-            }
-            $newName = $receiptFile->getRandomName();
-            $receiptFile->move(FCPATH . 'uploads/receipts', $newName);
-            $receiptPath = 'uploads/receipts/' . $newName;
+            $receiptPath = $this->compressAndSaveImage($receiptFile, 'uploads/receipts');
         }
 
         // 4. Simpan transaksi utama & detail
@@ -346,12 +341,7 @@ class Transactions extends BaseController
             if ($receiptPath && file_exists(FCPATH . $receiptPath)) {
                 unlink(FCPATH . $receiptPath);
             }
-            if (!is_dir(FCPATH . 'uploads/receipts')) {
-                mkdir(FCPATH . 'uploads/receipts', 0777, true);
-            }
-            $newName = $receiptFile->getRandomName();
-            $receiptFile->move(FCPATH . 'uploads/receipts', $newName);
-            $receiptPath = 'uploads/receipts/' . $newName;
+            $receiptPath = $this->compressAndSaveImage($receiptFile, 'uploads/receipts');
         }
 
         // 4. Simpan transaksi utama & detail
@@ -411,5 +401,40 @@ class Transactions extends BaseController
         $this->transactionModel->delete($transactionId);
 
         return redirect()->to('backend/transactions?trip_id=' . $transaction['trip_id'] . ($transaction['period_id'] ? '&period_id=' . $transaction['period_id'] : ''))->with('success', 'Transaksi berhasil dihapus.');
+    }
+
+    /**
+     * Compress and resize uploaded image using CodeIgniter 4 Image service
+     */
+    protected function compressAndSaveImage($file, string $targetFolder): ?string
+    {
+        if (!$file || !$file->isValid() || $file->hasMoved()) {
+            return null;
+        }
+
+        // Ensure target folder exists under FCPATH
+        $uploadDir = FCPATH . $targetFolder;
+        if (!is_dir($uploadDir)) {
+            mkdir($uploadDir, 0777, true);
+        }
+
+        $newName = $file->getRandomName();
+        $targetPath = $uploadDir . '/' . $newName;
+
+        try {
+            // Use CI4 Image Manipulation Service
+            \Config\Services::image()
+                ->withFile($file->getTempName())
+                ->resize(1024, 1024, true, 'auto') // Max height/width 1024px, maintain ratio
+                ->save($targetPath, 75); // Quality 75%
+
+            return $targetFolder . '/' . $newName;
+        } catch (\Exception $e) {
+            // Fallback if image service/GD library fails
+            if ($file->move($uploadDir, $newName)) {
+                return $targetFolder . '/' . $newName;
+            }
+            return null;
+        }
     }
 }

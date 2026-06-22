@@ -130,3 +130,8 @@ _modules/*
 # Database Migrations
 #-------------------------
 app/Database/*
+
+#-------------------------
+# Uploads
+#-------------------------
+public/uploads/*

@@ -152,13 +152,7 @@ class Settlements extends BaseController
         $proofPath = null;
         $img = $this->request->getFile('proof_image');
         if ($img && $img->isValid() && !$img->hasMoved()) {
-            $newName = $img->getRandomName();
-            // Buat folder jika belum ada
-            if (!is_dir(FCPATH . 'uploads/settlements')) {
-                mkdir(FCPATH . 'uploads/settlements', 0777, true);
-            }
-            $img->move(FCPATH . 'uploads/settlements', $newName);
-            $proofPath = 'uploads/settlements/' . $newName;
+            $proofPath = $this->compressAndSaveImage($img, 'uploads/settlements');
         }
 
         // Simpan data settlement
@@ -205,5 +199,40 @@ class Settlements extends BaseController
         ]);
 
         return redirect()->to('backend/settlements?trip_id=' . $settlement['trip_id'] . '&period_id=' . $settlement['period_id'])->with('success', 'Transfer berhasil diverifikasi dan ditandai lunas.');
+    }
+
+    /**
+     * Compress and resize uploaded image using CodeIgniter 4 Image service
+     */
+    protected function compressAndSaveImage($file, string $targetFolder): ?string
+    {
+        if (!$file || !$file->isValid() || $file->hasMoved()) {
+            return null;
+        }
+
+        // Ensure target folder exists under FCPATH
+        $uploadDir = FCPATH . $targetFolder;
+        if (!is_dir($uploadDir)) {
+            mkdir($uploadDir, 0777, true);
+        }
+
+        $newName = $file->getRandomName();
+        $targetPath = $uploadDir . '/' . $newName;
+
+        try {
+            // Use CI4 Image Manipulation Service
+            \Config\Services::image()
+                ->withFile($file->getTempName())
+                ->resize(1024, 1024, true, 'auto') // Max height/width 1024px, maintain ratio
+                ->save($targetPath, 75); // Quality 75%
+
+            return $targetFolder . '/' . $newName;
+        } catch (\Exception $e) {
+            // Fallback if image service/GD library fails
+            if ($file->move($uploadDir, $newName)) {
+                return $targetFolder . '/' . $newName;
+            }
+            return null;
+        }
     }
 }
