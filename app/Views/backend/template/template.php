@@ -33,6 +33,37 @@ $bodyClass = 'hold-transition sidebar-mini layout-fixed';
         
         <!-- Footer -->
         <?= $this->include('backend/template/footer'); ?>
+
+        <!-- Mobile Bottom Navigation Bar -->
+        <nav class="mobile-bottom-nav" id="mobileBottomNav">
+            <div class="nav-items">
+                <a href="<?= base_url('backend/dashboard') ?>" 
+                   class="nav-item-btn <?= uri_string() == 'backend/dashboard' ? 'active' : '' ?>">
+                    <i class="fas fa-tachometer-alt"></i>
+                    <span>Dashboard</span>
+                </a>
+                <a href="<?= base_url('backend/trips') ?>" 
+                   class="nav-item-btn <?= strpos(uri_string(), 'backend/trips') !== false ? 'active' : '' ?>">
+                    <i class="fas fa-plane-departure"></i>
+                    <span>Trip</span>
+                </a>
+                <a href="<?= base_url('backend/transactions') ?>" 
+                   class="nav-item-btn <?= strpos(uri_string(), 'backend/transactions') !== false ? 'active' : '' ?>">
+                    <i class="fas fa-file-invoice-dollar"></i>
+                    <span>Transaksi</span>
+                </a>
+                <a href="<?= base_url('backend/settlements') ?>" 
+                   class="nav-item-btn <?= strpos(uri_string(), 'backend/settlements') !== false ? 'active' : '' ?>">
+                    <i class="fas fa-hand-holding-usd"></i>
+                    <span>Settlement</span>
+                </a>
+                <a href="<?= base_url('backend/profil') ?>" 
+                   class="nav-item-btn <?= strpos(uri_string(), 'backend/profil') !== false ? 'active' : '' ?>">
+                    <i class="fas fa-user"></i>
+                    <span>Profil</span>
+                </a>
+            </div>
+        </nav>
     </div>
     
     <!-- Scripts -->

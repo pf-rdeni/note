@@ -39,6 +39,14 @@
 <div class="row">
     <!-- Filter Sidebar Column -->
     <div class="col-lg-3">
+        <!-- Mobile filter toggle -->
+        <button class="btn btn-outline-primary btn-sm mobile-filter-toggle" type="button" 
+                data-toggle="collapse" data-target="#filterPanel" 
+                aria-expanded="false" aria-controls="filterPanel">
+            <i class="fas fa-filter mr-1"></i> Filter Trip & Periode
+        </button>
+
+        <div class="collapse show" id="filterPanel">
         <!-- Trip Selector Card -->
         <div class="card card-primary card-outline">
             <div class="card-header">
@@ -103,6 +111,7 @@
                 </div>
             </div>
         <?php endif; ?>
+        </div><!-- /.collapse -->
     </div>
 
     <!-- Transactions List Column -->
@@ -123,7 +132,7 @@
             <?php if (!empty($calculationResult)): ?>
                 <!-- Summary Widgets -->
                 <div class="row">
-                    <div class="col-md-3 col-sm-6 col-12">
+                    <div class="col-md-3 col-6">
                         <div class="info-box bg-gradient-primary">
                             <span class="info-box-icon"><i class="fas fa-wallet"></i></span>
                             <div class="info-box-content">
@@ -132,7 +141,7 @@
                             </div>
                         </div>
                     </div>
-                    <div class="col-md-3 col-sm-6 col-12">
+                    <div class="col-md-3 col-6">
                         <div class="info-box bg-gradient-success">
                             <span class="info-box-icon"><i class="fas fa-divide"></i></span>
                             <div class="info-box-content">
@@ -141,7 +150,7 @@
                             </div>
                         </div>
                     </div>
-                    <div class="col-md-3 col-sm-6 col-12">
+                    <div class="col-md-3 col-6">
                         <div class="info-box bg-gradient-warning text-white">
                             <span class="info-box-icon text-white"><i class="fas fa-user-friends"></i></span>
                             <div class="info-box-content">
@@ -150,7 +159,7 @@
                             </div>
                         </div>
                     </div>
-                    <div class="col-md-3 col-sm-6 col-12">
+                    <div class="col-md-3 col-6">
                         <div class="info-box bg-gradient-info">
                             <span class="info-box-icon"><i class="fas fa-user-tag"></i></span>
                             <div class="info-box-content">
@@ -165,30 +174,30 @@
                 <div class="card card-success card-outline shadow-sm">
                     <div class="card-header border-0 d-flex justify-content-between align-items-center py-3">
                         <h3 class="card-title font-weight-bold text-success mb-0">
-                            <i class="fas fa-table mr-1"></i> Rekapitulasi Pembagian Saldo (Excel-Style)
+                            <i class="fas fa-table mr-1"></i> <span class="d-none d-sm-inline">Rekapitulasi Pembagian Saldo</span><span class="d-sm-none">Rekap Saldo</span>
                         </h3>
-                        <div class="card-tools ml-auto d-flex align-items-center" style="gap: 8px;">
+                        <div class="card-tools ml-auto d-flex align-items-center" style="gap: 6px;">
                             <button type="button" class="btn btn-xs btn-outline-success font-weight-bold btn-export-excel">
-                                <i class="fas fa-file-excel mr-1"></i> Ekspor Excel
+                                <i class="fas fa-file-excel mr-1"></i> <span class="d-none d-sm-inline">Ekspor </span>Excel
                             </button>
                             <button type="button" class="btn btn-xs btn-outline-info font-weight-bold btn-print-rekap">
-                                <i class="fas fa-print mr-1"></i> Cetak PDF
+                                <i class="fas fa-print mr-1"></i> <span class="d-none d-sm-inline">Cetak </span>PDF
                             </button>
-                            <span class="badge badge-success py-2 px-3 font-weight-bold ml-1">Periode: <?= esc($calculationResult['period']['label']) ?></span>
+                            <span class="badge badge-success py-2 px-2 font-weight-bold ml-1 d-none d-sm-inline">Periode: <?= esc($calculationResult['period']['label']) ?></span>
                         </div>
                     </div>
                     <div class="card-body p-0">
-                        <div class="table-responsive">
+                        <div class="rekap-table-wrapper">
                             <table class="table table-bordered table-striped mb-0 text-center" id="rekapTable">
                                 <thead class="bg-light text-secondary text-sm">
                                     <tr>
-                                        <th class="text-left py-3">Nama Anggota</th>
-                                        <th class="py-3">Status Aktif</th>
-                                        <th class="text-right py-3">Total Belanja (A)<br><small class="text-muted">Paid Out of Pocket</small></th>
-                                        <th class="text-right py-3">Beban Shared (B)<br><small class="text-muted">Split Rata</small></th>
-                                        <th class="text-right py-3">Selisih Awal<br><small class="text-muted">(A - B)</small></th>
-                                        <th class="text-right py-3">Beban Kustom (C)<br><small class="text-muted">Individual Adjustments</small></th>
-                                        <th class="text-right py-3">Saldo Akhir (Selisih Final)<br><small class="text-muted">(A - B - C)</small></th>
+                                        <th class="text-left py-3">Nama</th>
+                                        <th class="py-3 table-rekap-mobile-hide">Status</th>
+                                        <th class="text-right py-3">Total (A)<br><small class="text-muted d-none d-sm-block">Paid Out of Pocket</small></th>
+                                        <th class="text-right py-3 table-rekap-mobile-hide">Shared (B)<br><small class="text-muted">Split Rata</small></th>
+                                        <th class="text-right py-3 table-rekap-mobile-hide">Selisih<br><small class="text-muted">(A-B)</small></th>
+                                        <th class="text-right py-3 table-rekap-mobile-hide">Kustom (C)<br><small class="text-muted">Individual</small></th>
+                                        <th class="text-right py-3">Saldo Akhir<br><small class="text-muted">(A-B-C)</small></th>
                                     </tr>
                                 </thead>
                                 <tbody>
@@ -199,9 +208,9 @@
                                         ?>
                                         <tr>
                                             <td class="text-left font-weight-bold align-middle py-3">
-                                                <i class="far fa-user text-muted mr-2"></i><?= esc($p['username']) ?>
+                                                <i class="far fa-user text-muted mr-1"></i><?= esc($p['username']) ?>
                                             </td>
-                                            <td class="align-middle">
+                                            <td class="align-middle table-rekap-mobile-hide">
                                                 <?php if ($p['is_active_member']): ?>
                                                     <span class="badge badge-success px-2 py-1"><i class="fas fa-check mr-1"></i>Aktif</span>
                                                 <?php else: ?>
@@ -211,13 +220,13 @@
                                             <td class="text-right align-middle font-weight-bold text-dark py-3">
                                                 Rp <?= number_format($p['total_paid'], 0, ',', '.') ?>
                                             </td>
-                                            <td class="text-right align-middle text-muted py-3">
+                                            <td class="text-right align-middle text-muted py-3 table-rekap-mobile-hide">
                                                 Rp <?= number_format($p['shared_share'], 0, ',', '.') ?>
                                             </td>
-                                            <td class="text-right align-middle font-weight-bold py-3 <?= $selisihAwal >= 0 ? 'text-success' : 'text-danger' ?>">
+                                            <td class="text-right align-middle font-weight-bold py-3 table-rekap-mobile-hide <?= $selisihAwal >= 0 ? 'text-success' : 'text-danger' ?>">
                                                 <?= $selisihAwal >= 0 ? '+' : '-' ?> Rp <?= number_format(abs($selisihAwal), 0, ',', '.') ?>
                                             </td>
-                                            <td class="text-right align-middle text-info py-3">
+                                            <td class="text-right align-middle text-info py-3 table-rekap-mobile-hide">
                                                 Rp <?= number_format($p['individual_charge'], 0, ',', '.') ?>
                                             </td>
                                             <td class="text-right align-middle font-weight-bold py-3 <?= $netBalance >= 0 ? 'text-success' : 'text-danger' ?>" style="font-size: 1.05rem; background-color: <?= $netBalance >= 0 ? 'rgba(40, 167, 69, 0.08)' : 'rgba(220, 53, 69, 0.08)' ?>;">
@@ -235,7 +244,7 @@
                 <div class="card card-warning card-outline shadow-sm">
                     <div class="card-header border-0">
                         <h3 class="card-title font-weight-bold text-warning">
-                            <i class="fas fa-hand-holding-usd mr-1"></i> Rekomendasi Penyelesaian (Settlement)
+                            <i class="fas fa-hand-holding-usd mr-1"></i> Rekomendasi Settlement
                         </h3>
                     </div>
                     <div class="card-body">
@@ -247,10 +256,10 @@
                             <p class="text-muted mb-3">Untuk menyeimbangkan seluruh saldo di atas, berikut rincian transfer yang disarankan:</p>
                             <div class="row">
                                 <?php foreach ($calculationResult['settlements'] as $s): ?>
-                                    <div class="col-md-6 mb-3">
+                                    <div class="col-md-6 col-12 mb-3 settlement-card">
                                         <div class="p-3 border rounded bg-light d-flex align-items-center justify-content-between shadow-xs">
                                             <div style="flex: 1;">
-                                                <span class="badge badge-danger font-weight-bold mb-1">Debitur (Bayar)</span>
+                                                <span class="badge badge-danger font-weight-bold mb-1">Bayar</span>
                                                 <h6 class="font-weight-bold mb-0 text-dark"><?= esc($s['from_username']) ?></h6>
                                             </div>
                                             <div class="text-center px-2" style="flex: 1.5;">
@@ -258,7 +267,7 @@
                                                 <div class="font-weight-bold text-md text-primary mt-1">Rp <?= number_format($s['amount'], 0, ',', '.') ?></div>
                                             </div>
                                             <div class="text-right" style="flex: 1;">
-                                                <span class="badge badge-success font-weight-bold mb-1">Kreditur (Terima)</span>
+                                                <span class="badge badge-success font-weight-bold mb-1">Terima</span>
                                                 <h6 class="font-weight-bold mb-0 text-dark"><?= esc($s['to_username']) ?></h6>
                                             </div>
                                         </div>
@@ -274,18 +283,21 @@
                 <div class="card-header d-flex justify-content-between align-items-center py-3">
                     <h3 class="card-title font-weight-bold mb-0 align-middle">
                         <i class="fas fa-file-invoice-dollar text-primary mr-1"></i> 
-                        Transaksi: <?= esc($selectedTrip['name']) ?>
+                        <span class="d-none d-sm-inline">Transaksi: <?= esc($selectedTrip['name']) ?></span>
+                        <span class="d-sm-none">Transaksi</span>
                     </h3>
                     <div class="card-tools ml-auto">
                         <button type="button" class="btn btn-success font-weight-bold" data-toggle="modal" data-target="#modalTransaction">
-                            <i class="fas fa-plus mr-1"></i> Catat Transaksi
+                            <i class="fas fa-plus mr-1"></i> <span class="d-none d-sm-inline">Catat </span>Transaksi
                         </button>
                     </div>
                 </div>
                 <!-- /.card-header -->
                 <div class="card-body p-0">
-                    <div class="table-responsive">
-                        <table class="table table-hover table-striped mb-0">
+                    
+                    <!-- DESKTOP TABLE (tersembunyi di mobile) -->
+                    <div class="table-responsive txn-desktop-table">
+                        <table class="table table-hover table-striped mb-0 txn-desktop-table">
                             <thead>
                                 <tr>
                                     <th>Tanggal</th>
@@ -301,7 +313,7 @@
                             <tbody>
                                 <?php if (empty($transactions)): ?>
                                     <tr>
-                                        <td colspan="7" class="text-center py-5 text-muted">
+                                        <td colspan="8" class="text-center py-5 text-muted">
                                             <i class="fas fa-receipt fa-2x mb-2 d-block text-warning"></i>
                                             Belum ada transaksi tercatat untuk trip/periode terpilih.
                                         </td>
@@ -385,6 +397,79 @@
                             </tbody>
                         </table>
                     </div>
+
+                    <!-- MOBILE CARD LIST (tersembunyi di desktop) -->
+                    <div class="txn-mobile-list p-2">
+                        <?php if (empty($transactions)): ?>
+                            <div class="text-center py-5 text-muted">
+                                <i class="fas fa-receipt fa-3x mb-3 d-block text-warning"></i>
+                                <p>Belum ada transaksi tercatat.</p>
+                                <button class="btn btn-success" data-toggle="modal" data-target="#modalTransaction">
+                                    <i class="fas fa-plus mr-1"></i> Catat Transaksi Pertama
+                                </button>
+                            </div>
+                        <?php else: ?>
+                            <?php foreach ($transactions as $t): ?>
+                                <div class="txn-mobile-card type-<?= $t['type'] ?>">
+                                    <div class="d-flex justify-content-between align-items-start mb-1">
+                                        <div style="flex:1; min-width:0;">
+                                            <span class="font-weight-bold d-block" style="font-size:0.95rem; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">
+                                                <?= esc($t['description']) ?>
+                                            </span>
+                                            <span class="txn-meta">
+                                                <?= date('d M Y', strtotime($t['date'])) ?>
+                                                &bull; <?= esc($t['paid_by_name']) ?>
+                                            </span>
+                                        </div>
+                                        <div class="text-right ml-2">
+                                            <div class="txn-amount">Rp <?= number_format($t['amount'], 0, ',', '.') ?></div>
+                                            <?php if ($t['type'] === 'shared'): ?>
+                                                <span class="badge badge-success" style="font-size:0.68rem;"><i class="fas fa-divide mr-1"></i>Shared</span>
+                                            <?php else: ?>
+                                                <span class="badge badge-info" style="font-size:0.68rem;"><i class="fas fa-user-tag mr-1"></i>Individual</span>
+                                            <?php endif; ?>
+                                        </div>
+                                    </div>
+                                    <?php if (!empty($t['period_label'])): ?>
+                                        <div class="txn-meta mb-1">
+                                            <i class="far fa-calendar-alt mr-1"></i><?= esc($t['period_label']) ?>
+                                        </div>
+                                    <?php endif; ?>
+                                    <?php if ($t['type'] === 'individual' && !empty($t['adjustments'])): ?>
+                                        <div class="mt-1 mb-1 pl-2 border-left border-info">
+                                            <span class="text-xs text-info font-weight-bold"><i class="fas fa-info-circle mr-1"></i>Beban:</span>
+                                            <?php foreach ($t['adjustments'] as $adj): ?>
+                                                <span class="txn-meta d-inline-block mr-2"><?= esc($adj['username']) ?>: <strong>Rp <?= number_format($adj['amount'], 0, ',', '.') ?></strong></span>
+                                            <?php endforeach; ?>
+                                        </div>
+                                    <?php endif; ?>
+                                    <div class="txn-actions">
+                                        <?php if ($t['receipt_image']): ?>
+                                            <a href="<?= base_url($t['receipt_image']) ?>" target="_blank" 
+                                               class="btn btn-outline-success btn-sm">
+                                                <i class="fas fa-receipt mr-1"></i>Struk
+                                            </a>
+                                        <?php endif; ?>
+                                        <button type="button" 
+                                                class="btn btn-warning btn-sm btn-edit-trans"
+                                                data-id="<?= $t['id'] ?>">
+                                            <i class="fas fa-pencil-alt mr-1"></i>Edit
+                                        </button>
+                                        <?php if ($currentMembership['role'] === 'admin'): ?>
+                                            <a href="<?= base_url('backend/transactions/delete/' . $t['id']) ?>" 
+                                               class="btn btn-danger btn-sm btn-delete-trans"
+                                               data-desc="<?= esc($t['description']) ?>"
+                                               data-amount="Rp <?= number_format($t['amount'], 0, ',', '.') ?>">
+                                                <i class="fas fa-trash-alt mr-1"></i>Hapus
+                                            </a>
+                                        <?php endif; ?>
+                                    </div>
+                                </div>
+                            <?php endforeach; ?>
+                        <?php endif; ?>
+                    </div>
+                    <!-- /.txn-mobile-list -->
+
                 </div>
                 <!-- /.card-body -->
             </div>
@@ -462,15 +547,38 @@
                             </div>
                         </div>
 
-                        <!-- Upload Struk Pembelian -->
+                        <!-- Upload Struk Pembelian - Mobile Friendly -->
                         <div class="form-group">
-                            <label for="receipt_image">
-                                <i class="fas fa-image mr-1 text-secondary"></i>
+                            <label>
+                                <i class="fas fa-camera mr-1 text-secondary"></i>
                                 Struk / Bukti Pembelian <span class="text-muted">(Opsional)</span>
                             </label>
-                            <div class="custom-file">
-                                <input type="file" class="custom-file-input receipt-file-input" id="receipt_image" name="receipt_image" accept="image/*">
-                                <label class="custom-file-label" for="receipt_image">Pilih foto struk (opsional)...</label>
+                            <!-- Hidden file inputs -->
+                            <input type="file" class="d-none receipt-file-input" id="receipt_image" name="receipt_image" 
+                                   accept="image/*" capture="environment">
+                            <input type="file" class="d-none receipt-gallery-input" id="receipt_image_gallery" 
+                                   accept="image/*">
+                            
+                            <div class="receipt-upload-area" id="receiptUploadArea">
+                                <!-- Pilihan tombol -->
+                                <div class="receipt-upload-actions" id="receiptUploadActions">
+                                    <label for="receipt_image" class="btn-capture mb-0" title="Ambil foto struk langsung dengan kamera">
+                                        <i class="fas fa-camera"></i>
+                                        Foto Struk
+                                    </label>
+                                    <label for="receipt_image_gallery" class="btn-gallery mb-0" title="Pilih dari galeri foto">
+                                        <i class="fas fa-images"></i>
+                                        Dari Galeri
+                                    </label>
+                                </div>
+                                <!-- Preview gambar -->
+                                <div class="receipt-preview-container" id="receiptPreviewContainer">
+                                    <button type="button" class="btn-remove-receipt" id="btnRemoveReceipt" title="Hapus foto">
+                                        <i class="fas fa-times"></i>
+                                    </button>
+                                    <img src="" alt="Preview Struk" class="receipt-preview-img" id="receiptPreviewImg">
+                                    <small class="text-muted d-block mt-1" id="receiptFileName"></small>
+                                </div>
                             </div>
                             <small class="form-text text-muted">Format JPG/PNG, maks 5MB. Upload sebagai bukti transparansi pengeluaran.</small>
                         </div>
@@ -627,23 +735,43 @@
                             </div>
                         </div>
 
-                        <!-- Edit Upload Struk -->
+                        <!-- Edit Upload Struk - Mobile Friendly -->
                         <div class="form-group">
-                            <label for="edit_receipt_image">
-                                <i class="fas fa-image mr-1 text-secondary"></i>
+                            <label>
+                                <i class="fas fa-camera mr-1 text-secondary"></i>
                                 Struk / Bukti Pembelian <span class="text-muted">(Ganti jika perlu)</span>
                             </label>
-                            <div class="custom-file mb-2">
-                                <input type="file" class="custom-file-input receipt-file-input" id="edit_receipt_image" name="receipt_image" accept="image/*">
-                                <label class="custom-file-label" for="edit_receipt_image">Pilih foto struk baru...</label>
+                            <!-- Hidden file inputs -->
+                            <input type="file" class="d-none" id="edit_receipt_image" name="receipt_image" 
+                                   accept="image/*" capture="environment">
+                            <input type="file" class="d-none" id="edit_receipt_image_gallery" 
+                                   accept="image/*">
+                            
+                            <div class="receipt-upload-area" id="editReceiptUploadArea">
+                                <!-- Tombol pilih -->
+                                <div class="receipt-upload-actions" id="editReceiptUploadActions">
+                                    <label for="edit_receipt_image" class="btn-capture mb-0" title="Ambil foto struk langsung">
+                                        <i class="fas fa-camera"></i>
+                                        Foto Struk
+                                    </label>
+                                    <label for="edit_receipt_image_gallery" class="btn-gallery mb-0" title="Pilih dari galeri">
+                                        <i class="fas fa-images"></i>
+                                        Dari Galeri
+                                    </label>
+                                </div>
+                                <!-- Preview struk tersimpan / baru -->
+                                <div class="receipt-preview-container" id="editReceiptPreviewContainer">
+                                    <button type="button" class="btn-remove-receipt" id="editBtnRemoveReceipt" title="Hapus foto">
+                                        <i class="fas fa-times"></i>
+                                    </button>
+                                    <img src="" alt="Preview Struk" class="receipt-preview-img" id="editReceiptPreviewImg">
+                                    <small class="text-muted d-block mt-1" id="editReceiptFileName"></small>
+                                    <a href="#" id="edit_receipt_link" target="_blank" class="btn btn-xs btn-outline-info mt-1 d-none" id="editReceiptViewLink">
+                                        <i class="fas fa-external-link-alt mr-1"></i> Lihat Full
+                                    </a>
+                                </div>
                             </div>
-                            <!-- Preview existing receipt -->
-                            <div id="edit_receipt_preview" style="display: none;" class="mt-2 p-2 border rounded bg-light">
-                                <span class="d-block text-sm text-muted mb-1"><i class="fas fa-paperclip mr-1"></i>Struk Tersimpan:</span>
-                                <a href="#" id="edit_receipt_link" target="_blank" class="btn btn-sm btn-outline-info">
-                                    <i class="fas fa-external-link-alt mr-1"></i> Lihat Struk Saat Ini
-                                </a>
-                            </div>
+                            <small class="form-text text-muted">Format JPG/PNG, maks 5MB.</small>
                         </div>
 
                         <!-- Panel Individual Edit -->
@@ -745,11 +873,90 @@ $(document).ready(function() {
         dropdownParent: $('#modalTransaction')
     });
 
-    // Custom label file upload bootstrap
-    $('.receipt-file-input').on('change', function() {
-        let fileName = $(this).val().split('\\').pop();
-        $(this).next('.custom-file-label').addClass("selected").html(fileName || 'Pilih foto struk...');
-    });
+    // =============================================
+    // RECEIPT UPLOAD: Kamera & Galeri Handler (Modal Tambah)
+    // =============================================
+    function setupReceiptUpload(cameraInputId, galleryInputId, previewContainerId, previewImgId, fileNameId, removeBtn) {
+        const cameraInput  = document.getElementById(cameraInputId);
+        const galleryInput = document.getElementById(galleryInputId);
+        const previewCont  = document.getElementById(previewContainerId);
+        const previewImg   = document.getElementById(previewImgId);
+        const fileNameEl   = document.getElementById(fileNameId);
+        const removeBtnEl  = document.getElementById(removeBtn);
+
+        function handleFile(file, targetInput) {
+            if (!file) return;
+            // Sinkronkan ke input utama (cameraInput) untuk submit form
+            // Buat DataTransfer untuk copy file ke input lain
+            try {
+                const dt = new DataTransfer();
+                dt.items.add(file);
+                cameraInput.files = dt.files;
+            } catch(e) { /* Safari fallback - file tetap pada input aslinya */ }
+
+            const reader = new FileReader();
+            reader.onload = function(e) {
+                previewImg.src = e.target.result;
+                previewCont.style.display = 'block';
+                if (fileNameEl) fileNameEl.textContent = file.name + ' (' + (file.size/1024).toFixed(1) + ' KB)';
+            };
+            reader.readAsDataURL(file);
+        }
+
+        if (cameraInput) {
+            cameraInput.addEventListener('change', function() {
+                if (this.files && this.files[0]) handleFile(this.files[0], this);
+            });
+        }
+        if (galleryInput) {
+            galleryInput.addEventListener('change', function() {
+                if (this.files && this.files[0]) {
+                    handleFile(this.files[0], this);
+                    // Copy file ke cameraInput untuk submit
+                    try {
+                        const dt = new DataTransfer();
+                        dt.items.add(this.files[0]);
+                        cameraInput.files = dt.files;
+                    } catch(e) {}
+                }
+            });
+        }
+        if (removeBtnEl) {
+            removeBtnEl.addEventListener('click', function() {
+                if (cameraInput)  cameraInput.value  = '';
+                if (galleryInput) galleryInput.value = '';
+                previewImg.src = '';
+                previewCont.style.display = 'none';
+                if (fileNameEl) fileNameEl.textContent = '';
+            });
+        }
+    }
+
+    // Setup untuk modal Tambah Transaksi
+    setupReceiptUpload(
+        'receipt_image',
+        'receipt_image_gallery',
+        'receiptPreviewContainer',
+        'receiptPreviewImg',
+        'receiptFileName',
+        'btnRemoveReceipt'
+    );
+    // Setup untuk modal Edit Transaksi
+    setupReceiptUpload(
+        'edit_receipt_image',
+        'edit_receipt_image_gallery',
+        'editReceiptPreviewContainer',
+        'editReceiptPreviewImg',
+        'editReceiptFileName',
+        'editBtnRemoveReceipt'
+    );
+
+    // =============================================
+    // MOBILE: Auto collapse filter panel on small screen
+    // =============================================
+    if (window.innerWidth < 768) {
+        $('#filterPanel').collapse('hide');
+    }
 
     // Event Handler Hapus Transaksi (Konfirmasi SweetAlert2)
     $('.btn-delete-trans').on('click', function(e) {
@@ -986,6 +1193,11 @@ $(document).ready(function() {
         $('.edit-target-amount-input').prop('disabled', true).val('');
         $('.edit-target-note-input').prop('disabled', true).val('');
         editIndividualSection.hide();
+        // Reset receipt preview
+        const editPreviewCont = document.getElementById('editReceiptPreviewContainer');
+        const editPreviewImg  = document.getElementById('editReceiptPreviewImg');
+        if (editPreviewImg)  editPreviewImg.src = '';
+        if (editPreviewCont) editPreviewCont.style.display = 'none';
     });
 
     // Edit button click – AJAX fetch
@@ -1022,13 +1234,26 @@ $(document).ready(function() {
                 $('#edit_paid_by').val(data.transaction.paid_by).trigger('change');
                 $('#edit_type').val(data.transaction.type).trigger('change');
 
-                // Handle Receipt Image Preview
+                // Handle Receipt Image Preview (new UI)
+                const editPreviewCont = document.getElementById('editReceiptPreviewContainer');
+                const editPreviewImg  = document.getElementById('editReceiptPreviewImg');
+                const editReceiptLink = document.getElementById('edit_receipt_link');
+                const editFileNameEl  = document.getElementById('editReceiptFileName');
+
                 if (data.transaction.receipt_image) {
-                    $('#edit_receipt_preview').show();
-                    $('#edit_receipt_link').attr('href', '<?= base_url() ?>/' + data.transaction.receipt_image);
+                    const receiptUrl = '<?= base_url() ?>/' + data.transaction.receipt_image;
+                    editPreviewImg.src = receiptUrl;
+                    editPreviewCont.style.display = 'block';
+                    if (editFileNameEl) editFileNameEl.textContent = 'Struk tersimpan';
+                    if (editReceiptLink) {
+                        editReceiptLink.href = receiptUrl;
+                        editReceiptLink.classList.remove('d-none');
+                    }
                 } else {
-                    $('#edit_receipt_preview').hide();
-                    $('#edit_receipt_link').attr('href', '#');
+                    editPreviewImg.src = '';
+                    editPreviewCont.style.display = 'none';
+                    if (editFileNameEl) editFileNameEl.textContent = '';
+                    if (editReceiptLink) editReceiptLink.classList.add('d-none');
                 }
 
                 // Handle individual adjustments
