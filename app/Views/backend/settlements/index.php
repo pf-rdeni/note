@@ -253,7 +253,7 @@
                                             </td>
                                             <td class="align-middle">
                                                 <?php if ($sh['proof_image']): ?>
-                                                    <a href="<?= base_url($sh['proof_image']) ?>" target="_blank" class="btn btn-outline-info btn-xs font-weight-bold">
+                                                    <a href="<?= base_url($sh['proof_image']) ?>" class="btn btn-outline-info btn-xs font-weight-bold view-image-popup">
                                                         <i class="fas fa-image mr-1"></i> Lihat Bukti
                                                     </a>
                                                 <?php else: ?>
