@@ -168,14 +168,104 @@ $(document).ready(function() {
         });
     }
     // =================================================================
-    // IMAGE POPUP PREVIEW GLOBAL HANDLER
+    // IMAGE POPUP PREVIEW GLOBAL HANDLER (WITH ZOOM & PAN)
     // =================================================================
+    let currentScale = 1;
+    let isDragging = false;
+    let startX, startY;
+    let translateX = 0, translateY = 0;
+
+    const imgTarget = $('#modalViewImageTarget');
+
+    function updateImageTransform() {
+        imgTarget.css('transform', `translate(${translateX}px, ${translateY}px) scale(${currentScale})`);
+        if (currentScale > 1) {
+            imgTarget.css('cursor', 'grab');
+        } else {
+            imgTarget.css('cursor', 'default');
+        }
+    }
+
     $(document).on('click', '.view-image-popup', function(e) {
         e.preventDefault();
         const imageUrl = $(this).attr('href') || $(this).data('url');
         if (imageUrl) {
-            $('#modalViewImageTarget').attr('src', imageUrl);
+            // Reset state
+            currentScale = 1;
+            translateX = 0;
+            translateY = 0;
+            imgTarget.css({
+                'transform': 'none',
+                'cursor': 'default'
+            });
+            imgTarget.attr('src', imageUrl);
+            $('#btnDownloadImage').attr('href', imageUrl);
             $('#modalViewImage').modal('show');
+        }
+    });
+
+    // Zoom Controls
+    $(document).on('click', '#btnZoomIn', function() {
+        currentScale = Math.min(4, currentScale + 0.25);
+        updateImageTransform();
+    });
+
+    $(document).on('click', '#btnZoomOut', function() {
+        currentScale = Math.max(0.5, currentScale - 0.25);
+        if (currentScale <= 1) {
+            translateX = 0;
+            translateY = 0;
+        }
+        updateImageTransform();
+    });
+
+    $(document).on('click', '#btnZoomReset', function() {
+        currentScale = 1;
+        translateX = 0;
+        translateY = 0;
+        updateImageTransform();
+    });
+
+    // Reset zoom when modal is closed
+    $('#modalViewImage').on('hidden.bs.modal', function() {
+        currentScale = 1;
+        translateX = 0;
+        translateY = 0;
+        imgTarget.css({
+            'transform': 'none',
+            'cursor': 'default'
+        });
+    });
+
+    // Drag / Pan events
+    imgTarget.on('mousedown touchstart', function(e) {
+        if (currentScale <= 1) return;
+        isDragging = true;
+        imgTarget.css('cursor', 'grabbing');
+        
+        const pageX = e.pageX || (e.originalEvent.touches && e.originalEvent.touches[0].pageX);
+        const pageY = e.pageY || (e.originalEvent.touches && e.originalEvent.touches[0].pageY);
+        
+        startX = pageX - translateX;
+        startY = pageY - translateY;
+        e.preventDefault();
+    });
+
+    $(document).on('mousemove touchmove', function(e) {
+        if (!isDragging) return;
+        
+        const pageX = e.pageX || (e.originalEvent.touches && e.originalEvent.touches[0].pageX);
+        const pageY = e.pageY || (e.originalEvent.touches && e.originalEvent.touches[0].pageY);
+        
+        translateX = pageX - startX;
+        translateY = pageY - startY;
+        updateImageTransform();
+    });
+
+    $(document).on('mouseup touchend', function() {
+        if (isDragging) {
+            isDragging = false;
+            imgTarget.css('cursor', 'grab');
         }
     });
 

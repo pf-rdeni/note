@@ -68,15 +68,34 @@ $bodyClass = 'hold-transition sidebar-mini layout-fixed';
         <!-- Modal View Struk / Bukti -->
         <div class="modal fade" id="modalViewImage" tabindex="-1" role="dialog" aria-hidden="true" style="z-index: 1070;">
             <div class="modal-dialog modal-dialog-centered" role="document">
-                <div class="modal-content">
-                    <div class="modal-header border-0 pb-0">
-                        <h5 class="modal-title font-weight-bold text-dark"><i class="fas fa-receipt mr-1 text-primary"></i> Preview Lampiran</h5>
-                        <button type="button" class="close" data-dismiss="modal" aria-label="Close">
-                            <span aria-hidden="true">&times;</span>
-                        </button>
+                <div class="modal-content" style="border-radius: 12px; overflow: hidden; border: none; box-shadow: 0 10px 30px rgba(0,0,0,0.25);">
+                    <div class="modal-header border-bottom-0 bg-light d-flex align-items-center justify-content-between py-2 px-3">
+                        <h5 class="modal-title font-weight-bold text-dark text-sm mb-0">
+                            <i class="fas fa-receipt mr-1 text-primary"></i> Preview Lampiran
+                        </h5>
+                        <div class="d-flex align-items-center">
+                            <!-- Zoom Controls -->
+                            <div class="btn-group mr-3">
+                                <button type="button" class="btn btn-sm btn-outline-secondary px-2" id="btnZoomOut" title="Zoom Out">
+                                    <i class="fas fa-search-minus"></i>
+                                </button>
+                                <button type="button" class="btn btn-sm btn-outline-secondary px-2" id="btnZoomReset" title="Reset Zoom">
+                                    <i class="fas fa-undo"></i>
+                                </button>
+                                <button type="button" class="btn btn-sm btn-outline-secondary px-2" id="btnZoomIn" title="Zoom In">
+                                    <i class="fas fa-search-plus"></i>
+                                </button>
+                                <a href="#" id="btnDownloadImage" class="btn btn-sm btn-outline-primary px-2" title="Unduh Gambar" download>
+                                    <i class="fas fa-download"></i>
+                                </a>
+                            </div>
+                            <button type="button" class="close py-1 px-2 m-0" data-dismiss="modal" aria-label="Close" style="font-size: 1.5rem; line-height: 1;">
+                                <span aria-hidden="true">&times;</span>
+                            </button>
+                        </div>
                     </div>
-                    <div class="modal-body text-center p-3">
-                        <img src="" id="modalViewImageTarget" class="img-fluid rounded" style="max-height: 70vh; object-fit: contain; width: 100%;">
+                    <div class="modal-body d-flex align-items-center justify-content-center p-0" style="overflow: hidden; background-color: #1e1e1e; position: relative; height: 60vh; min-height: 350px;">
+                        <img src="" id="modalViewImageTarget" class="img-fluid" style="max-height: 100%; max-width: 100%; object-fit: contain; transition: transform 0.15s ease-out; transform-origin: center center; user-select: none; -webkit-user-drag: none; cursor: default;">
                     </div>
                 </div>
             </div>
