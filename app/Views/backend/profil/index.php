@@ -105,6 +105,7 @@
     <!-- Right Column: Profile Update Form -->
     <div class="col-lg-8">
         <form action="<?= base_url('backend/profil/update') ?>" method="post" enctype="multipart/form-data" id="profileForm">
+            <?= csrf_field() ?>
             <!-- Card 1: Informasi Profil -->
             <div class="card card-primary card-outline shadow-sm mb-3">
                 <div class="card-header py-3">
