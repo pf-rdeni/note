@@ -1,0 +1,13 @@
+---
+deployment:
+  tasks:
+    - export DEPLOYPATH=/home/u1525344/note
+    - export PUBLICPATH=/home/u1525344/public_html/note
+    # Copy Core Files
+    - /bin/cp -R app $DEPLOYPATH
+    - /bin/cp composer.json $DEPLOYPATH
+    - /bin/cp spark $DEPLOYPATH
+    # Copy Public Assets (Folders Only) -
+    - /bin/cp -R public/template $PUBLICPATH
+
+ 
