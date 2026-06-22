@@ -1,0 +1,436 @@
+<?= $this->extend('backend/template/template') ?>
+<?= $this->section('content') ?>
+
+<!-- Alert Flash Data -->
+<div class="row">
+    <div class="col-12">
+        <?php if (session()->getFlashdata('success')) : ?>
+            <div class="alert alert-success alert-dismissible fade show" role="alert">
+                <i class="icon fas fa-check mr-2"></i> <?= session()->getFlashdata('success') ?>
+                <button type="button" class="close" data-dismiss="alert" aria-label="Close">
+                    <span aria-hidden="true">&times;</span>
+                </button>
+            </div>
+        <?php endif; ?>
+        <?php if (session()->getFlashdata('error')) : ?>
+            <div class="alert alert-danger alert-dismissible fade show" role="alert">
+                <i class="icon fas fa-ban mr-2"></i> <?= session()->getFlashdata('error') ?>
+                <button type="button" class="close" data-dismiss="alert" aria-label="Close">
+                    <span aria-hidden="true">&times;</span>
+                </button>
+            </div>
+        <?php endif; ?>
+        <?php if (session()->getFlashdata('errors')) : ?>
+            <div class="alert alert-danger alert-dismissible fade show" role="alert">
+                <i class="icon fas fa-ban mr-2"></i>
+                <ul class="mb-0 pl-3">
+                    <?php foreach (session()->getFlashdata('errors') as $error) : ?>
+                        <li><?= esc($error) ?></li>
+                    <?php endforeach; ?>
+                </ul>
+                <button type="button" class="close" data-dismiss="alert" aria-label="Close">
+                    <span aria-hidden="true">&times;</span>
+                </button>
+            </div>
+        <?php endif; ?>
+    </div>
+</div>
+
+<div class="row">
+    <!-- Filter Sidebar Column -->
+    <div class="col-lg-3">
+        <!-- Trip Selector Card -->
+        <div class="card card-primary card-outline">
+            <div class="card-header">
+                <h3 class="card-title font-weight-bold">
+                    <i class="fas fa-filter mr-1"></i> Pilih Trip
+                </h3>
+            </div>
+            <div class="card-body">
+                <form action="<?= base_url('backend/settlements') ?>" method="get" id="tripFilterForm">
+                    <div class="form-group mb-0">
+                        <label for="trip_select">Trip Perjalanan:</label>
+                        <select class="form-control select2" id="trip_select" name="trip_id" onchange="this.form.submit()">
+                            <?php if (empty($availableTrips)): ?>
+                                <option value="" disabled selected>Belum ada trip</option>
+                            <?php else: ?>
+                                <?php foreach ($availableTrips as $at): ?>
+                                    <option value="<?= $at['id'] ?>" <?= (int)$at['id'] === (int)$selectedTripId ? 'selected' : '' ?>>
+                                        <?= esc($at['group_name']) ?> - <?= esc($at['name']) ?>
+                                    </option>
+                                <?php endforeach; ?>
+                            <?php endif; ?>
+                        </select>
+                    </div>
+                </form>
+            </div>
+        </div>
+
+        <!-- Period Selector Card -->
+        <?php if (!empty($selectedTripId)): ?>
+            <div class="card card-info card-outline">
+                <div class="card-header">
+                    <h3 class="card-title font-weight-bold">
+                        <i class="far fa-calendar-alt mr-1"></i> Periode Pengeluaran
+                    </h3>
+                </div>
+                <div class="card-body p-0">
+                    <div class="list-group list-group-flush">
+                        <?php if (empty($periods)): ?>
+                            <div class="p-3 text-muted text-center small">
+                                <i class="fas fa-calendar-times mb-1 d-block text-warning"></i>
+                                Belum ada periode dibuat.
+                            </div>
+                        <?php else: ?>
+                            <?php foreach ($periods as $p): ?>
+                                <a href="<?= base_url('backend/settlements?trip_id=' . $selectedTripId . '&period_id=' . $p['id']) ?>" 
+                                   class="list-group-item list-group-item-action d-flex justify-content-between align-items-center <?= (int)$p['id'] === (int)$selectedPeriodId ? 'active' : '' ?>">
+                                    <span><?= esc($p['label']) ?></span>
+                                    <span class="badge badge-light badge-pill">
+                                        <i class="far fa-clock"></i>
+                                    </span>
+                                </a>
+                            <?php endforeach; ?>
+                        <?php endif; ?>
+                    </div>
+                </div>
+            </div>
+        <?php endif; ?>
+    </div>
+
+    <!-- Settlements Main Panel -->
+    <div class="col-lg-9">
+        <?php if (empty($selectedTripId)): ?>
+            <div class="card card-outline card-warning text-center py-5">
+                <div class="card-body">
+                    <i class="fas fa-plane-departure text-warning fa-3x mb-3"></i>
+                    <h4>Pilih Trip Terlebih Dahulu</h4>
+                    <p class="text-muted">Untuk menyelesaikan saldo (settlement), pastikan Anda telah memilih Trip Perjalanan yang aktif.</p>
+                </div>
+            </div>
+        <?php elseif (empty($selectedPeriodId)): ?>
+            <div class="card card-outline card-info text-center py-5">
+                <div class="card-body">
+                    <i class="far fa-calendar-alt text-info fa-3x mb-3"></i>
+                    <h4>Pilih Periode Pengeluaran</h4>
+                    <p class="text-muted">Pilih salah satu periode di kolom sebelah kiri untuk memproses penyelesaian saldo.</p>
+                </div>
+            </div>
+        <?php else: ?>
+            
+            <!-- Recommendations Card -->
+            <div class="card card-warning card-outline shadow-sm">
+                <div class="card-header border-0 py-3">
+                    <h3 class="card-title font-weight-bold text-warning">
+                        <i class="fas fa-comments-dollar mr-1"></i> Rekomendasi Penyelesaian (Settlement)
+                    </h3>
+                </div>
+                <div class="card-body">
+                    <?php if (empty($calculationResult) || empty($calculationResult['settlements'])): ?>
+                        <div class="alert alert-success mb-0 py-4 font-weight-bold">
+                            <i class="fas fa-check-circle mr-2"></i> Semua saldo sudah seimbang untuk periode ini! Tidak ada transfer yang diperlukan.
+                        </div>
+                    <?php else: ?>
+                        <p class="text-muted mb-4">Untuk menyeimbangkan saldo pengeluaran periode ini, anggota berutang (debitur) harus melakukan transfer kepada anggota piutang (kreditur) berikut:</p>
+                        
+                        <div class="row">
+                            <?php foreach ($calculationResult['settlements'] as $index => $s): ?>
+                                <?php
+                                // Cari status transfer yang tercatat di database untuk pasangan ini
+                                $recordedStatus = null;
+                                $recordedId = null;
+                                foreach ($settlementHistory as $sh) {
+                                    if ((int)$sh['from_user_id'] === (int)$s['from_user_id'] && 
+                                        (int)$sh['to_user_id'] === (int)$s['to_user_id'] && 
+                                        (int)$sh['amount'] === (int)$s['amount']) {
+                                        $recordedStatus = $sh['status'];
+                                        $recordedId = $sh['id'];
+                                        break;
+                                    }
+                                }
+                                ?>
+                                <div class="col-md-6 mb-4">
+                                    <div class="p-3 border rounded bg-white shadow-xs d-flex flex-column h-100 justify-content-between">
+                                        <div class="d-flex align-items-center justify-content-between mb-3 border-bottom pb-2">
+                                            <div>
+                                                <span class="badge badge-danger font-weight-bold py-1 px-2 mb-1">Debitur</span>
+                                                <h6 class="font-weight-bold mb-0 text-dark"><?= esc($s['from_username']) ?></h6>
+                                            </div>
+                                            <div class="text-center px-2">
+                                                <i class="fas fa-long-arrow-alt-right text-warning fa-lg"></i>
+                                                <div class="font-weight-bold text-md text-primary mt-1">Rp <?= number_format($s['amount'], 0, ',', '.') ?></div>
+                                            </div>
+                                            <div class="text-right">
+                                                <span class="badge badge-success font-weight-bold py-1 px-2 mb-1">Kreditur</span>
+                                                <h6 class="font-weight-bold mb-0 text-dark"><?= esc($s['to_username']) ?></h6>
+                                            </div>
+                                        </div>
+                                        
+                                        <div class="text-center mt-2">
+                                            <?php if ($recordedStatus === 'paid'): ?>
+                                                <button type="button" class="btn btn-success btn-block font-weight-bold" disabled>
+                                                    <i class="fas fa-check-circle mr-1"></i> Selesai / Lunas
+                                                </button>
+                                            <?php elseif ($recordedStatus === 'pending'): ?>
+                                                <button type="button" class="btn btn-warning btn-block font-weight-bold text-white" disabled>
+                                                    <i class="fas fa-clock mr-1"></i> Menunggu Verifikasi
+                                                </button>
+                                            <?php else: ?>
+                                                <?php 
+                                                // Hanya pengirim bersangkutan atau admin yang dapat konfirmasi
+                                                $canPay = ((int)user_id() === (int)$s['from_user_id'] || $currentMembership['role'] === 'admin');
+                                                ?>
+                                                <?php if ($canPay): ?>
+                                                    <button type="button" 
+                                                            class="btn btn-primary btn-block font-weight-bold btn-pay-modal" 
+                                                            data-from-id="<?= $s['from_user_id'] ?>"
+                                                            data-from-name="<?= esc($s['from_username']) ?>"
+                                                            data-to-id="<?= $s['to_user_id'] ?>"
+                                                            data-to-name="<?= esc($s['to_username']) ?>"
+                                                            data-amount="<?= $s['amount'] ?>"
+                                                            data-amount-formatted="Rp <?= number_format($s['amount'], 0, ',', '.') ?>">
+                                                        <i class="fas fa-file-upload mr-1"></i> Konfirmasi Transfer
+                                                    </button>
+                                                <?php else: ?>
+                                                    <button type="button" class="btn btn-secondary btn-block font-weight-bold" disabled>
+                                                        <i class="fas fa-lock mr-1"></i> Menunggu Pembayaran
+                                                    </button>
+                                                <?php endif; ?>
+                                            <?php endif; ?>
+                                        </div>
+                                    </div>
+                                </div>
+                            <?php endforeach; ?>
+                        </div>
+                    <?php endif; ?>
+                </div>
+            </div>
+
+            <!-- Settlement History Card -->
+            <div class="card card-success card-outline shadow-sm">
+                <div class="card-header border-0 py-3">
+                    <h3 class="card-title font-weight-bold text-success">
+                        <i class="fas fa-history mr-1"></i> Riwayat Konfirmasi Transfer
+                    </h3>
+                </div>
+                <div class="card-body p-0">
+                    <div class="table-responsive">
+                        <table class="table table-hover table-striped mb-0 text-center">
+                            <thead class="bg-light text-secondary text-sm">
+                                <tr>
+                                    <th class="text-left py-3">Waktu Kirim</th>
+                                    <th class="text-left py-3">Pengirim</th>
+                                    <th class="text-left py-3">Penerima</th>
+                                    <th class="text-right py-3">Nominal</th>
+                                    <th class="py-3">Bukti Transfer</th>
+                                    <th class="text-left py-3">Catatan</th>
+                                    <th class="py-3">Status</th>
+                                    <th class="py-3" style="width: 160px;">Aksi Penerima</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <?php if (empty($settlementHistory)): ?>
+                                    <tr>
+                                        <td colspan="8" class="text-center py-5 text-muted">
+                                            <i class="fas fa-receipt fa-2x mb-2 d-block text-warning"></i>
+                                            Belum ada riwayat transfer pembayaran untuk periode ini.
+                                        </td>
+                                    </tr>
+                                <?php else: ?>
+                                    <?php foreach ($settlementHistory as $sh): ?>
+                                        <tr>
+                                            <td class="text-left align-middle text-xs">
+                                                <?= date('d/m/Y H:i', strtotime($sh['created_at'])) ?>
+                                            </td>
+                                            <td class="text-left align-middle font-weight-bold">
+                                                <?= esc($sh['sender_name']) ?>
+                                            </td>
+                                            <td class="text-left align-middle font-weight-bold">
+                                                <?= esc($sh['receiver_name']) ?>
+                                            </td>
+                                            <td class="text-right align-middle font-weight-bold text-dark">
+                                                Rp <?= number_format($sh['amount'], 0, ',', '.') ?>
+                                            </td>
+                                            <td class="align-middle">
+                                                <?php if ($sh['proof_image']): ?>
+                                                    <a href="<?= base_url($sh['proof_image']) ?>" target="_blank" class="btn btn-outline-info btn-xs font-weight-bold">
+                                                        <i class="fas fa-image mr-1"></i> Lihat Bukti
+                                                    </a>
+                                                <?php else: ?>
+                                                    <span class="text-muted small">-</span>
+                                                <?php endif; ?>
+                                            </td>
+                                            <td class="text-left align-middle text-muted text-truncate" style="max-width: 150px;">
+                                                <?= esc($sh['note'] ?: '-') ?>
+                                            </td>
+                                            <td class="align-middle">
+                                                <?php if ($sh['status'] === 'paid'): ?>
+                                                    <span class="badge badge-success px-2 py-1"><i class="fas fa-check mr-1"></i> Lunas</span>
+                                                    <small class="text-muted d-block text-xs mt-1" style="font-size: 0.75rem;">
+                                                        Disetujui: <?= date('d/m H:i', strtotime($sh['paid_at'])) ?>
+                                                    </small>
+                                                <?php else: ?>
+                                                    <span class="badge badge-warning px-2 py-1 text-white"><i class="fas fa-clock mr-1"></i> Pending</span>
+                                                <?php endif; ?>
+                                            </td>
+                                            <?php
+                                            // Tombol setujui aktif untuk: kreditur (penerima) ATAU admin
+                                            $canApprove = ((int)user_id() === (int)$sh['to_user_id'] || $currentMembership['role'] === 'admin');
+                                            ?>
+                                            <td class="align-middle">
+                                                <?php if ($sh['status'] === 'pending' && $canApprove): ?>
+                                                    <a href="<?= base_url('backend/settlements/approve/' . $sh['id']) ?>" 
+                                                       class="btn btn-success btn-sm font-weight-bold btn-approve-settle"
+                                                       data-sender="<?= esc($sh['sender_name']) ?>"
+                                                       data-receiver="<?= esc($sh['receiver_name']) ?>"
+                                                       data-amount="Rp <?= number_format($sh['amount'], 0, ',', '.') ?>">
+                                                        <i class="fas fa-check-circle mr-1"></i> Konfirmasi Terima
+                                                    </a>
+                                                <?php elseif ($sh['status'] === 'pending' && !$canApprove): ?>
+                                                    <span class="badge badge-secondary px-2 py-1">
+                                                        <i class="fas fa-hourglass-half mr-1"></i> Menunggu Penerima
+                                                    </span>
+                                                <?php else: ?>
+                                                    <span class="text-muted small">-</span>
+                                                <?php endif; ?>
+                                            </td>
+                                        </tr>
+                                    <?php endforeach; ?>
+                                <?php endif; ?>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+            
+        <?php endif; ?>
+    </div>
+</div>
+
+<!-- Modal Upload Bukti Transfer -->
+<?php if (!empty($selectedTripId) && !empty($selectedPeriodId)): ?>
+    <div class="modal fade" id="modalPaySettlement" tabindex="-1" role="dialog" aria-labelledby="modalPaySettlementLabel" aria-hidden="true">
+        <div class="modal-dialog" role="document">
+            <div class="modal-content">
+                <div class="modal-header bg-primary">
+                    <h5 class="modal-title text-white font-weight-bold" id="modalPaySettlementLabel">
+                        <i class="fas fa-file-upload mr-1"></i> Unggah Bukti Pembayaran
+                    </h5>
+                    <button type="button" class="close text-white" data-dismiss="modal" aria-label="Close">
+                        <span aria-hidden="true">&times;</span>
+                    </button>
+                </div>
+                <form action="<?= base_url('backend/settlements/pay') ?>" method="post" enctype="multipart/form-data">
+                    <?= csrf_field() ?>
+                    <input type="hidden" name="trip_id" value="<?= $selectedTripId ?>">
+                    <input type="hidden" name="period_id" value="<?= $selectedPeriodId ?>">
+                    <input type="hidden" name="from_user_id" id="modal_from_user_id">
+                    <input type="hidden" name="to_user_id" id="modal_to_user_id">
+                    <input type="hidden" name="amount" id="modal_amount">
+                    
+                    <div class="modal-body">
+                        <div class="form-group bg-light p-3 rounded mb-3">
+                            <div class="d-flex justify-content-between mb-1">
+                                <span class="text-muted">Pengirim (Debitur):</span>
+                                <span class="font-weight-bold text-dark" id="display_sender"></span>
+                            </div>
+                            <div class="d-flex justify-content-between mb-1">
+                                <span class="text-muted">Penerima (Kreditur):</span>
+                                <span class="font-weight-bold text-dark" id="display_receiver"></span>
+                            </div>
+                            <div class="d-flex justify-content-between border-top pt-2 mt-2">
+                                <span class="font-weight-bold text-secondary">Nominal Transfer:</span>
+                                <span class="font-weight-bold text-lg text-primary" id="display_amount"></span>
+                            </div>
+                        </div>
+
+                        <div class="form-group">
+                            <label for="proof_image">File Bukti Transfer <span class="text-muted">(Opsional)</span></label>
+                            <div class="custom-file">
+                                <input type="file" class="custom-file-input" id="proof_image" name="proof_image" accept="image/*">
+                                <label class="custom-file-label" for="proof_image">Pilih berkas gambar (opsional)...</label>
+                            </div>
+                            <small class="form-text text-muted">Format: JPG, JPEG, PNG. Maks 2MB. Kosongkan jika belum ada bukti.</small>
+                        </div>
+
+                        <div class="form-group">
+                            <label for="note">Catatan Tambahan <span class="text-muted">(Opsional)</span></label>
+                            <input type="text" class="form-control" id="note" name="note" placeholder="Contoh: Transfer Bank Mandiri, Lunas ya">
+                        </div>
+                    </div>
+                    
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-default" data-dismiss="modal">Batal</button>
+                        <button type="submit" class="btn btn-primary font-weight-bold">Unggah Bukti</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+<?php endif; ?>
+
+<?= $this->endSection() ?>
+
+<?= $this->section('scripts') ?>
+<script>
+$(document).ready(function() {
+    // Inisialisasi Select2
+    $('.select2').select2({
+        theme: 'bootstrap4'
+    });
+
+    // Custom label file upload bootstrap
+    $('#proof_image').on('change', function() {
+        let fileName = $(this).val().split('\\').pop();
+        $(this).next('.custom-file-label').addClass("selected").html(fileName);
+    });
+
+    // Event Klik Tombol Konfirmasi Transfer
+    $('.btn-pay-modal').on('click', function() {
+        const fromId = $(this).data('from-id');
+        const fromName = $(this).data('from-name');
+        const toId = $(this).data('to-id');
+        const toName = $(this).data('to-name');
+        const amount = $(this).data('amount');
+        const amountFormatted = $(this).data('amount-formatted');
+
+        // Set value ke modal inputs
+        $('#modal_from_user_id').val(fromId);
+        $('#modal_to_user_id').val(toId);
+        $('#modal_amount').val(amount);
+
+        // Set value ke modal display
+        $('#display_sender').text(fromName);
+        $('#display_receiver').text(toName);
+        $('#display_amount').text(amountFormatted);
+
+        // Buka modal
+        $('#modalPaySettlement').modal('show');
+    });
+
+    // Event Klik Tombol Konfirmasi Terima Settlement (Penerima / Admin)
+    $('.btn-approve-settle').on('click', function(e) {
+        e.preventDefault();
+        const url      = $(this).attr('href');
+        const sender   = $(this).data('sender');
+        const receiver = $(this).data('receiver');
+        const amount   = $(this).data('amount');
+
+        Swal.fire({
+            title: 'Konfirmasi Penerimaan?',
+            html: `Apakah Anda sudah menerima transfer dari <strong>"${sender}"</strong> ke <strong>"${receiver}"</strong> sebesar <strong>${amount}</strong>?<br><span class="text-success small">Transfer akan ditandai <b>Lunas</b> setelah dikonfirmasi.</span>`,
+            icon: 'question',
+            showCancelButton: true,
+            confirmButtonColor: '#28a745',
+            cancelButtonColor: '#6c757d',
+            confirmButtonText: '<i class="fas fa-check-circle"></i> Ya, Sudah Diterima!',
+            cancelButtonText: 'Batal'
+        }).then((result) => {
+            if (result.isConfirmed) {
+                window.location.href = url;
+            }
+        });
+    });
+});
+</script>
+<?= $this->endSection() ?>
