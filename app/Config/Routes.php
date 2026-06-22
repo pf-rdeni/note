@@ -61,4 +61,5 @@ $routes->group('backend', ['filter' => 'login', 'namespace' => 'App\Controllers\
     // Profil Akun
     $routes->get('profil', 'Profil::index');
     $routes->post('profil/update', 'Profil::update');
+    $routes->post('profil/update-password', 'Profil::updatePassword');
 });

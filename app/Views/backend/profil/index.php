@@ -102,9 +102,10 @@
         </div>
     </div>
 
-    <!-- Right Column: Profile Update Form -->
+    <!-- Right Column: Profile Update & Password Form -->
     <div class="col-lg-8">
-        <form action="<?= base_url('backend/profil/update') ?>" method="post" enctype="multipart/form-data" id="profileForm">
+        <!-- Form 1: Informasi Profil & Foto -->
+        <form action="<?= base_url('backend/profil/update') ?>" method="post" enctype="multipart/form-data" id="profileForm" class="mb-4">
             <?= csrf_field() ?>
             <!-- Card 1: Informasi Profil -->
             <div class="card card-primary card-outline shadow-sm mb-3">
@@ -170,20 +171,42 @@
                 </div>
             </div>
 
-            <!-- Card 3: Keamanan / Ubah Password -->
-            <div class="card card-warning card-outline shadow-sm mb-4">
+            <!-- Submit Button Form 1 -->
+            <div class="row">
+                <div class="col-12">
+                    <button type="submit" class="btn btn-primary btn-block font-weight-bold shadow-sm" style="height: 48px; border-radius: 8px;">
+                        <i class="fas fa-save mr-1"></i> Simpan Perubahan Profil
+                    </button>
+                </div>
+            </div>
+        </form>
+
+        <!-- Form 2: Keamanan / Ubah Password -->
+        <form action="<?= base_url('backend/profil/update-password') ?>" method="post" id="passwordForm" class="mb-5">
+            <?= csrf_field() ?>
+            <div class="card card-warning card-outline shadow-sm">
                 <div class="card-header py-3">
                     <h3 class="card-title font-weight-bold text-warning">
-                        <i class="fas fa-lock mr-1"></i> Keamanan / Ubah Password
+                        <i class="fas fa-lock mr-1"></i> Ubah Password Keamanan
                     </h3>
                 </div>
                 <div class="card-body">
-                    <p class="text-muted text-xs mb-3"><i class="fas fa-info-circle"></i> Biarkan kosong jika Anda tidak ingin mengubah password saat ini.</p>
+                    <div class="form-group">
+                        <label for="current_password">Password Saat Ini</label>
+                        <div class="input-group">
+                            <input type="password" name="current_password" id="current_password" class="form-control" placeholder="Masukkan password Anda saat ini" required>
+                            <div class="input-group-append">
+                                <button class="btn btn-outline-secondary toggle-pass" type="button" data-target="current_password">
+                                    <i class="fas fa-eye"></i>
+                                </button>
+                            </div>
+                        </div>
+                    </div>
                     <div class="row">
                         <div class="col-md-6 form-group">
                             <label for="password">Password Baru</label>
                             <div class="input-group">
-                                <input type="password" name="password" id="password" class="form-control" placeholder="Minimal 8 karakter">
+                                <input type="password" name="password" id="password" class="form-control" placeholder="Minimal 8 karakter" required>
                                 <div class="input-group-append">
                                     <button class="btn btn-outline-secondary toggle-pass" type="button" data-target="password">
                                         <i class="fas fa-eye"></i>
@@ -191,10 +214,10 @@
                                 </div>
                             </div>
                         </div>
-                        <div class="col-md-6 form-group mb-0">
+                        <div class="col-md-6 form-group">
                             <label for="pass_confirm">Konfirmasi Password Baru</label>
                             <div class="input-group">
-                                <input type="password" name="pass_confirm" id="pass_confirm" class="form-control" placeholder="Ulangi password baru">
+                                <input type="password" name="pass_confirm" id="pass_confirm" class="form-control" placeholder="Ulangi password baru" required>
                                 <div class="input-group-append">
                                     <button class="btn btn-outline-secondary toggle-pass" type="button" data-target="pass_confirm">
                                         <i class="fas fa-eye"></i>
@@ -204,13 +227,9 @@
                         </div>
                     </div>
                 </div>
-            </div>
-
-            <!-- Form Action Submit Buttons -->
-            <div class="row mb-5">
-                <div class="col-12">
-                    <button type="submit" class="btn btn-primary btn-block font-weight-bold shadow-sm" style="height: 48px; border-radius: 8px;">
-                        <i class="fas fa-save mr-1"></i> Simpan Perubahan Profil
+                <div class="card-footer bg-white border-top-0 pt-0">
+                    <button type="submit" class="btn btn-warning btn-block font-weight-bold text-white shadow-sm" style="height: 48px; border-radius: 8px;">
+                        <i class="fas fa-key mr-1"></i> Perbarui Password
                     </button>
                 </div>
             </div>

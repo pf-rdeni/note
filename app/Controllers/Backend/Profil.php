@@ -28,11 +28,6 @@ class Profil extends BaseController
             'avatar'   => 'permit_empty|is_image[avatar]|max_size[avatar,2048]|ext_in[avatar,jpg,jpeg,png,webp]',
         ];
 
-        if ($this->request->getPost('password')) {
-            $rules['password']     = 'required|strong_password';
-            $rules['pass_confirm'] = 'required|matches[password]';
-        }
-
         if (! $this->validate($rules)) {
             return redirect()->back()->withInput()->with('errors', $this->validator->getErrors());
         }
@@ -61,15 +56,45 @@ class Profil extends BaseController
             $user->user_image = 'uploads/avatars/' . $newName;
         }
 
-        // Update password if provided
-        $password = $this->request->getPost('password');
-        if (! empty($password)) {
-            $user->password = $password;
+        // Save back to DB if there are changes
+        if (! $user->hasChanged()) {
+            return redirect()->back()->with('success', 'Profil berhasil diperbarui (tidak ada perubahan).');
         }
 
-        // Save back to DB
         if ($userModel->save($user)) {
             return redirect()->back()->with('success', 'Profil berhasil diperbarui.');
+        } else {
+            return redirect()->back()->withInput()->with('errors', $userModel->errors());
+        }
+    }
+
+    public function updatePassword()
+    {
+        $userModel = model(UserModel::class);
+        $user = user();
+
+        // Validation rules
+        $rules = [
+            'current_password' => 'required',
+            'password'         => 'required|strong_password',
+            'pass_confirm'     => 'required|matches[password]',
+        ];
+
+        if (! $this->validate($rules)) {
+            return redirect()->back()->withInput()->with('errors', $this->validator->getErrors());
+        }
+
+        // Verify current password
+        $currentPassword = $this->request->getPost('current_password');
+        if (! \Myth\Auth\Password::verify($currentPassword, $user->password_hash)) {
+            return redirect()->back()->withInput()->with('error', 'Password saat ini salah.');
+        }
+
+        // Update password (triggers setter in User entity)
+        $user->password = $this->request->getPost('password');
+
+        if ($userModel->save($user)) {
+            return redirect()->back()->with('success', 'Password berhasil diperbarui.');
         } else {
             return redirect()->back()->withInput()->with('errors', $userModel->errors());
         }
