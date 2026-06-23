@@ -83,12 +83,24 @@
                             </div>
                         <?php else: ?>
                             <?php foreach ($periods as $p): ?>
+                                <?php $pSettled = ($p['status'] ?? 'open') === 'settled'; ?>
                                 <a href="<?= base_url('backend/settlements?trip_id=' . $selectedTripId . '&period_id=' . $p['id']) ?>" 
-                                   class="list-group-item list-group-item-action d-flex justify-content-between align-items-center <?= (int)$p['id'] === (int)$selectedPeriodId ? 'active' : '' ?>">
-                                    <span><?= esc($p['label']) ?></span>
-                                    <span class="badge badge-light badge-pill">
-                                        <i class="far fa-clock"></i>
+                                   class="list-group-item list-group-item-action d-flex justify-content-between align-items-center <?= (int)$p['id'] === (int)$selectedPeriodId ? 'active' : '' ?> <?= $pSettled ? 'text-muted' : '' ?>">
+                                    <span>
+                                        <?php if ($pSettled): ?>
+                                            <i class="fas fa-lock fa-xs mr-1 text-secondary"></i>
+                                        <?php endif; ?>
+                                        <?= esc($p['label']) ?>
                                     </span>
+                                    <?php if ($pSettled): ?>
+                                        <span class="badge badge-secondary badge-pill" title="Periode sudah ditutup">
+                                            <i class="fas fa-lock"></i>
+                                        </span>
+                                    <?php else: ?>
+                                        <span class="badge badge-success badge-pill" title="Periode aktif">
+                                            <i class="fas fa-unlock-alt"></i>
+                                        </span>
+                                    <?php endif; ?>
                                 </a>
                             <?php endforeach; ?>
                         <?php endif; ?>
@@ -279,11 +291,22 @@
                                             ?>
                                             <td class="align-middle">
                                                 <?php if ($sh['status'] === 'pending' && $canApprove): ?>
+                                                    <?php
+                                                    // Cari label & status periode dari list $periods
+                                                    $shPeriod = null;
+                                                    foreach ($periods as $pp) {
+                                                        if ((int)$pp['id'] === (int)$sh['period_id']) { $shPeriod = $pp; break; }
+                                                    }
+                                                    $shPeriodLabel  = $shPeriod ? esc($shPeriod['label']) : '';
+                                                    $shPeriodSettled = $shPeriod ? (($shPeriod['status'] ?? 'open') === 'settled') : false;
+                                                    ?>
                                                     <a href="<?= base_url('backend/settlements/approve/' . $sh['id']) ?>" 
                                                        class="btn btn-success btn-sm font-weight-bold btn-approve-settle"
                                                        data-sender="<?= esc($sh['sender_name']) ?>"
                                                        data-receiver="<?= esc($sh['receiver_name']) ?>"
-                                                       data-amount="Rp <?= number_format($sh['amount'], 0, ',', '.') ?>">
+                                                       data-amount="Rp <?= number_format($sh['amount'], 0, ',', '.') ?>"
+                                                       data-period-label="<?= $shPeriodLabel ?>"
+                                                       data-period-settled="<?= $shPeriodSettled ? '1' : '0' ?>">
                                                         <i class="fas fa-check-circle mr-1"></i> Konfirmasi Terima
                                                     </a>
                                                 <?php elseif ($sh['status'] === 'pending' && !$canApprove): ?>
@@ -497,23 +520,49 @@ $(document).ready(function() {
     // Event Klik Tombol Konfirmasi Terima Settlement (Penerima / Admin)
     $('.btn-approve-settle').on('click', function(e) {
         e.preventDefault();
-        const url      = $(this).attr('href');
-        const sender   = $(this).data('sender');
-        const receiver = $(this).data('receiver');
-        const amount   = $(this).data('amount');
+        const url           = $(this).attr('href');
+        const sender        = $(this).data('sender');
+        const receiver      = $(this).data('receiver');
+        const amount        = $(this).data('amount');
+        const periodLabel   = $(this).data('period-label');
+        const periodSettled = $(this).data('period-settled') === 1 || $(this).data('period-settled') === '1';
+
+        // Buat opsi lock period — hanya tampil jika periode belum settled & ada label
+        const lockOption = (periodLabel && !periodSettled)
+            ? `<div class="mt-3 p-2 border rounded bg-light text-left">
+                   <div class="custom-control custom-checkbox">
+                       <input type="checkbox" class="custom-control-input" id="swal-lock-period" checked>
+                       <label class="custom-control-label font-weight-bold text-secondary" for="swal-lock-period">
+                           <i class="fas fa-lock mr-1"></i> Tutup buku periode <strong>"${periodLabel}"</strong> sekaligus
+                       </label>
+                   </div>
+                   <small class="text-muted ml-4">Setelah ditutup, transaksi baru tidak dapat ditambahkan ke periode ini.</small>
+               </div>`
+            : '';
 
         Swal.fire({
             title: 'Konfirmasi Penerimaan?',
-            html: `Apakah Anda sudah menerima transfer dari <strong>"${sender}"</strong> ke <strong>"${receiver}"</strong> sebesar <strong>${amount}</strong>?<br><span class="text-success small">Transfer akan ditandai <b>Lunas</b> setelah dikonfirmasi.</span>`,
+            html: `<p>Apakah Anda sudah menerima transfer dari <strong>"${sender}"</strong> ke <strong>"${receiver}"</strong> sebesar <strong>${amount}</strong>?</p>
+                   <span class="text-success small"><i class="fas fa-check-circle mr-1"></i>Transfer akan ditandai <b>Lunas</b> setelah dikonfirmasi.</span>
+                   ${lockOption}`,
             icon: 'question',
             showCancelButton: true,
             confirmButtonColor: '#28a745',
             cancelButtonColor: '#6c757d',
-            confirmButtonText: '<i class="fas fa-check-circle"></i> Ya, Sudah Diterima!',
-            cancelButtonText: 'Batal'
+            confirmButtonText: '<i class="fas fa-check-circle mr-1"></i> Ya, Sudah Diterima!',
+            cancelButtonText: 'Batal',
+            didOpen: () => {
+                // Pastikan checkbox bisa diklik (SweetAlert2 intercept event)
+                const cb = Swal.getPopup().querySelector('#swal-lock-period');
+                if (cb) cb.addEventListener('click', (ev) => ev.stopPropagation());
+            }
         }).then((result) => {
             if (result.isConfirmed) {
-                window.location.href = url;
+                const cb = Swal.getPopup() ? Swal.getPopup().querySelector('#swal-lock-period') : null;
+                const lockPeriod = cb && cb.checked ? 1 : 0;
+                // Tambahkan query param lock_period jika dicentang
+                const finalUrl = lockPeriod ? url + '?lock_period=1' : url;
+                window.location.href = finalUrl;
             }
         });
     });

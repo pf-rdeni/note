@@ -198,7 +198,19 @@ class Settlements extends BaseController
             'paid_at' => date('Y-m-d H:i:s')
         ]);
 
-        return redirect()->to('backend/settlements?trip_id=' . $settlement['trip_id'] . '&period_id=' . $settlement['period_id'])->with('success', 'Transfer berhasil diverifikasi dan ditandai lunas.');
+        $successMsg = 'Transfer berhasil diverifikasi dan ditandai lunas.';
+
+        // Opsi: Tutup buku periode sekalian (jika dipilih oleh pengguna)
+        $lockPeriod = $this->request->getGet('lock_period');
+        if ($lockPeriod == '1' && !empty($settlement['period_id'])) {
+            $period = $this->periodModel->find($settlement['period_id']);
+            if ($period && ($period['status'] ?? 'open') === 'open') {
+                $this->periodModel->update($settlement['period_id'], ['status' => 'settled']);
+                $successMsg .= ' Periode "' . esc($period['label']) . '" juga telah ditutup (Settled).';
+            }
+        }
+
+        return redirect()->to('backend/settlements?trip_id=' . $settlement['trip_id'] . '&period_id=' . $settlement['period_id'])->with('success', $successMsg);
     }
 
     /**
