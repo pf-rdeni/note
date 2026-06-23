@@ -96,6 +96,17 @@ class Settlements extends BaseController
             }
         }
 
+        // Kumpulkan semua periode per trip untuk rendering sisi klien (filter tanpa reload)
+        $allPeriodsJson = [];
+        foreach ($availableTrips as $at) {
+            $tripPeriods = $this->periodModel
+                ->select('id, label, status')
+                ->where('trip_id', $at['id'])
+                ->orderBy('created_at', 'ASC')
+                ->findAll();
+            $allPeriodsJson[$at['id']] = $tripPeriods;
+        }
+
         $data = [
             'pageTitle'         => 'Settlement Saldo',
             'availableTrips'    => $availableTrips,
@@ -106,6 +117,7 @@ class Settlements extends BaseController
             'calculationResult' => $calculationResult,
             'settlementHistory' => $settlementHistory,
             'currentMembership' => $currentMembership,
+            'allPeriodsJson'    => json_encode($allPeriodsJson),
             'user'              => user(),
         ];
 
