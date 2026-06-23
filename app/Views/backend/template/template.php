@@ -42,10 +42,15 @@ $bodyClass = 'hold-transition sidebar-mini layout-fixed';
                     <i class="fas fa-tachometer-alt"></i>
                     <span>Dashboard</span>
                 </a>
+                <a href="<?= base_url('backend/groups') ?>" 
+                   class="nav-item-btn <?= strpos(uri_string(), 'backend/groups') !== false ? 'active' : '' ?>">
+                    <i class="fas fa-users"></i>
+                    <span>Grup</span>
+                </a>
                 <a href="<?= base_url('backend/trips') ?>" 
                    class="nav-item-btn <?= strpos(uri_string(), 'backend/trips') !== false ? 'active' : '' ?>">
-                    <i class="fas fa-plane-departure"></i>
-                    <span>Trip</span>
+                    <i class="fas fa-clipboard-list"></i>
+                    <span>Kegiatan</span>
                 </a>
                 <a href="<?= base_url('backend/transactions') ?>" 
                    class="nav-item-btn <?= strpos(uri_string(), 'backend/transactions') !== false ? 'active' : '' ?>">

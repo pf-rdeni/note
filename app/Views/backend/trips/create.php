@@ -5,7 +5,7 @@
     <div class="col-md-8 col-lg-6">
         <div class="card card-primary">
             <div class="card-header">
-                <h3 class="card-title">Form Tambah Trip Baru</h3>
+                <h3 class="card-title">Form Tambah Kegiatan Baru</h3>
             </div>
             
             <form action="<?= base_url('backend/trips/store') ?>" method="post">
@@ -13,7 +13,7 @@
                 <div class="card-body">
                     <?php if (empty($groups)): ?>
                         <div class="alert alert-warning mb-0">
-                            <i class="fas fa-exclamation-triangle mr-1"></i> Anda harus menjadi **Group Admin** di minimal satu grup untuk dapat membuat trip. Silakan buat grup baru terlebih dahulu.
+                            <i class="fas fa-exclamation-triangle mr-1"></i> Anda harus menjadi **Group Admin** di minimal satu grup untuk dapat membuat kegiatan. Silakan buat grup baru terlebih dahulu.
                         </div>
                     <?php else: ?>
                         <div class="form-group">
@@ -24,13 +24,13 @@
                                     <option value="<?= $g['id'] ?>" <?= old('group_id') == $g['id'] ? 'selected' : '' ?>><?= esc($g['name']) ?></option>
                                 <?php endforeach; ?>
                             </select>
-                            <small class="form-text text-muted">Trip hanya bisa ditambahkan ke group di mana Anda memiliki hak akses Admin.</small>
+                            <small class="form-text text-muted">Kegiatan hanya bisa ditambahkan ke group di mana Anda memiliki hak akses Admin.</small>
                         </div>
 
                         <div class="form-group">
-                            <label for="name">Nama Trip</label>
+                            <label for="name">Nama Kegiatan</label>
                             <input type="text" class="form-control <?= isset(session('errors')['name']) ? 'is-invalid' : '' ?>" 
-                                   id="name" name="name" placeholder="Misal: Trip Batam Idul Fitri 2026" value="<?= old('name') ?>" required>
+                                   id="name" name="name" placeholder="Misal: Belanja Mingguan, Uang Kas, Jajan Ngopi" value="<?= old('name') ?>" required>
                             <?php if (isset(session('errors')['name'])): ?>
                                 <div class="invalid-feedback">
                                     <?= session('errors')['name'] ?>
@@ -68,7 +68,7 @@
                         <div class="form-group">
                             <label for="notes">Catatan Tambahan (Opsional)</label>
                             <textarea class="form-control <?= isset(session('errors')['notes']) ? 'is-invalid' : '' ?>" 
-                                      id="notes" name="notes" rows="3" placeholder="Detail rencana perjalanan atau lainnya..."><?= old('notes') ?></textarea>
+                                      id="notes" name="notes" rows="3" placeholder="Detail rencana kegiatan atau lainnya..."><?= old('notes') ?></textarea>
                             <?php if (isset(session('errors')['notes'])): ?>
                                 <div class="invalid-feedback">
                                     <?= session('errors')['notes'] ?>
@@ -81,7 +81,7 @@
 
                 <div class="card-footer">
                     <?php if (!empty($groups)): ?>
-                        <button type="submit" class="btn btn-primary">Simpan Trip</button>
+                        <button type="submit" class="btn btn-primary">Simpan Kegiatan</button>
                     <?php endif; ?>
                     <a href="<?= base_url('backend/trips') ?>" class="btn btn-default float-right">Batal</a>
                 </div>

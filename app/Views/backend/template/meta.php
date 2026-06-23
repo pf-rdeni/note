@@ -509,7 +509,7 @@
                 font-size: 0.95rem;
             }
             /* Sembunyikan tabel transaksi desktop, tampilkan card mobile */
-            .txn-desktop-table { display: none; }
+            div.txn-desktop-table, table.txn-desktop-table { display: none !important; }
             .txn-mobile-list { display: block; }
 
             /* Rekap table - horizontal scroll */
@@ -521,7 +521,8 @@
         }
         @media (min-width: 768px) {
             /* Tampilkan tabel desktop, sembunyikan card mobile */
-            .txn-desktop-table { display: table; }
+            div.txn-desktop-table { display: block !important; }
+            table.txn-desktop-table { display: table !important; }
             .txn-mobile-list { display: none; }
         }
     </style>

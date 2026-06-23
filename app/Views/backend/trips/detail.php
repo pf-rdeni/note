@@ -6,7 +6,7 @@
     <div class="col-lg-4">
         <?php if (session()->getFlashdata('trip_errors')): ?>
             <div class="alert alert-danger alert-dismissible fade show mb-3 small" role="alert">
-                <i class="fas fa-exclamation-triangle mr-2"></i> <strong>Gagal memperbarui trip:</strong>
+                <i class="fas fa-exclamation-triangle mr-2"></i> <strong>Gagal memperbarui kegiatan:</strong>
                 <ul class="pl-3 mb-0 mt-1">
                     <?php foreach (session()->getFlashdata('trip_errors') as $err): ?>
                         <li><?= esc($err) ?></li>
@@ -22,14 +22,14 @@
                     <?= csrf_field() ?>
                     <div class="card-body">
                         <div class="text-center">
-                            <i class="fas fa-map-marked-alt fa-3x text-primary mb-3"></i>
+                            <i class="fas fa-clipboard-list fa-3x text-primary mb-3"></i>
                         </div>
                         <h3 class="profile-username text-center font-weight-bold mb-3"><?= esc($trip['name']) ?></h3>
                         <p class="text-muted text-center mb-4">Kelompok: <?= esc($group['name']) ?></p>
 
                         <div class="form-group">
-                            <label for="trip_name">Nama Trip</label>
-                            <input type="text" name="name" id="trip_name" class="form-control" value="<?= old('name', esc($trip['name'])) ?>" required placeholder="Masukkan nama trip">
+                            <label for="trip_name">Nama Kegiatan</label>
+                            <input type="text" name="name" id="trip_name" class="form-control" value="<?= old('name', esc($trip['name'])) ?>" required placeholder="Masukkan nama kegiatan">
                         </div>
                         
                         <div class="form-group">
@@ -44,7 +44,7 @@
 
                         <div class="form-group">
                             <label for="trip_notes">Catatan / Keterangan</label>
-                            <textarea name="notes" id="trip_notes" class="form-control" rows="3" placeholder="Tambahkan catatan trip..."><?= old('notes', esc($trip['notes'])) ?></textarea>
+                            <textarea name="notes" id="trip_notes" class="form-control" rows="3" placeholder="Tambahkan catatan kegiatan..."><?= old('notes', esc($trip['notes'])) ?></textarea>
                         </div>
                     </div>
                     <div class="card-footer d-flex" style="gap: 10px;">
@@ -59,7 +59,7 @@
             <?php else: ?>
                 <div class="card-body box-profile">
                     <div class="text-center">
-                        <i class="fas fa-map-marked-alt fa-3x text-primary mb-3"></i>
+                        <i class="fas fa-clipboard-list fa-3x text-primary mb-3"></i>
                     </div>
                     <h3 class="profile-username text-center font-weight-bold"><?= esc($trip['name']) ?></h3>
                     <p class="text-muted text-center">Kelompok: <?= esc($group['name']) ?></p>
@@ -311,11 +311,11 @@ $(document).ready(function() {
                 Swal.close();
                 if (res.success) {
                     Swal.fire({
-                        title: 'Hapus Trip Permanen?',
+                        title: 'Hapus Kegiatan Permanen?',
                         html: `
                             <div class="text-left border p-3 rounded mb-3 bg-light" style="font-size: 0.9rem;">
                                 <p class="mb-2 text-danger font-weight-bold"><i class="fas fa-exclamation-triangle mr-2"></i>Tindakan ini tidak dapat dibatalkan!</p>
-                                <p class="mb-2">Menghapus trip <strong>${res.trip_name}</strong> juga akan menghapus secara permanen data berikut:</p>
+                                <p class="mb-2">Menghapus kegiatan <strong>${res.trip_name}</strong> juga akan menghapus secara permanen data berikut:</p>
                                 <ul class="pl-4 mb-0">
                                     <li><strong>${res.periods}</strong> Periode Pengeluaran</li>
                                     <li><strong>${res.transactions}</strong> Catatan Transaksi</li>

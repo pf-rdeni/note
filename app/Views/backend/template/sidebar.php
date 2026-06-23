@@ -79,8 +79,8 @@
                 <!-- Trips & Periods -->
                 <li class="nav-item">
                     <a href="<?= base_url('backend/trips') ?>" class="nav-link <?= strpos(uri_string(), 'backend/trips') !== false ? 'active' : '' ?>">
-                        <i class="nav-icon fas fa-plane-departure"></i>
-                        <p>Trips & Periode</p>
+                        <i class="nav-icon fas fa-clipboard-list"></i>
+                        <p>Kegiatan & Periode</p>
                     </a>
                 </li>
 

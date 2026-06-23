@@ -3,9 +3,9 @@
 
 <div class="row mb-4">
     <div class="col-12 d-flex justify-content-between align-items-center">
-        <h5 class="text-muted mb-0">Daftar trip perjalanan atau proyek pengeluaran bersama.</h5>
+        <h5 class="text-muted mb-0">Daftar kegiatan atau proyek pengeluaran bersama.</h5>
         <a href="<?= base_url('backend/trips/create') ?>" class="btn btn-primary">
-            <i class="fas fa-plus mr-1"></i> Buat Trip Baru
+            <i class="fas fa-plus mr-1"></i> Buat Kegiatan Baru
         </a>
     </div>
 </div>
@@ -14,7 +14,7 @@
     <div class="col-12">
         <div class="card card-primary card-outline">
             <div class="card-header">
-                <h3 class="card-title font-weight-bold"><i class="fas fa-plane-departure mr-1"></i> Daftar Perjalanan</h3>
+                <h3 class="card-title font-weight-bold"><i class="fas fa-clipboard-list mr-1"></i> Daftar Kegiatan</h3>
             </div>
             <!-- /.card-header -->
             <div class="card-body p-0">
@@ -22,7 +22,7 @@
                     <table class="table table-hover table-striped mb-0">
                         <thead>
                             <tr>
-                                <th>Nama Trip</th>
+                                <th>Nama Kegiatan</th>
                                 <th>Nama Group</th>
                                 <th>Tanggal Mulai</th>
                                 <th>Tanggal Selesai</th>
@@ -35,14 +35,14 @@
                                 <tr>
                                     <td colspan="6" class="text-center py-4 text-muted">
                                         <i class="fas fa-exclamation-circle fa-2x mb-2 d-block text-warning"></i>
-                                        Belum ada trip perjalanan yang dibuat.
+                                        Belum ada kegiatan yang dibuat.
                                     </td>
                                 </tr>
                             <?php else: ?>
                                 <?php foreach ($trips as $t): ?>
                                     <tr>
                                         <td class="align-middle font-weight-bold">
-                                            <i class="fas fa-map-marked-alt text-muted mr-2"></i><?= esc($t['name']) ?>
+                                            <i class="fas fa-clipboard-list text-muted mr-2"></i><?= esc($t['name']) ?>
                                         </td>
                                         <td class="align-middle"><?= esc($t['group_name']) ?></td>
                                         <td class="align-middle">

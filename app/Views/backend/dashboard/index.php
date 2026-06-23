@@ -16,7 +16,7 @@
                     </span>
                     <h2 class="font-weight-bold mb-2">Halo, <?= esc($user->username) ?>!</h2>
                     <p class="mb-0 text-white-50" style="font-size: 1.1rem; max-width: 600px;">
-                        Kelola tagihan keluarga, catat pengeluaran perjalanan, dan selesaikan saldo dengan mudah di sistem **Split Bill Keluarga**.
+                        Kelola tagihan keluarga, catat pengeluaran kegiatan, dan selesaikan saldo dengan mudah di sistem **Split Bill Keluarga**.
                     </p>
                 </div>
                 <div class="d-none d-lg-block ml-4 text-center">
@@ -41,10 +41,10 @@
     
     <div class="col-12 col-sm-6 col-md-4">
         <div class="info-box shadow-xs hover-card">
-            <span class="info-box-icon bg-success elevation-1"><i class="fas fa-plane-departure"></i></span>
+            <span class="info-box-icon bg-success elevation-1"><i class="fas fa-clipboard-list"></i></span>
             <div class="info-box-content">
-                <span class="info-box-text font-weight-bold text-muted">Trip Perjalanan</span>
-                <span class="info-box-number text-lg text-dark"><?= esc($numTrips) ?> Trip</span>
+                <span class="info-box-text font-weight-bold text-muted">Kegiatan</span>
+                <span class="info-box-number text-lg text-dark"><?= esc($numTrips) ?> Kegiatan</span>
             </div>
         </div>
     </div>
@@ -112,7 +112,7 @@
                                 </div>
                                 <div class="d-flex justify-content-between align-items-center text-xs text-muted">
                                     <span>
-                                        <i class="fas fa-plane-departure mr-1 text-xs"></i><?= esc($t['trip_name']) ?>
+                                        <i class="fas fa-clipboard-list mr-1 text-xs"></i><?= esc($t['trip_name']) ?>
                                     </span>
                                     <span>
                                         <?= date('d M Y', strtotime($t['date'])) ?>

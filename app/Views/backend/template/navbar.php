@@ -67,8 +67,8 @@
                 <p><strong>Fitur Utama:</strong></p>
                 <ul>
                     <li><i class="fas fa-tachometer-alt text-primary mr-2"></i> Dashboard - Ringkasan saldo dan pengeluaran</li>
-                    <li><i class="fas fa-users text-success mr-2"></i> Group & Anggota - Kelola anggota perjalanan</li>
-                    <li><i class="fas fa-plane-departure text-warning mr-2"></i> Trip & Periode - Kelola perjalanan dan bulanan</li>
+                    <li><i class="fas fa-users text-success mr-2"></i> Group & Anggota - Kelola anggota kelompok</li>
+                    <li><i class="fas fa-clipboard-list text-warning mr-2"></i> Kegiatan & Periode - Kelola kegiatan dan bulanan</li>
                     <li><i class="fas fa-file-invoice-dollar text-info mr-2"></i> Transaksi - Catat pengeluaran shared / individual</li>
                     <li><i class="fas fa-hand-holding-usd text-danger mr-2"></i> Settlement - Rekomendasi pelunasan transfer</li>
                 </ul>

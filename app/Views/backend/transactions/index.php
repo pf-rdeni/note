@@ -43,7 +43,7 @@
         <button class="btn btn-outline-primary btn-sm mobile-filter-toggle" type="button" 
                 data-toggle="collapse" data-target="#filterPanel" 
                 aria-expanded="false" aria-controls="filterPanel">
-            <i class="fas fa-filter mr-1"></i> Filter Trip & Periode
+            <i class="fas fa-filter mr-1"></i> Filter Kegiatan & Periode
         </button>
 
         <div class="collapse show" id="filterPanel">
@@ -51,16 +51,16 @@
         <div class="card card-primary card-outline">
             <div class="card-header">
                 <h3 class="card-title font-weight-bold">
-                    <i class="fas fa-filter mr-1"></i> Pilih Trip
+                    <i class="fas fa-filter mr-1"></i> Pilih Kegiatan
                 </h3>
             </div>
             <div class="card-body">
                 <form action="<?= base_url('backend/transactions') ?>" method="get" id="tripFilterForm">
                     <div class="form-group mb-0">
-                        <label for="trip_select">Trip Perjalanan:</label>
+                        <label for="trip_select">Kegiatan:</label>
                         <select class="form-control select2" id="trip_select" name="trip_id" onchange="this.form.submit()">
                             <?php if (empty($availableTrips)): ?>
-                                <option value="" disabled selected>Belum ada trip</option>
+                                <option value="" disabled selected>Belum ada kegiatan</option>
                             <?php else: ?>
                                 <?php foreach ($availableTrips as $at): ?>
                                     <option value="<?= $at['id'] ?>" <?= (int)$at['id'] === (int)$selectedTripId ? 'selected' : '' ?>>
@@ -119,11 +119,11 @@
         <?php if (empty($selectedTripId)): ?>
             <div class="card card-outline card-warning text-center py-5">
                 <div class="card-body">
-                    <i class="fas fa-plane-departure text-warning fa-3x mb-3"></i>
-                    <h4>Pilih Trip Terlebih Dahulu</h4>
-                    <p class="text-muted">Untuk mencatat transaksi, pastikan Anda telah membuat atau bergabung ke suatu Group dan Trip.</p>
+                    <i class="fas fa-clipboard-list text-warning fa-3x mb-3"></i>
+                    <h4>Pilih Kegiatan Terlebih Dahulu</h4>
+                    <p class="text-muted">Untuk mencatat transaksi, pastikan Anda telah membuat atau bergabung ke suatu Group dan Kegiatan.</p>
                     <a href="<?= base_url('backend/trips') ?>" class="btn btn-primary">
-                        <i class="fas fa-arrow-right mr-1"></i> Buka Manajemen Trip
+                        <i class="fas fa-arrow-right mr-1"></i> Buka Manajemen Kegiatan
                     </a>
                 </div>
             </div>
@@ -315,7 +315,7 @@
                                     <tr class="no-data">
                                         <td colspan="8" class="text-center py-5 text-muted">
                                             <i class="fas fa-receipt fa-2x mb-2 d-block text-warning"></i>
-                                            Belum ada transaksi tercatat untuk trip/periode terpilih.
+                                            Belum ada transaksi tercatat untuk kegiatan/periode terpilih.
                                         </td>
                                     </tr>
                                 <?php else: ?>
@@ -349,14 +349,14 @@
                                             <td class="align-middle">
                                                 <?= esc($t['period_label'] ?? 'Umum / Non-Periode') ?>
                                             </td>
-                                            <td class="align-middle">
+                                            <td class="align-middle" data-search="<?= $t['type'] === 'shared' ? 'Shared' : 'Individual' ?>">
                                                 <?php if ($t['type'] === 'shared'): ?>
                                                     <span class="badge badge-success px-2 py-1"><i class="fas fa-divide mr-1"></i> Shared</span>
                                                 <?php else: ?>
                                                     <span class="badge badge-info px-2 py-1"><i class="fas fa-user-tag mr-1"></i> Individual</span>
                                                 <?php endif; ?>
                                             </td>
-                                            <td class="align-middle">
+                                            <td class="align-middle" data-search="<?= esc($t['paid_by_name']) ?>">
                                                 <i class="fas fa-user-circle text-muted mr-1"></i><?= esc($t['paid_by_name']) ?>
                                             </td>
                                             <td class="align-middle text-right font-weight-bold text-dark" data-order="<?= $t['amount'] ?>">

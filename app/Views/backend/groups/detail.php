@@ -223,7 +223,7 @@
                                 <label for="role">Hak Akses Grup</label>
                                 <select class="form-control" id="role" name="role" required>
                                     <option value="member" selected>Member (Hanya input/lihat transaksi)</option>
-                                    <option value="admin">Group Admin (Dapat edit trip, kelola anggota, & tandai lunas)</option>
+                                    <option value="admin">Group Admin (Dapat edit kegiatan, kelola anggota, & tandai lunas)</option>
                                 </select>
                             </div>
                         <?php endif; ?>
@@ -329,7 +329,7 @@ $(document).ready(function() {
                                 <p class="mb-2">Menghapus grup <strong>${res.group_name}</strong> juga akan menghapus secara permanen data berikut:</p>
                                 <ul class="pl-4 mb-0">
                                     <li><strong>${res.members}</strong> Anggota Grup</li>
-                                    <li><strong>${res.trips}</strong> Trip/Perjalanan</li>
+                                    <li><strong>${res.trips}</strong> Kegiatan</li>
                                     <li><strong>${res.periods}</strong> Periode Pengeluaran</li>
                                     <li><strong>${res.transactions}</strong> Catatan Transaksi</li>
                                     <li><strong>${res.settlements}</strong> Riwayat Settlement</li>

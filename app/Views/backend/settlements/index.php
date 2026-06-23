@@ -43,16 +43,16 @@
         <div class="card card-primary card-outline">
             <div class="card-header">
                 <h3 class="card-title font-weight-bold">
-                    <i class="fas fa-filter mr-1"></i> Pilih Trip
+                    <i class="fas fa-filter mr-1"></i> Pilih Kegiatan
                 </h3>
             </div>
             <div class="card-body">
                 <form action="<?= base_url('backend/settlements') ?>" method="get" id="tripFilterForm">
                     <div class="form-group mb-0">
-                        <label for="trip_select">Trip Perjalanan:</label>
+                        <label for="trip_select">Kegiatan:</label>
                         <select class="form-control select2" id="trip_select" name="trip_id" onchange="this.form.submit()">
                             <?php if (empty($availableTrips)): ?>
-                                <option value="" disabled selected>Belum ada trip</option>
+                                <option value="" disabled selected>Belum ada kegiatan</option>
                             <?php else: ?>
                                 <?php foreach ($availableTrips as $at): ?>
                                     <option value="<?= $at['id'] ?>" <?= (int)$at['id'] === (int)$selectedTripId ? 'selected' : '' ?>>
@@ -103,9 +103,9 @@
         <?php if (empty($selectedTripId)): ?>
             <div class="card card-outline card-warning text-center py-5">
                 <div class="card-body">
-                    <i class="fas fa-plane-departure text-warning fa-3x mb-3"></i>
-                    <h4>Pilih Trip Terlebih Dahulu</h4>
-                    <p class="text-muted">Untuk menyelesaikan saldo (settlement), pastikan Anda telah memilih Trip Perjalanan yang aktif.</p>
+                    <i class="fas fa-clipboard-list text-warning fa-3x mb-3"></i>
+                    <h4>Pilih Kegiatan Terlebih Dahulu</h4>
+                    <p class="text-muted">Untuk menyelesaikan saldo (settlement), pastikan Anda telah memilih Kegiatan yang aktif.</p>
                 </div>
             </div>
         <?php elseif (empty($selectedPeriodId)): ?>

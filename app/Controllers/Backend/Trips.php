@@ -53,7 +53,7 @@ class Trips extends BaseController
                                  ->findAll();
 
         $data = [
-            'pageTitle' => 'Trips & Perjalanan',
+            'pageTitle' => 'Kegiatan & Periode',
             'trips'     => $trips,
             'user'      => user()
         ];
@@ -76,7 +76,7 @@ class Trips extends BaseController
                                      ->findAll();
 
         $data = [
-            'pageTitle' => 'Buat Trip Baru',
+            'pageTitle' => 'Buat Kegiatan Baru',
             'groups'    => $myGroups,
             'user'      => user()
         ];
@@ -106,7 +106,7 @@ class Trips extends BaseController
         // Cek apakah user adalah admin grup tersebut
         $membership = $this->checkMembership($groupId);
         if (!$membership || $membership['role'] !== 'admin') {
-            return redirect()->back()->with('error', 'Hanya admin grup yang dapat menambahkan trip baru.');
+            return redirect()->back()->with('error', 'Hanya admin grup yang dapat menambahkan kegiatan baru.');
         }
 
         $this->tripModel->insert([
@@ -117,7 +117,7 @@ class Trips extends BaseController
             'notes'      => $this->request->getPost('notes') ?: null,
         ]);
 
-        return redirect()->to('backend/trips')->with('success', 'Trip perjalanan berhasil dibuat.');
+        return redirect()->to('backend/trips')->with('success', 'Kegiatan baru berhasil dibuat.');
     }
 
     /**
@@ -127,13 +127,13 @@ class Trips extends BaseController
     {
         $trip = $this->tripModel->find($tripId);
         if (!$trip) {
-            return redirect()->to('backend/trips')->with('error', 'Trip tidak ditemukan.');
+            return redirect()->to('backend/trips')->with('error', 'Kegiatan tidak ditemukan.');
         }
 
         // Cek membership grup dari trip ini
         $membership = $this->checkMembership((int)$trip['group_id']);
         if (!$membership) {
-            return redirect()->to('backend/trips')->with('error', 'Anda tidak memiliki akses ke trip ini.');
+            return redirect()->to('backend/trips')->with('error', 'Anda tidak memiliki akses ke kegiatan ini.');
         }
 
         $group = $this->groupModel->find($trip['group_id']);
@@ -157,7 +157,7 @@ class Trips extends BaseController
         }
 
         $data = [
-            'pageTitle'              => 'Detail Trip: ' . esc($trip['name']),
+            'pageTitle'              => 'Detail Kegiatan: ' . esc($trip['name']),
             'trip'                   => $trip,
             'group'                  => $group,
             'periods'                => $periods,
@@ -166,8 +166,8 @@ class Trips extends BaseController
             'currentMembership'      => $membership,
             'user'                   => user(),
             'breadcrumb'             => [
-                ['title' => 'Trips & Perjalanan', 'url' => 'backend/trips'],
-                ['title' => 'Detail Trip', 'url' => 'backend/trips/detail/' . $tripId]
+                ['title' => 'Kegiatan & Periode', 'url' => 'backend/trips'],
+                ['title' => 'Detail Kegiatan', 'url' => 'backend/trips/detail/' . $tripId]
             ]
         ];
 
@@ -181,7 +181,7 @@ class Trips extends BaseController
     {
         $trip = $this->tripModel->find($tripId);
         if (!$trip) {
-            return redirect()->back()->with('error', 'Trip tidak ditemukan.');
+            return redirect()->back()->with('error', 'Kegiatan tidak ditemukan.');
         }
 
         // Cek membership grup
@@ -283,7 +283,7 @@ class Trips extends BaseController
         if (!$trip) {
             return $this->response->setJSON([
                 'success' => false,
-                'message' => 'Trip tidak ditemukan.'
+                'message' => 'Kegiatan tidak ditemukan.'
             ])->setStatusCode(404);
         }
 
@@ -337,13 +337,13 @@ class Trips extends BaseController
     {
         $trip = $this->tripModel->find($tripId);
         if (!$trip) {
-            return redirect()->to('backend/trips')->with('error', 'Trip tidak ditemukan.');
+            return redirect()->to('backend/trips')->with('error', 'Kegiatan tidak ditemukan.');
         }
 
         // Cek apakah user adalah admin dari grup trip ini
         $membership = $this->checkMembership((int)$trip['group_id']);
         if (!$membership || $membership['role'] !== 'admin') {
-            return redirect()->back()->with('error', 'Hanya admin grup yang dapat menghapus trip.');
+            return redirect()->back()->with('error', 'Hanya admin grup yang dapat menghapus kegiatan.');
         }
 
         $transactionModel = new TransactionModel();
@@ -376,7 +376,7 @@ class Trips extends BaseController
         // 3. Hapus database (cascade akan otomatis menghapus periode, transaksi, dll)
         $this->tripModel->delete($tripId);
 
-        return redirect()->to('backend/trips')->with('success', 'Trip beserta seluruh data dan berkas terkait berhasil dihapus secara bersih.');
+        return redirect()->to('backend/trips')->with('success', 'Kegiatan beserta seluruh data dan berkas terkait berhasil dihapus secara bersih.');
     }
 
     /**
@@ -386,13 +386,13 @@ class Trips extends BaseController
     {
         $trip = $this->tripModel->find($tripId);
         if (!$trip) {
-            return redirect()->to('backend/trips')->with('error', 'Trip tidak ditemukan.');
+            return redirect()->to('backend/trips')->with('error', 'Kegiatan tidak ditemukan.');
         }
 
         // Cek membership grup
         $membership = $this->checkMembership((int)$trip['group_id']);
         if (!$membership || $membership['role'] !== 'admin') {
-            return redirect()->back()->with('error', 'Hanya admin grup yang dapat mengubah detail trip.');
+            return redirect()->back()->with('error', 'Hanya admin grup yang dapat mengubah detail kegiatan.');
         }
 
         $rules = [
@@ -414,7 +414,7 @@ class Trips extends BaseController
             'group_id'   => $trip['group_id']
         ]);
 
-        return redirect()->to('backend/trips/detail/' . $tripId)->with('success', 'Detail trip perjalanan berhasil diperbarui.');
+        return redirect()->to('backend/trips/detail/' . $tripId)->with('success', 'Detail kegiatan berhasil diperbarui.');
     }
 
     /**
