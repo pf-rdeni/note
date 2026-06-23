@@ -291,17 +291,41 @@
                 </div>
             <?php endif; ?>
 
+            <?php
+            // === Peta status periode: period_id => status ===
+            $periodStatusMap = [];
+            foreach ($periods as $pItem) {
+                $periodStatusMap[(int)$pItem['id']] = $pItem['status'] ?? 'open';
+            }
+
+            // Apakah periode terpilih sudah settled?
+            $selectedPeriodSettled = !empty($selectedPeriodId)
+                && isset($periodStatusMap[(int)$selectedPeriodId])
+                && $periodStatusMap[(int)$selectedPeriodId] === 'settled';
+            ?>
+
             <div class="card card-primary card-outline">
                 <div class="card-header d-flex justify-content-between align-items-center py-3">
                     <h3 class="card-title font-weight-bold mb-0 align-middle">
                         <i class="fas fa-file-invoice-dollar text-primary mr-1"></i> 
                         <span class="d-none d-sm-inline">Transaksi: <?= esc($selectedTrip['name']) ?></span>
                         <span class="d-sm-none">Transaksi</span>
+                        <?php if ($selectedPeriodSettled): ?>
+                            <span class="badge badge-secondary ml-2 py-1 px-2" style="font-size:0.72rem;">
+                                <i class="fas fa-lock mr-1"></i>Periode Terkunci
+                            </span>
+                        <?php endif; ?>
                     </h3>
                     <div class="card-tools ml-auto">
-                        <button type="button" class="btn btn-success font-weight-bold" data-toggle="modal" data-target="#modalTransaction">
-                            <i class="fas fa-plus mr-1"></i> <span class="d-none d-sm-inline">Catat </span>Transaksi
-                        </button>
+                        <?php if ($selectedPeriodSettled): ?>
+                            <span class="btn btn-secondary font-weight-bold disabled" title="Periode sudah ditutup, tidak bisa tambah transaksi baru">
+                                <i class="fas fa-lock mr-1"></i> <span class="d-none d-sm-inline">Periode </span>Terkunci
+                            </span>
+                        <?php else: ?>
+                            <button type="button" class="btn btn-success font-weight-bold" data-toggle="modal" data-target="#modalTransaction">
+                                <i class="fas fa-plus mr-1"></i> <span class="d-none d-sm-inline">Catat </span>Transaksi
+                            </button>
+                        <?php endif; ?>
                     </div>
                 </div>
                 <!-- /.card-header -->
@@ -385,23 +409,34 @@
                                                 <?php endif; ?>
                                             </td>
                                             <td class="text-center align-middle">
-                                                <div class="btn-group btn-group-sm">
-                                                    <button type="button" 
-                                                            class="btn btn-warning btn-sm btn-edit-trans"
-                                                            title="Edit Transaksi"
-                                                            data-id="<?= $t['id'] ?>">
-                                                        <i class="fas fa-pencil-alt"></i>
-                                                    </button>
-                                                    <?php if ($currentMembership['role'] === 'admin'): ?>
-                                                        <a href="<?= base_url('backend/transactions/delete/' . $t['id']) ?>" 
-                                                           class="btn btn-danger btn-sm btn-delete-trans"
-                                                           title="Hapus Transaksi"
-                                                           data-desc="<?= esc($t['description']) ?>"
-                                                           data-amount="Rp <?= number_format($t['amount'], 0, ',', '.') ?>">
-                                                            <i class="fas fa-trash-alt"></i>
-                                                        </a>
-                                                    <?php endif; ?>
-                                                </div>
+                                                <?php
+                                                // Cek apakah periode transaksi ini sudah settled
+                                                $tPeriodId     = (int)($t['period_id'] ?? 0);
+                                                $tPeriodLocked = $tPeriodId > 0 && isset($periodStatusMap[$tPeriodId]) && $periodStatusMap[$tPeriodId] === 'settled';
+                                                ?>
+                                                <?php if ($tPeriodLocked): ?>
+                                                    <span class="badge badge-secondary px-2 py-1" title="Periode sudah terkunci — tidak bisa edit/hapus">
+                                                        <i class="fas fa-lock mr-1"></i> Terkunci
+                                                    </span>
+                                                <?php else: ?>
+                                                    <div class="btn-group btn-group-sm">
+                                                        <button type="button" 
+                                                                class="btn btn-warning btn-sm btn-edit-trans"
+                                                                title="Edit Transaksi"
+                                                                data-id="<?= $t['id'] ?>">
+                                                            <i class="fas fa-pencil-alt"></i>
+                                                        </button>
+                                                        <?php if ($currentMembership['role'] === 'admin'): ?>
+                                                            <a href="<?= base_url('backend/transactions/delete/' . $t['id']) ?>" 
+                                                               class="btn btn-danger btn-sm btn-delete-trans"
+                                                               title="Hapus Transaksi"
+                                                               data-desc="<?= esc($t['description']) ?>"
+                                                               data-amount="Rp <?= number_format($t['amount'], 0, ',', '.') ?>">
+                                                                <i class="fas fa-trash-alt"></i>
+                                                            </a>
+                                                        <?php endif; ?>
+                                                    </div>
+                                                <?php endif; ?>
                                             </td>
                                         </tr>
                                     <?php endforeach; ?>
@@ -416,9 +451,15 @@
                             <div class="text-center py-5 text-muted">
                                 <i class="fas fa-receipt fa-3x mb-3 d-block text-warning"></i>
                                 <p>Belum ada transaksi tercatat.</p>
-                                <button class="btn btn-success" data-toggle="modal" data-target="#modalTransaction">
-                                    <i class="fas fa-plus mr-1"></i> Catat Transaksi Pertama
-                                </button>
+                                <?php if (!$selectedPeriodSettled): ?>
+                                    <button class="btn btn-success" data-toggle="modal" data-target="#modalTransaction">
+                                        <i class="fas fa-plus mr-1"></i> Catat Transaksi Pertama
+                                    </button>
+                                <?php else: ?>
+                                    <span class="badge badge-secondary px-3 py-2">
+                                        <i class="fas fa-lock mr-1"></i> Periode terkunci — tidak bisa tambah transaksi
+                                    </span>
+                                <?php endif; ?>
                             </div>
                         <?php else: ?>
                             <?php foreach ($transactions as $t): ?>
@@ -456,24 +497,35 @@
                                         </div>
                                     <?php endif; ?>
                                     <div class="txn-actions">
+                                        <?php
+                                        // Cek periode locked untuk mobile card
+                                        $tPeriodIdM     = (int)($t['period_id'] ?? 0);
+                                        $tPeriodLockedM = $tPeriodIdM > 0 && isset($periodStatusMap[$tPeriodIdM]) && $periodStatusMap[$tPeriodIdM] === 'settled';
+                                        ?>
                                         <?php if ($t['receipt_image']): ?>
                                             <a href="<?= base_url($t['receipt_image']) ?>" 
                                                class="btn btn-outline-success btn-sm view-image-popup">
                                                 <i class="fas fa-receipt mr-1"></i>Struk
                                             </a>
                                         <?php endif; ?>
-                                        <button type="button" 
-                                                class="btn btn-warning btn-sm btn-edit-trans"
-                                                data-id="<?= $t['id'] ?>">
-                                            <i class="fas fa-pencil-alt mr-1"></i>Edit
-                                        </button>
-                                        <?php if ($currentMembership['role'] === 'admin'): ?>
-                                            <a href="<?= base_url('backend/transactions/delete/' . $t['id']) ?>" 
-                                               class="btn btn-danger btn-sm btn-delete-trans"
-                                               data-desc="<?= esc($t['description']) ?>"
-                                               data-amount="Rp <?= number_format($t['amount'], 0, ',', '.') ?>">
-                                                <i class="fas fa-trash-alt mr-1"></i>Hapus
-                                            </a>
+                                        <?php if ($tPeriodLockedM): ?>
+                                            <span class="badge badge-secondary px-2 py-1" title="Periode sudah terkunci">
+                                                <i class="fas fa-lock mr-1"></i> Terkunci
+                                            </span>
+                                        <?php else: ?>
+                                            <button type="button" 
+                                                    class="btn btn-warning btn-sm btn-edit-trans"
+                                                    data-id="<?= $t['id'] ?>">
+                                                <i class="fas fa-pencil-alt mr-1"></i>Edit
+                                            </button>
+                                            <?php if ($currentMembership['role'] === 'admin'): ?>
+                                                <a href="<?= base_url('backend/transactions/delete/' . $t['id']) ?>" 
+                                                   class="btn btn-danger btn-sm btn-delete-trans"
+                                                   data-desc="<?= esc($t['description']) ?>"
+                                                   data-amount="Rp <?= number_format($t['amount'], 0, ',', '.') ?>">
+                                                    <i class="fas fa-trash-alt mr-1"></i>Hapus
+                                                </a>
+                                            <?php endif; ?>
                                         <?php endif; ?>
                                     </div>
                                 </div>

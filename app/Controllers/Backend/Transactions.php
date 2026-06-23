@@ -289,6 +289,14 @@ class Transactions extends BaseController
             return redirect()->back()->with('error', 'Transaksi tidak ditemukan.');
         }
 
+        // Validasi: transaksi di periode yang sudah settled tidak boleh diedit
+        if (!empty($transaction['period_id'])) {
+            $existingPeriod = $this->periodModel->find((int)$transaction['period_id']);
+            if ($existingPeriod && ($existingPeriod['status'] ?? 'open') === 'settled') {
+                return redirect()->back()->with('error', 'Transaksi tidak dapat diedit karena periode "' . esc($existingPeriod['label']) . '" sudah ditutup (Settled).');
+            }
+        }
+
         $rules = [
             'trip_id'       => 'required|numeric',
             'period_id'     => 'permit_empty',
@@ -416,6 +424,14 @@ class Transactions extends BaseController
         $membership = $this->checkTripAccess((int)$transaction['trip_id']);
         if (!$membership || $membership['role'] !== 'admin') {
             return redirect()->back()->with('error', 'Hanya admin grup yang dapat menghapus transaksi.');
+        }
+
+        // 2. Validasi: transaksi di periode yang sudah settled tidak boleh dihapus
+        if (!empty($transaction['period_id'])) {
+            $existingPeriod = $this->periodModel->find((int)$transaction['period_id']);
+            if ($existingPeriod && ($existingPeriod['status'] ?? 'open') === 'settled') {
+                return redirect()->back()->with('error', 'Transaksi tidak dapat dihapus karena periode "' . esc($existingPeriod['label']) . '" sudah ditutup (Settled).');
+            }
         }
 
         // Hapus file struk dari disk jika ada
