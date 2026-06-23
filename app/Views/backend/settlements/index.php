@@ -257,17 +257,17 @@
                                         <!-- Body: Pengirim & Penerima -->
                                         <div class="card-body p-3 d-flex flex-column justify-content-between">
                                             <div class="d-flex align-items-center justify-content-between mb-3 border-bottom pb-2">
-                                                <div style="flex: 1;">
+                                                <div style="flex: 1; min-width: 0;">
                                                     <span class="text-xs text-muted d-block text-uppercase font-weight-bold">Pengirim</span>
-                                                    <h6 class="font-weight-bold mb-0 text-dark text-truncate" style="max-width: 80px;" title="<?= esc($sh['sender_name']) ?>"><?= esc($sh['sender_name']) ?></h6>
+                                                    <h6 class="font-weight-bold mb-0 text-dark text-truncate" title="<?= esc($sh['sender_name']) ?>"><?= esc($sh['sender_name']) ?></h6>
                                                 </div>
                                                 <div class="text-center px-1" style="flex: 1.5;">
                                                     <i class="fas fa-long-arrow-alt-right text-muted fa-sm"></i>
                                                     <div class="font-weight-bold text-sm text-primary mt-1">Rp <?= number_format($sh['amount'], 0, ',', '.') ?></div>
                                                 </div>
-                                                <div class="text-right" style="flex: 1;">
+                                                <div class="text-right" style="flex: 1; min-width: 0;">
                                                     <span class="text-xs text-muted d-block text-uppercase font-weight-bold">Penerima</span>
-                                                    <h6 class="font-weight-bold mb-0 text-dark text-truncate" style="max-width: 80px;" title="<?= esc($sh['receiver_name']) ?>"><?= esc($sh['receiver_name']) ?></h6>
+                                                    <h6 class="font-weight-bold mb-0 text-dark text-truncate" title="<?= esc($sh['receiver_name']) ?>"><?= esc($sh['receiver_name']) ?></h6>
                                                 </div>
                                             </div>
 
