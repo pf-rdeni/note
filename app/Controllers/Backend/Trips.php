@@ -561,4 +561,39 @@ class Trips extends BaseController
 
         return redirect()->to('backend/trips/detail/' . $trip['id'])->with('success', 'Periode beserta seluruh transaksi, settlement, dan berkas terkait berhasil dihapus secara bersih.');
     }
+
+    /**
+     * Toggle status periode antara 'open' dan 'settled' (Hanya Admin Grup)
+     */
+    public function togglePeriodStatus(int $periodId)
+    {
+        $periodModel = new PeriodModel();
+        $period = $periodModel->find($periodId);
+        if (!$period) {
+            return redirect()->back()->with('error', 'Periode tidak ditemukan.');
+        }
+
+        $trip = $this->tripModel->find($period['trip_id']);
+
+        // Cek membership grup — hanya admin yang boleh
+        $membership = $this->checkMembership((int)$trip['group_id']);
+        if (!$membership || $membership['role'] !== 'admin') {
+            return redirect()->back()->with('error', 'Hanya admin grup yang dapat mengubah status periode.');
+        }
+
+        // Toggle status
+        $currentStatus = $period['status'] ?? 'open';
+        $newStatus     = ($currentStatus === 'open') ? 'settled' : 'open';
+
+        $periodModel->update($periodId, ['status' => $newStatus]);
+
+        $label = esc($period['label']);
+        if ($newStatus === 'settled') {
+            $msg = "Periode \"{$label}\" berhasil ditutup (Settled). Transaksi baru tidak dapat ditambahkan ke periode ini.";
+        } else {
+            $msg = "Periode \"{$label}\" berhasil dibuka kembali (Open). Transaksi baru dapat ditambahkan kembali.";
+        }
+
+        return redirect()->to('backend/trips/detail/' . $trip['id'])->with('success', $msg);
+    }
 }

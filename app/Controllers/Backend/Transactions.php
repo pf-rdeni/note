@@ -77,8 +77,11 @@ class Transactions extends BaseController
 
             $selectedTrip = $this->tripModel->find($selectedTripId);
             
-            // 3. Dapatkan list periode untuk filter
+            // 3. Dapatkan list periode untuk filter sidebar (semua periode)
             $periods = $this->periodModel->where('trip_id', $selectedTripId)->orderBy('created_at', 'ASC')->findAll();
+
+            // 3b. Periode yang hanya berstatus 'open' untuk dropdown form transaksi
+            $openPeriods = array_filter($periods, fn($p) => ($p['status'] ?? 'open') === 'open');
 
             // 4. Query transaksi
             $transQuery = $this->transactionModel->select('transactions.*, users.username as paid_by_name, creator.username as creator_name, trip_periods.label as period_label')
@@ -127,6 +130,7 @@ class Transactions extends BaseController
             'selectedTrip'      => $selectedTrip,
             'selectedPeriodId'  => $selectedPeriodId,
             'periods'           => $periods,
+            'openPeriods'       => $openPeriods ?? [],
             'transactions'      => $transactions,
             'groupMembers'      => $groupMembers,
             'currentMembership' => $currentMembership,
@@ -167,6 +171,14 @@ class Transactions extends BaseController
         $membership = $this->checkTripAccess($tripId);
         if (!$membership) {
             return redirect()->back()->withInput()->with('error', 'Anda tidak memiliki akses ke trip ini.');
+        }
+
+        // 1b. Validasi: jika period_id dipilih, pastikan periode masih open
+        if (!empty($periodId)) {
+            $chosenPeriod = $this->periodModel->find((int)$periodId);
+            if ($chosenPeriod && ($chosenPeriod['status'] ?? 'open') === 'settled') {
+                return redirect()->back()->withInput()->with('error', 'Periode "' . esc($chosenPeriod['label']) . '" sudah ditutup (Settled). Transaksi tidak dapat ditambahkan ke periode ini.');
+            }
         }
 
         // 2. Jika tipe individual, lakukan validasi data adjustment
@@ -302,6 +314,14 @@ class Transactions extends BaseController
         $membership = $this->checkTripAccess($tripId);
         if (!$membership) {
             return redirect()->back()->withInput()->with('error', 'Anda tidak memiliki akses ke trip ini.');
+        }
+
+        // 1b. Validasi: jika period_id dipilih, pastikan periode masih open
+        if (!empty($periodId)) {
+            $chosenPeriod = $this->periodModel->find((int)$periodId);
+            if ($chosenPeriod && ($chosenPeriod['status'] ?? 'open') === 'settled') {
+                return redirect()->back()->withInput()->with('error', 'Periode "' . esc($chosenPeriod['label']) . '" sudah ditutup (Settled). Transaksi tidak dapat diperbarui ke periode ini.');
+            }
         }
 
         // 2. Jika tipe individual, lakukan validasi data adjustment

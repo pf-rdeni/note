@@ -140,10 +140,12 @@
             <div class="accordion" id="periodsAccordion">
                 <?php foreach ($periods as $index => $p): ?>
                     <?php 
-                    $isActiveList = $activeMembersPerPeriod[$p['id']] ?? [];
+                    $isActiveList  = $activeMembersPerPeriod[$p['id']] ?? [];
                     $isActiveCount = count($isActiveList);
-                    $isOpen = ($index === 0) ? 'show' : '';
-                    $isCollapsed = ($index === 0) ? '' : 'collapsed';
+                    $isOpen        = ($index === 0) ? 'show' : '';
+                    $isCollapsed   = ($index === 0) ? '' : 'collapsed';
+                    $periodStatus  = $p['status'] ?? 'open';
+                    $isSettled     = ($periodStatus === 'settled');
                     ?>
                     <div class="card card-outline card-info mb-3">
                         <div class="card-header d-flex justify-content-between align-items-center py-3" 
@@ -152,16 +154,29 @@
                              data-target="#collapse-<?= $p['id'] ?>" 
                              aria-expanded="<?= ($index === 0) ? 'true' : 'false' ?>">
                             <div class="d-flex align-items-center">
-                                <i class="fas fa-calendar-check text-info fa-lg mr-3"></i>
+                                <?php if ($isSettled): ?>
+                                    <i class="fas fa-lock text-secondary fa-lg mr-3"></i>
+                                <?php else: ?>
+                                    <i class="fas fa-calendar-check text-info fa-lg mr-3"></i>
+                                <?php endif; ?>
                                 <div>
-                                    <h5 class="m-0 font-weight-bold"><?= esc($p['label']) ?></h5>
+                                    <h5 class="m-0 font-weight-bold <?= $isSettled ? 'text-muted' : '' ?>"><?= esc($p['label']) ?></h5>
                                     <small class="text-muted">
                                         <?= $p['start_date'] ? date('d M', strtotime($p['start_date'])) : '' ?>
                                         <?= $p['end_date'] ? ' s/d ' . date('d M Y', strtotime($p['end_date'])) : '' ?>
                                     </small>
                                 </div>
                             </div>
-                            <div class="ml-auto d-flex align-items-center" style="gap: 15px;">
+                            <div class="ml-auto d-flex align-items-center" style="gap: 10px;">
+                                <?php if ($isSettled): ?>
+                                    <span class="badge badge-secondary py-2 px-3 elevation-1">
+                                        <i class="fas fa-lock mr-1"></i> Settled
+                                    </span>
+                                <?php else: ?>
+                                    <span class="badge badge-success py-2 px-3 elevation-1">
+                                        <i class="fas fa-unlock-alt mr-1"></i> Open
+                                    </span>
+                                <?php endif; ?>
                                 <span class="badge badge-info py-2 px-3 elevation-1">
                                     <i class="fas fa-users mr-1"></i> <?= $isActiveCount ?> Anggota Aktif
                                 </span>
@@ -201,26 +216,45 @@
                                     </div>
                                     
                                     <?php if ($currentMembership['role'] === 'admin'): ?>
-                                        <div class="mt-4 pt-3 border-top d-flex justify-content-between align-items-center">
-                                            <div>
-                                                <button type="button" 
-                                                        class="btn btn-outline-warning btn-sm btn-edit-period mr-2" 
-                                                        data-id="<?= $p['id'] ?>" 
-                                                        data-label="<?= esc($p['label']) ?>" 
-                                                        data-start="<?= $p['start_date'] ?>" 
-                                                        data-end="<?= $p['end_date'] ?>">
-                                                    <i class="fas fa-edit mr-1"></i> Edit Periode
-                                                </button>
-                                                <button type="button" 
-                                                        class="btn btn-outline-danger btn-sm btn-delete-period" 
-                                                        data-id="<?= $p['id'] ?>" 
-                                                        data-label="<?= esc($p['label']) ?>">
-                                                    <i class="fas fa-trash-alt mr-1"></i> Hapus Periode
+                                        <div class="mt-4 pt-3 border-top">
+                                            <div class="d-flex justify-content-between align-items-center flex-wrap" style="gap: 8px;">
+                                                <div class="d-flex flex-wrap" style="gap: 6px;">
+                                                    <button type="button" 
+                                                            class="btn btn-outline-warning btn-sm btn-edit-period mr-1" 
+                                                            data-id="<?= $p['id'] ?>" 
+                                                            data-label="<?= esc($p['label']) ?>" 
+                                                            data-start="<?= $p['start_date'] ?>" 
+                                                            data-end="<?= $p['end_date'] ?>">
+                                                        <i class="fas fa-edit mr-1"></i> Edit
+                                                    </button>
+                                                    <button type="button" 
+                                                            class="btn btn-outline-danger btn-sm btn-delete-period" 
+                                                            data-id="<?= $p['id'] ?>" 
+                                                            data-label="<?= esc($p['label']) ?>">
+                                                        <i class="fas fa-trash-alt mr-1"></i> Hapus
+                                                    </button>
+                                                    <?php if ($isSettled): ?>
+                                                        <button type="button" 
+                                                                class="btn btn-outline-success btn-sm btn-toggle-period-status"
+                                                                data-id="<?= $p['id'] ?>"
+                                                                data-label="<?= esc($p['label']) ?>"
+                                                                data-status="settled">
+                                                            <i class="fas fa-unlock-alt mr-1"></i> Buka Kembali
+                                                        </button>
+                                                    <?php else: ?>
+                                                        <button type="button" 
+                                                                class="btn btn-outline-secondary btn-sm btn-toggle-period-status"
+                                                                data-id="<?= $p['id'] ?>"
+                                                                data-label="<?= esc($p['label']) ?>"
+                                                                data-status="open">
+                                                            <i class="fas fa-lock mr-1"></i> Tutup Buku
+                                                        </button>
+                                                    <?php endif; ?>
+                                                </div>
+                                                <button type="submit" class="btn btn-primary btn-sm" <?= $isSettled ? 'disabled title="Periode sudah ditutup"' : '' ?>>
+                                                    <i class="fas fa-save mr-1"></i> Simpan Keaktifan
                                                 </button>
                                             </div>
-                                            <button type="submit" class="btn btn-primary btn-sm">
-                                                <i class="fas fa-save mr-1"></i> Simpan Keaktifan Periode
-                                            </button>
                                         </div>
                                     <?php endif; ?>
                                 </form>
@@ -271,6 +305,11 @@
 
     <!-- Hidden Form for Period Deletion -->
     <form id="delete-period-form" action="" method="post" style="display:none;">
+        <?= csrf_field() ?>
+    </form>
+
+    <!-- Hidden Form for Toggle Period Status -->
+    <form id="toggle-period-status-form" action="" method="post" style="display:none;">
         <?= csrf_field() ?>
     </form>
 <?php endif; ?>
@@ -449,6 +488,52 @@ $(document).ready(function() {
             error: function(xhr) {
                 Swal.close();
                 Swal.fire('Gagal', 'Terjadi kesalahan pada server saat memuat pratinjau.', 'error');
+            }
+        });
+    });
+    // Toggle Status Periode (Tutup Buku / Buka Kembali)
+    $('.btn-toggle-period-status').on('click', function(e) {
+        e.stopPropagation();
+        const periodId     = $(this).data('id');
+        const periodLabel  = $(this).data('label');
+        const currentStatus = $(this).data('status'); // 'open' or 'settled'
+        const isSettling   = (currentStatus === 'open'); // true = will become settled
+
+        const title     = isSettling ? '🔒 Tutup Buku Periode?' : '🔓 Buka Kembali Periode?';
+        const iconType  = isSettling ? 'warning' : 'question';
+        const confirmBtnColor = isSettling ? '#6c757d' : '#28a745';
+        const confirmBtnText  = isSettling
+            ? '<i class="fas fa-lock mr-1"></i> Ya, Tutup Buku'
+            : '<i class="fas fa-unlock-alt mr-1"></i> Ya, Buka Kembali';
+        const htmlMsg = isSettling
+            ? `<p>Anda akan <strong>menutup buku</strong> periode <strong>${periodLabel}</strong>.</p>
+               <div class="alert alert-warning text-left small p-2 mb-0">
+                   <i class="fas fa-exclamation-triangle mr-1"></i>
+                   Setelah ditutup, transaksi baru <strong>tidak dapat ditambahkan</strong> ke periode ini.
+                   Admin dapat membuka kembali kapan saja jika diperlukan.
+               </div>`
+            : `<p>Anda akan <strong>membuka kembali</strong> periode <strong>${periodLabel}</strong>.</p>
+               <div class="alert alert-info text-left small p-2 mb-0">
+                   <i class="fas fa-info-circle mr-1"></i>
+                   Setelah dibuka, transaksi baru dapat ditambahkan ke periode ini kembali.
+               </div>`;
+
+        Swal.fire({
+            title: title,
+            html: htmlMsg,
+            icon: iconType,
+            showCancelButton: true,
+            confirmButtonColor: confirmBtnColor,
+            cancelButtonColor: '#3085d6',
+            confirmButtonText: confirmBtnText,
+            cancelButtonText: 'Batal',
+        }).then((result) => {
+            if (result.isConfirmed) {
+                $('#toggle-period-status-form').attr(
+                    'action',
+                    `<?= base_url('backend/trips/toggle-period-status') ?>/${periodId}`
+                );
+                $('#toggle-period-status-form').submit();
             }
         });
     });

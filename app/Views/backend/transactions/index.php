@@ -98,12 +98,24 @@
                             </div>
                         <?php else: ?>
                             <?php foreach ($periods as $p): ?>
+                                <?php $pSettled = ($p['status'] ?? 'open') === 'settled'; ?>
                                 <a href="<?= base_url('backend/transactions?trip_id=' . $selectedTripId . '&period_id=' . $p['id']) ?>" 
-                                   class="list-group-item list-group-item-action d-flex justify-content-between align-items-center <?= (int)$p['id'] === (int)$selectedPeriodId ? 'active' : '' ?>">
-                                    <span><?= esc($p['label']) ?></span>
-                                    <span class="badge badge-light badge-pill">
-                                        <i class="far fa-clock"></i>
+                                   class="list-group-item list-group-item-action d-flex justify-content-between align-items-center <?= (int)$p['id'] === (int)$selectedPeriodId ? 'active' : '' ?> <?= $pSettled ? 'text-muted' : '' ?>">
+                                    <span>
+                                        <?php if ($pSettled): ?>
+                                            <i class="fas fa-lock fa-xs mr-1 text-secondary"></i>
+                                        <?php endif; ?>
+                                        <?= esc($p['label']) ?>
                                     </span>
+                                    <?php if ($pSettled): ?>
+                                        <span class="badge badge-secondary badge-pill" title="Periode sudah ditutup">
+                                            <i class="fas fa-lock"></i>
+                                        </span>
+                                    <?php else: ?>
+                                        <span class="badge badge-success badge-pill" title="Periode aktif">
+                                            <i class="fas fa-unlock-alt"></i>
+                                        </span>
+                                    <?php endif; ?>
                                 </a>
                             <?php endforeach; ?>
                         <?php endif; ?>
@@ -510,13 +522,17 @@
                                     <label for="period_id">Periode Pengeluaran <span class="text-muted">(Opsional)</span></label>
                                     <select class="form-control select2-modal" id="period_id" name="period_id" style="width: 100%;">
                                         <option value="" selected>-- Pilih Periode (Bisa diisi nanti) --</option>
-                                        <?php foreach ($periods as $p): ?>
-                                            <option value="<?= $p['id'] ?>" <?= (int)$p['id'] === (int)$selectedPeriodId ? 'selected' : '' ?>>
-                                                <?= esc($p['label']) ?>
-                                            </option>
-                                        <?php endforeach; ?>
+                                        <?php if (empty($openPeriods)): ?>
+                                            <option value="" disabled>-- Semua periode sudah ditutup --</option>
+                                        <?php else: ?>
+                                            <?php foreach ($openPeriods as $p): ?>
+                                                <option value="<?= $p['id'] ?>" <?= (int)$p['id'] === (int)$selectedPeriodId ? 'selected' : '' ?>>
+                                                    <?= esc($p['label']) ?>
+                                                </option>
+                                            <?php endforeach; ?>
+                                        <?php endif; ?>
                                     </select>
-                                    <small class="form-text text-muted">Membagi tagihan rata (Shared) berdasarkan anggota aktif pada periode terpilih.</small>
+                                    <small class="form-text text-muted">Hanya periode yang masih <strong>Open</strong> yang dapat dipilih. Membagi tagihan rata (Shared) berdasarkan anggota aktif pada periode terpilih.</small>
                                 </div>
                             </div>
 
@@ -705,10 +721,15 @@
                                     <label for="edit_period_id">Periode <span class="text-muted">(Opsional)</span></label>
                                     <select class="form-control select2-edit-modal" id="edit_period_id" name="period_id" style="width:100%;">
                                         <option value="">-- Tanpa Periode --</option>
-                                        <?php foreach ($periods as $p): ?>
-                                            <option value="<?= $p['id'] ?>"><?= esc($p['label']) ?></option>
-                                        <?php endforeach; ?>
+                                        <?php if (empty($openPeriods)): ?>
+                                            <option value="" disabled>-- Semua periode sudah ditutup --</option>
+                                        <?php else: ?>
+                                            <?php foreach ($openPeriods as $p): ?>
+                                                <option value="<?= $p['id'] ?>"><?= esc($p['label']) ?></option>
+                                            <?php endforeach; ?>
+                                        <?php endif; ?>
                                     </select>
+                                    <small class="form-text text-muted">Hanya periode <strong>Open</strong> yang dapat dipilih.</small>
                                 </div>
                             </div>
                             <div class="col-md-6">

@@ -12,7 +12,7 @@ class PeriodModel extends Model
     protected $returnType       = 'array';
     protected $useSoftDeletes   = false;
     protected $protectFields    = true;
-    protected $allowedFields    = ['trip_id', 'label', 'start_date', 'end_date'];
+    protected $allowedFields    = ['trip_id', 'label', 'start_date', 'end_date', 'status'];
 
     // Dates
     protected $useTimestamps = true;
