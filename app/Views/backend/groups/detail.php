@@ -123,10 +123,76 @@
         </div>
     </div>
 
-    <!-- Add Member Side Card (Admin Only) -->
-    <?php if ($currentMembership['role'] === 'admin'): ?>
-        <div class="col-lg-4">
-            <div class="card card-success card-outline">
+    <!-- Side Card (Informasi & Pengaturan Grup, Tambah Anggota) -->
+    <div class="col-lg-4">
+        <!-- Informasi & Pengaturan Grup -->
+        <div class="card card-primary card-outline">
+            <div class="card-header">
+                <h3 class="card-title font-weight-bold">
+                    <i class="fas fa-info-circle mr-1"></i> Informasi Grup
+                </h3>
+            </div>
+            
+            <?php if ($currentMembership['role'] === 'admin'): ?>
+                <form action="<?= base_url('backend/groups/update/' . $group['id']) ?>" method="post">
+                    <?= csrf_field() ?>
+                    <div class="card-body">
+                        <?php if (session()->getFlashdata('errors') && isset(session()->getFlashdata('errors')['name'])): ?>
+                            <div class="alert alert-danger p-2 mb-3 small">
+                                <i class="fas fa-exclamation-circle mr-1"></i> <?= session()->getFlashdata('errors')['name'] ?>
+                            </div>
+                        <?php endif; ?>
+                        
+                        <div class="form-group">
+                            <label for="name">Nama Grup</label>
+                            <input type="text" 
+                                   name="name" 
+                                   id="name" 
+                                   class="form-control <?= (session()->getFlashdata('errors') && isset(session()->getFlashdata('errors')['name'])) ? 'is-invalid' : '' ?>" 
+                                   value="<?= old('name', esc($group['name'])) ?>" 
+                                   required 
+                                   placeholder="Masukkan nama grup">
+                        </div>
+                        
+                        <hr class="my-3">
+                        
+                        <div class="text-muted small">
+                            <p class="mb-2"><i class="fas fa-user mr-1 text-secondary"></i> <strong>Dibuat oleh:</strong> <?= esc($group['creator_name'] ?? 'Tidak diketahui') ?></p>
+                            <p class="mb-2"><i class="fas fa-calendar-alt mr-1 text-secondary"></i> <strong>Dibuat pada:</strong> <?= date('d M Y, H:i', strtotime($group['created_at'])) ?></p>
+                            <?php if (!empty($group['updated_at'])): ?>
+                                <p class="mb-0"><i class="fas fa-edit mr-1 text-secondary"></i> <strong>Diperbarui pada:</strong> <?= date('d M Y, H:i', strtotime($group['updated_at'])) ?></p>
+                            <?php endif; ?>
+                        </div>
+                    </div>
+                    <div class="card-footer">
+                        <button type="submit" class="btn btn-primary btn-block">
+                            <i class="fas fa-save mr-1"></i> Simpan Perubahan
+                        </button>
+                    </div>
+                </form>
+            <?php else: ?>
+                <div class="card-body">
+                    <div class="form-group">
+                        <label>Nama Grup</label>
+                        <p class="form-control-plaintext font-weight-bold text-lg mb-0"><?= esc($group['name']) ?></p>
+                    </div>
+                    
+                    <hr class="my-3">
+                    
+                    <div class="text-muted small">
+                        <p class="mb-2"><i class="fas fa-user mr-1 text-secondary"></i> <strong>Dibuat oleh:</strong> <?= esc($group['creator_name'] ?? 'Tidak diketahui') ?></p>
+                        <p class="mb-2"><i class="fas fa-calendar-alt mr-1 text-secondary"></i> <strong>Dibuat pada:</strong> <?= date('d M Y, H:i', strtotime($group['created_at'])) ?></p>
+                        <?php if (!empty($group['updated_at'])): ?>
+                            <p class="mb-0"><i class="fas fa-edit mr-1 text-secondary"></i> <strong>Diperbarui pada:</strong> <?= date('d M Y, H:i', strtotime($group['updated_at'])) ?></p>
+                        <?php endif; ?>
+                    </div>
+                </div>
+            <?php endif; ?>
+        </div>
+
+        <!-- Add Member Side Card (Admin Only) -->
+        <?php if ($currentMembership['role'] === 'admin'): ?>
+            <div class="card card-success card-outline mt-3">
                 <div class="card-header">
                     <h3 class="card-title font-weight-bold"><i class="fas fa-user-plus mr-1"></i>Tambah Anggota</h3>
                 </div>
@@ -135,7 +201,7 @@
                     <div class="card-body">
                         <?php if (empty($availableUsers)): ?>
                             <div class="alert alert-info mb-0">
-                                <i class="fas fa-info-circle mr-1"></i> Semua pengguna yang terdaftar di aplikasi sudah ditambahkan ke grup ini.
+                                <i class="fas fa-info-circle mr-1"></i> Semua pengguna sudah bergabung ke grup ini.
                             </div>
                         <?php else: ?>
                             <div class="form-group">
@@ -158,14 +224,18 @@
                     </div>
                     <div class="card-footer">
                         <?php if (!empty($availableUsers)): ?>
-                            <button type="submit" class="btn btn-success btn-block">Tambah ke Group</button>
+                            <button type="submit" class="btn btn-success btn-block mb-2">Tambah ke Group</button>
                         <?php endif; ?>
                         <a href="<?= base_url('backend/groups') ?>" class="btn btn-default btn-block">Kembali</a>
                     </div>
                 </form>
             </div>
-        </div>
-    <?php endif; ?>
+        <?php else: ?>
+            <div class="mt-3">
+                <a href="<?= base_url('backend/groups') ?>" class="btn btn-default btn-block">Kembali</a>
+            </div>
+        <?php endif; ?>
+    </div>
 </div>
 
 <?= $this->endSection() ?>

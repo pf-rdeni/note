@@ -27,6 +27,7 @@ $routes->group('backend', ['filter' => 'login', 'namespace' => 'App\Controllers\
         $routes->get('create', 'Groups::create');
         $routes->post('store', 'Groups::store');
         $routes->get('detail/(:num)', 'Groups::detail/$1');
+        $routes->post('update/(:num)', 'Groups::update/$1');
         $routes->post('add-member/(:num)', 'Groups::addMember/$1');
         $routes->get('update-role/(:num)/(:num)/(:alpha)', 'Groups::updateRole/$1/$2/$3');
         $routes->get('remove-member/(:num)/(:num)', 'Groups::removeMember/$1/$2');

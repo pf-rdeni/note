@@ -118,7 +118,9 @@ class Groups extends BaseController
             return redirect()->to('backend/groups')->with('error', 'Anda tidak memiliki akses ke grup tersebut.');
         }
 
-        $group = $this->groupModel->find($groupId);
+        $group = $this->groupModel->select('groups.*, users.username as creator_name')
+                                  ->join('users', 'users.id = groups.created_by', 'left')
+                                  ->find($groupId);
         if (!$group) {
             return redirect()->to('backend/groups')->with('error', 'Grup tidak ditemukan.');
         }
@@ -268,5 +270,39 @@ class Groups extends BaseController
                           ->delete();
 
         return redirect()->to('backend/groups/detail/' . $groupId)->with('success', 'Anggota berhasil dihapus.');
+    }
+
+    /**
+     * Update nama group (Hanya Group Admin yang bisa)
+     */
+    public function update(int $groupId)
+    {
+        // 1. Cek membership
+        $currentMembership = $this->checkMembership($groupId);
+        if (!$currentMembership || $currentMembership['role'] !== 'admin') {
+            return redirect()->back()->with('error', 'Hanya admin grup yang dapat mengubah informasi grup.');
+        }
+
+        $group = $this->groupModel->find($groupId);
+        if (!$group) {
+            return redirect()->to('backend/groups')->with('error', 'Grup tidak ditemukan.');
+        }
+
+        $rules = [
+            'name' => 'required|min_length[3]|max_length[100]'
+        ];
+
+        if (!$this->validate($rules)) {
+            return redirect()->back()->withInput()->with('errors', $this->validator->getErrors());
+        }
+
+        $newName = $this->request->getPost('name');
+
+        $this->groupModel->update($groupId, [
+            'name'       => $newName,
+            'created_by' => $group['created_by']
+        ]);
+
+        return redirect()->to('backend/groups/detail/' . $groupId)->with('success', 'Nama grup berhasil diperbarui.');
     }
 }
