@@ -225,104 +225,109 @@
                         <i class="fas fa-history mr-1"></i> Riwayat Konfirmasi Transfer
                     </h3>
                 </div>
-                <div class="card-body p-0">
-                    <div class="table-responsive">
-                        <table class="table table-hover table-striped mb-0 text-center">
-                            <thead class="bg-light text-secondary text-sm">
-                                <tr>
-                                    <th class="text-left py-3">Waktu Kirim</th>
-                                    <th class="text-left py-3">Pengirim</th>
-                                    <th class="text-left py-3">Penerima</th>
-                                    <th class="text-right py-3">Nominal</th>
-                                    <th class="py-3">Bukti Transfer</th>
-                                    <th class="text-left py-3">Catatan</th>
-                                    <th class="py-3">Status</th>
-                                    <th class="py-3" style="width: 160px;">Aksi Penerima</th>
-                                </tr>
-                            </thead>
-                            <tbody>
-                                <?php if (empty($settlementHistory)): ?>
-                                    <tr>
-                                        <td colspan="8" class="text-center py-5 text-muted">
-                                            <i class="fas fa-receipt fa-2x mb-2 d-block text-warning"></i>
-                                            Belum ada riwayat transfer pembayaran untuk periode ini.
-                                        </td>
-                                    </tr>
-                                <?php else: ?>
-                                    <?php foreach ($settlementHistory as $sh): ?>
-                                        <tr>
-                                            <td class="text-left align-middle text-xs">
-                                                <?= date('d/m/Y H:i', strtotime($sh['created_at'])) ?>
-                                            </td>
-                                            <td class="text-left align-middle font-weight-bold">
-                                                <?= esc($sh['sender_name']) ?>
-                                            </td>
-                                            <td class="text-left align-middle font-weight-bold">
-                                                <?= esc($sh['receiver_name']) ?>
-                                            </td>
-                                            <td class="text-right align-middle font-weight-bold text-dark">
-                                                Rp <?= number_format($sh['amount'], 0, ',', '.') ?>
-                                            </td>
-                                            <td class="align-middle">
-                                                <?php if ($sh['proof_image']): ?>
-                                                    <a href="<?= base_url($sh['proof_image']) ?>" class="btn btn-outline-info btn-xs font-weight-bold view-image-popup">
-                                                        <i class="fas fa-image mr-1"></i> Lihat Bukti
-                                                    </a>
-                                                <?php else: ?>
-                                                    <span class="text-muted small">-</span>
-                                                <?php endif; ?>
-                                            </td>
-                                            <td class="text-left align-middle text-muted text-truncate" style="max-width: 150px;">
-                                                <?= esc($sh['note'] ?: '-') ?>
-                                            </td>
-                                            <td class="align-middle">
+                <div class="card-body p-3">
+                    <?php if (empty($settlementHistory)): ?>
+                        <div class="text-center py-5 text-muted">
+                            <i class="fas fa-receipt fa-3x mb-3 d-block text-warning"></i>
+                            Belum ada riwayat transfer pembayaran untuk periode ini.
+                        </div>
+                    <?php else: ?>
+                        <div class="row">
+                            <?php foreach ($settlementHistory as $sh): ?>
+                                <?php
+                                // Tombol setujui aktif untuk: kreditur (penerima) ATAU admin
+                                $canApprove = ((int)user_id() === (int)$sh['to_user_id'] || $currentMembership['role'] === 'admin');
+                                ?>
+                                <div class="col-12 col-md-6 col-lg-4 mb-3">
+                                    <div class="card h-100 border shadow-xs" style="border-radius: 12px; overflow: hidden;">
+                                        <!-- Header: Status & Waktu -->
+                                        <div class="card-header py-2 px-3 d-flex justify-content-between align-items-center bg-light border-bottom">
+                                            <span class="text-xs text-muted font-weight-bold">
+                                                <i class="far fa-clock mr-1"></i><?= date('d/m/Y H:i', strtotime($sh['created_at'])) ?>
+                                            </span>
+                                            <div>
                                                 <?php if ($sh['status'] === 'paid'): ?>
-                                                    <span class="badge badge-success px-2 py-1"><i class="fas fa-check mr-1"></i> Lunas</span>
-                                                    <small class="text-muted d-block text-xs mt-1" style="font-size: 0.75rem;">
-                                                        Disetujui: <?= date('d/m H:i', strtotime($sh['paid_at'])) ?>
-                                                    </small>
+                                                    <span class="badge badge-success px-2 py-1"><i class="fas fa-check-circle mr-1"></i>Lunas</span>
                                                 <?php else: ?>
-                                                    <span class="badge badge-warning px-2 py-1 text-white"><i class="fas fa-clock mr-1"></i> Pending</span>
+                                                    <span class="badge badge-warning px-2 py-1 text-white"><i class="fas fa-clock mr-1"></i>Pending</span>
                                                 <?php endif; ?>
-                                            </td>
-                                            <?php
-                                            // Tombol setujui aktif untuk: kreditur (penerima) ATAU admin
-                                            $canApprove = ((int)user_id() === (int)$sh['to_user_id'] || $currentMembership['role'] === 'admin');
-                                            ?>
-                                            <td class="align-middle">
-                                                <?php if ($sh['status'] === 'pending' && $canApprove): ?>
-                                                    <?php
-                                                    // Cari label & status periode dari list $periods
-                                                    $shPeriod = null;
-                                                    foreach ($periods as $pp) {
-                                                        if ((int)$pp['id'] === (int)$sh['period_id']) { $shPeriod = $pp; break; }
-                                                    }
-                                                    $shPeriodLabel  = $shPeriod ? esc($shPeriod['label']) : '';
-                                                    $shPeriodSettled = $shPeriod ? (($shPeriod['status'] ?? 'open') === 'settled') : false;
-                                                    ?>
-                                                    <a href="<?= base_url('backend/settlements/approve/' . $sh['id']) ?>" 
-                                                       class="btn btn-success btn-sm font-weight-bold btn-approve-settle"
-                                                       data-sender="<?= esc($sh['sender_name']) ?>"
-                                                       data-receiver="<?= esc($sh['receiver_name']) ?>"
-                                                       data-amount="Rp <?= number_format($sh['amount'], 0, ',', '.') ?>"
-                                                       data-period-label="<?= $shPeriodLabel ?>"
-                                                       data-period-settled="<?= $shPeriodSettled ? '1' : '0' ?>">
-                                                        <i class="fas fa-check-circle mr-1"></i> Konfirmasi Terima
+                                            </div>
+                                        </div>
+                                        
+                                        <!-- Body: Pengirim & Penerima -->
+                                        <div class="card-body p-3 d-flex flex-column justify-content-between">
+                                            <div class="d-flex align-items-center justify-content-between mb-3 border-bottom pb-2">
+                                                <div style="flex: 1;">
+                                                    <span class="text-xs text-muted d-block text-uppercase font-weight-bold">Pengirim</span>
+                                                    <h6 class="font-weight-bold mb-0 text-dark text-truncate" style="max-width: 80px;" title="<?= esc($sh['sender_name']) ?>"><?= esc($sh['sender_name']) ?></h6>
+                                                </div>
+                                                <div class="text-center px-1" style="flex: 1.5;">
+                                                    <i class="fas fa-long-arrow-alt-right text-muted fa-sm"></i>
+                                                    <div class="font-weight-bold text-sm text-primary mt-1">Rp <?= number_format($sh['amount'], 0, ',', '.') ?></div>
+                                                </div>
+                                                <div class="text-right" style="flex: 1;">
+                                                    <span class="text-xs text-muted d-block text-uppercase font-weight-bold">Penerima</span>
+                                                    <h6 class="font-weight-bold mb-0 text-dark text-truncate" style="max-width: 80px;" title="<?= esc($sh['receiver_name']) ?>"><?= esc($sh['receiver_name']) ?></h6>
+                                                </div>
+                                            </div>
+
+                                            <div class="mb-3">
+                                                <div class="text-xs text-secondary mb-1">
+                                                    <i class="far fa-comment-alt mr-1"></i>Catatan:
+                                                </div>
+                                                <div class="p-2 bg-light rounded text-xs text-dark font-italic border-left" style="border-left: 2px solid #ced4da; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;" title="<?= esc($sh['note'] ?: '-') ?>">
+                                                    <?= esc($sh['note'] ?: '-') ?>
+                                                </div>
+                                            </div>
+
+                                            <div class="d-flex align-items-center justify-content-between text-xs">
+                                                <span>Bukti Transfer:</span>
+                                                <?php if ($sh['proof_image']): ?>
+                                                    <a href="<?= base_url($sh['proof_image']) ?>" class="btn btn-outline-info btn-xs font-weight-bold view-image-popup py-1 px-2" style="border-radius: 6px;">
+                                                        <i class="fas fa-image mr-1"></i>Lihat Gambar
                                                     </a>
-                                                <?php elseif ($sh['status'] === 'pending' && !$canApprove): ?>
-                                                    <span class="badge badge-secondary px-2 py-1">
-                                                        <i class="fas fa-hourglass-half mr-1"></i> Menunggu Penerima
-                                                    </span>
                                                 <?php else: ?>
-                                                    <span class="text-muted small">-</span>
+                                                    <span class="text-muted font-italic">Tidak diunggah</span>
                                                 <?php endif; ?>
-                                            </td>
-                                        </tr>
-                                    <?php endforeach; ?>
-                                <?php endif; ?>
-                            </tbody>
-                        </table>
-                    </div>
+                                            </div>
+                                        </div>
+
+                                        <!-- Footer: Actions -->
+                                        <div class="card-footer py-2 px-3 bg-light border-top text-center">
+                                            <?php if ($sh['status'] === 'pending' && $canApprove): ?>
+                                                <?php
+                                                $shPeriod = null;
+                                                foreach ($periods as $pp) {
+                                                    if ((int)$pp['id'] === (int)$sh['period_id']) { $shPeriod = $pp; break; }
+                                                }
+                                                $shPeriodLabel  = $shPeriod ? esc($shPeriod['label']) : '';
+                                                $shPeriodSettled = $shPeriod ? (($shPeriod['status'] ?? 'open') === 'settled') : false;
+                                                ?>
+                                                <a href="<?= base_url('backend/settlements/approve/' . $sh['id']) ?>" 
+                                                   class="btn btn-success btn-xs btn-block font-weight-bold btn-approve-settle py-2"
+                                                   style="border-radius: 8px;"
+                                                   data-sender="<?= esc($sh['sender_name']) ?>"
+                                                   data-receiver="<?= esc($sh['receiver_name']) ?>"
+                                                   data-amount="Rp <?= number_format($sh['amount'], 0, ',', '.') ?>"
+                                                   data-period-label="<?= $shPeriodLabel ?>"
+                                                   data-period-settled="<?= $shPeriodSettled ? '1' : '0' ?>">
+                                                    <i class="fas fa-check-circle mr-1"></i>Konfirmasi Terima
+                                                </a>
+                                            <?php elseif ($sh['status'] === 'pending' && !$canApprove): ?>
+                                                <span class="text-muted text-xs font-weight-bold d-block py-1">
+                                                    <i class="fas fa-hourglass-half text-warning mr-1"></i>Menunggu Penerima
+                                                </span>
+                                            <?php else: ?>
+                                                <span class="text-success text-xs font-weight-bold d-block py-1">
+                                                    <i class="fas fa-check-circle mr-1"></i>Lunas pada <?= date('d/m H:i', strtotime($sh['paid_at'])) ?>
+                                                </span>
+                                            <?php endif; ?>
+                                        </div>
+                                    </div>
+                                </div>
+                            <?php endforeach; ?>
+                        </div>
+                    <?php endif; ?>
                 </div>
             </div>
             
