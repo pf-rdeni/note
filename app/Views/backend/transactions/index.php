@@ -253,6 +253,7 @@ $filterPanelHtml = ob_get_clean();
                         $waSummaryText .= "👉 *" . $s['from_username'] . "* transfer ke *" . $s['to_username'] . "* sebesar *Rp " . number_format($s['amount'], 0, ',', '.') . "*\n";
                     }
                 }
+                $waSummaryText .= "\nDetail selengkapnya lihat di aplikasi: https://note.simpedis.com";
                 ?>
                 <div class="row" style="gap: 0;">
                     <div class="col-6 col-md-3 mb-3 px-1 px-md-2">
