@@ -48,7 +48,7 @@ ob_start();
     <span id="filterToggleLabel">
         <?php
         if (!empty($selectedTrip)) {
-            $currentPeriodLabel = 'Semua';
+            $currentPeriodLabel = 'Pilih Periode';
             if (!empty($selectedPeriodId)) {
                 foreach ($periods as $pItem) {
                     if ((int)$pItem['id'] === (int)$selectedPeriodId) {
@@ -117,15 +117,12 @@ ob_start();
                         <i class="far fa-calendar-alt mr-1"></i> 2. Pilih Periode Pengeluaran
                     </label>
                     <div id="periodStep" class="<?= !empty($selectedTripId) ? '' : 'd-none' ?>">
+                        <!-- Search Box Periode -->
+                        <input type="text" id="periodSearch" class="form-control form-control-sm mb-2" placeholder="Cari periode..." style="border-radius: 6px; font-size: 0.8rem; height: auto; padding: 4px 8px;">
+                        
                         <div class="list-group list-group-flush" id="periodList" style="max-height: 180px; overflow-y: auto; border-radius: 8px; border: 1px solid #dee2e6;">
                             <?php if (!empty($selectedTripId)): ?>
-                                <a href="<?= base_url('backend/transactions?trip_id=' . $selectedTripId) ?>"
-                                   class="list-group-item list-group-item-action d-flex justify-content-between align-items-center py-2 px-3 period-nav-item <?= empty($selectedPeriodId) ? 'active' : '' ?>"
-                                   style="font-size: 0.85rem;"
-                                   data-trip-id="<?= $selectedTripId ?>" data-period-id="">
-                                    <span><i class="fas fa-globe fa-xs mr-1"></i> Semua Periode</span>
-                                    <span class="badge badge-secondary badge-pill"><i class="fas fa-globe fa-xs"></i></span>
-                                </a>
+
                                 <?php 
                                 $openPeriods = [];
                                 $settledPeriods = [];
@@ -1786,20 +1783,65 @@ button[aria-expanded="true"] .collapse-chevron {
         });
     }
 
+    // Filter Periode (Search)
+    const periodSearch = document.getElementById('periodSearch');
+    if (periodSearch) {
+        periodSearch.addEventListener('input', function() {
+            const query = this.value.toLowerCase().trim();
+            const periodList = document.getElementById('periodList');
+            if (!periodList) return;
+
+            let matchOpenCount = 0;
+            let matchSettledCount = 0;
+            
+            periodList.querySelectorAll('.period-nav-item').forEach(btn => {
+                const text = btn.textContent.toLowerCase();
+                const isMatch = text.includes(query);
+                const isSettled = btn.closest('#settledPeriodsCollapse') !== null;
+                
+                if (isMatch) {
+                    btn.classList.add('d-flex');
+                    btn.classList.remove('d-none');
+                    if (isSettled) matchSettledCount++;
+                    else matchOpenCount++;
+                } else {
+                    btn.classList.remove('d-flex');
+                    btn.classList.add('d-none');
+                }
+            });
+
+            const settledToggle = periodList.querySelector('[data-target="#settledPeriodsCollapse"]');
+            const settledCollapse = document.getElementById('settledPeriodsCollapse');
+            
+            if (settledToggle) {
+                if (matchSettledCount > 0) {
+                    settledToggle.classList.add('d-flex');
+                    settledToggle.classList.remove('d-none');
+                    if (query !== '' && settledCollapse && !settledCollapse.classList.contains('show')) {
+                        $(settledCollapse).collapse('show');
+                    }
+                } else {
+                    settledToggle.classList.remove('d-flex');
+                    settledToggle.classList.add('d-none');
+                    if (settledCollapse && settledCollapse.classList.contains('show')) {
+                        $(settledCollapse).collapse('hide');
+                    }
+                }
+            }
+        });
+    }
+
     // Helper: render daftar periode ke #periodList
     function renderPeriods(tripId, activePeriodId) {
+        const pSearch = document.getElementById('periodSearch');
+        if (pSearch) pSearch.value = '';
+
         const periods   = allPeriods[tripId] || [];
         const container = document.getElementById('periodList');
         const step      = document.getElementById('periodStep');
         if (!container) return;
 
-        let html = `<a href="${baseUrl}?trip_id=${tripId}"
-                       class="list-group-item list-group-item-action d-flex justify-content-between align-items-center py-2 px-3 period-nav-item ${!activePeriodId ? 'active' : ''}"
-                       style="font-size:0.85rem;"
-                       data-trip-id="${tripId}" data-period-id="">
-                        <span><i class="fas fa-globe fa-xs mr-1"></i> Semua Periode</span>
-                        <span class="badge badge-secondary badge-pill"><i class="fas fa-globe fa-xs"></i></span>
-                    </a>`;
+        let html = '';
 
         if (periods.length === 0) {
             html += `<div class="p-3 text-muted text-center small">
@@ -1880,7 +1922,7 @@ button[aria-expanded="true"] .collapse-chevron {
 
             // Update toggle label mobile
             const lbl = document.getElementById('filterToggleLabel');
-            if (lbl) lbl.textContent = tripName + ' · Semua';
+            if (lbl) lbl.textContent = tripName + ' · Pilih Periode';
         });
     });
 
