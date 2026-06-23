@@ -91,6 +91,11 @@
                 <h3 class="card-title font-weight-bold text-info">
                     <i class="fas fa-receipt mr-1"></i> 5 Transaksi Terbaru
                 </h3>
+                <div class="card-tools">
+                    <a href="<?= base_url('backend/transactions') ?>" class="btn btn-xs btn-info font-weight-bold shadow-sm" style="border-radius: 6px; padding: 4px 8px;">
+                        Ke Transaksi <i class="fas fa-arrow-right ml-1"></i>
+                    </a>
+                </div>
             </div>
             <div class="card-body p-0">
                 <?php if (empty($recentTransactions)): ?>
