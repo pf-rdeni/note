@@ -732,29 +732,14 @@ $filterPanelHtml = ob_get_clean();
                                     <input type="text" class="form-control" id="description" name="description" placeholder="Contoh: Beli tiket feri, Makan malam" required minlength="3" maxlength="255">
                                 </div>
                                 <div class="form-group">
-                                    <label for="period_id">Periode Pengeluaran <span class="text-muted">(Opsional)</span></label>
-                                    <select class="form-control select2-modal" id="period_id" name="period_id" style="width: 100%;">
-                                        <option value="" selected>-- Pilih Periode (Bisa diisi nanti) --</option>
-                                        <?php if (empty($openPeriods)): ?>
-                                            <option value="" disabled>-- Semua periode sudah ditutup --</option>
-                                        <?php else: ?>
-                                            <?php foreach ($openPeriods as $p): ?>
-                                                <option value="<?= $p['id'] ?>" <?= (int)$p['id'] === (int)$selectedPeriodId ? 'selected' : '' ?>>
-                                                    <?= esc($p['label']) ?>
-                                                </option>
-                                            <?php endforeach; ?>
-                                        <?php endif; ?>
-                                    </select>
-                                    <small class="form-text text-muted">Hanya periode yang masih <strong>Open</strong> yang dapat dipilih. Membagi tagihan rata (Shared) berdasarkan anggota aktif pada periode terpilih.</small>
+                                    <label for="amount">Nominal Uang (Rp) <span class="text-danger">*</span></label>
+                                    <input type="number" class="form-control" id="amount" name="amount" placeholder="Contoh: 150000" min="1" required>
+                                    <small id="amount_terbilang" class="form-text text-danger font-italic" style="font-size: 0.8rem; min-height: 1.2rem; display: block; margin-top: 4px;"></small>
                                 </div>
                             </div>
 
                             <!-- Right form parameters -->
                             <div class="col-md-6">
-                                <div class="form-group">
-                                    <label for="amount">Nominal Uang (Rp) <span class="text-danger">*</span></label>
-                                    <input type="number" class="form-control" id="amount" name="amount" placeholder="Contoh: 150000" min="1" required>
-                                </div>
                                 <div class="form-group">
                                     <label for="paid_by">Dibayar Oleh (Payer) <span class="text-danger">*</span></label>
                                     <select class="form-control select2-modal" id="paid_by" name="paid_by" style="width: 100%;" required>
@@ -774,6 +759,24 @@ $filterPanelHtml = ob_get_clean();
                                     </select>
                                 </div>
                             </div>
+                        </div>
+
+                        <!-- Periode Pengeluaran -->
+                        <div class="form-group">
+                            <label for="period_id">Periode Pengeluaran <span class="text-muted">(Opsional)</span></label>
+                            <select class="form-control select2-modal" id="period_id" name="period_id" style="width: 100%;">
+                                <option value="" selected>-- Pilih Periode (Bisa diisi nanti) --</option>
+                                <?php if (empty($openPeriods)): ?>
+                                    <option value="" disabled>-- Semua periode sudah ditutup --</option>
+                                <?php else: ?>
+                                    <?php foreach ($openPeriods as $p): ?>
+                                        <option value="<?= $p['id'] ?>" <?= (int)$p['id'] === (int)$selectedPeriodId ? 'selected' : '' ?>>
+                                            <?= esc($p['label']) ?>
+                                        </option>
+                                    <?php endforeach; ?>
+                                <?php endif; ?>
+                            </select>
+                            <small class="form-text text-muted">Hanya periode yang masih <strong>Open</strong> yang dapat dipilih. Membagi tagihan rata (Shared) berdasarkan anggota aktif pada periode terpilih.</small>
                         </div>
 
                         <!-- Upload Struk Pembelian - Mobile Friendly -->
@@ -931,25 +934,12 @@ $filterPanelHtml = ob_get_clean();
                                     <input type="text" class="form-control" id="edit_description" name="description" required minlength="3" maxlength="255">
                                 </div>
                                 <div class="form-group">
-                                    <label for="edit_period_id">Periode <span class="text-muted">(Opsional)</span></label>
-                                    <select class="form-control select2-edit-modal" id="edit_period_id" name="period_id" style="width:100%;">
-                                        <option value="">-- Tanpa Periode --</option>
-                                        <?php if (empty($openPeriods)): ?>
-                                            <option value="" disabled>-- Semua periode sudah ditutup --</option>
-                                        <?php else: ?>
-                                            <?php foreach ($openPeriods as $p): ?>
-                                                <option value="<?= $p['id'] ?>"><?= esc($p['label']) ?></option>
-                                            <?php endforeach; ?>
-                                        <?php endif; ?>
-                                    </select>
-                                    <small class="form-text text-muted">Hanya periode <strong>Open</strong> yang dapat dipilih.</small>
+                                    <label for="edit_amount">Nominal (Rp) <span class="text-danger">*</span></label>
+                                    <input type="number" class="form-control" id="edit_amount" name="amount" min="1" required>
+                                    <small id="edit_amount_terbilang" class="form-text text-danger font-italic" style="font-size: 0.8rem; min-height: 1.2rem; display: block; margin-top: 4px;"></small>
                                 </div>
                             </div>
                             <div class="col-md-6">
-                                <div class="form-group">
-                                    <label for="edit_amount">Nominal (Rp) <span class="text-danger">*</span></label>
-                                    <input type="number" class="form-control" id="edit_amount" name="amount" min="1" required>
-                                </div>
                                 <div class="form-group">
                                     <label for="edit_paid_by">Dibayar Oleh (Payer) <span class="text-danger">*</span></label>
                                     <select class="form-control select2-edit-modal" id="edit_paid_by" name="paid_by" style="width:100%;" required>
@@ -967,6 +957,22 @@ $filterPanelHtml = ob_get_clean();
                                     </select>
                                 </div>
                             </div>
+                        </div>
+
+                        <!-- Periode Pengeluaran -->
+                        <div class="form-group">
+                            <label for="edit_period_id">Periode <span class="text-muted">(Opsional)</span></label>
+                            <select class="form-control select2-edit-modal" id="edit_period_id" name="period_id" style="width:100%;">
+                                <option value="">-- Tanpa Periode --</option>
+                                <?php if (empty($openPeriods)): ?>
+                                    <option value="" disabled>-- Semua periode sudah ditutup --</option>
+                                <?php else: ?>
+                                    <?php foreach ($openPeriods as $p): ?>
+                                        <option value="<?= $p['id'] ?>"><?= esc($p['label']) ?></option>
+                                    <?php endforeach; ?>
+                                <?php endif; ?>
+                            </select>
+                            <small class="form-text text-muted">Hanya periode <strong>Open</strong> yang dapat dipilih.</small>
                         </div>
 
                         <!-- Edit Upload Struk - Mobile Friendly -->
@@ -1473,7 +1479,7 @@ $(document).ready(function() {
                 // Fill basic fields
                 $('#edit_date').val(t.date);
                 $('#edit_description').val(t.description);
-                $('#edit_amount').val(t.amount);
+                $('#edit_amount').val(t.amount).trigger('input');
                 $('#edit_type').val(t.type).trigger('change.select2');
                 $('#edit_period_id').val(t.period_id || '').trigger('change.select2');
                 $('#edit_paid_by').val(data.transaction.paid_by).trigger('change');
@@ -2007,6 +2013,59 @@ button[aria-expanded="true"] .collapse-chevron {
             window.open(waUrl, '_blank');
         });
     }
+    // Realtime Terbilang Helper & Event Handlers
+    function terbilang(angka) {
+        angka = Math.floor(Math.abs(angka));
+        if (isNaN(angka) || angka === 0) return '';
+        
+        const susunan = ['', 'satu', 'dua', 'tiga', 'empat', 'lima', 'enam', 'tujuh', 'delapan', 'sembilan', 'sepuluh', 'sebelas'];
+        let hasil = '';
+        
+        if (angka < 12) {
+            hasil = ' ' + susunan[angka];
+        } else if (angka < 20) {
+            hasil = terbilang(angka - 10) + ' belas ';
+        } else if (angka < 100) {
+            hasil = terbilang(Math.floor(angka / 10)) + ' puluh ' + terbilang(angka % 10);
+        } else if (angka < 200) {
+            hasil = ' seratus ' + terbilang(angka - 100);
+        } else if (angka < 1000) {
+            hasil = terbilang(Math.floor(angka / 100)) + ' ratus ' + terbilang(angka % 100);
+        } else if (angka < 2000) {
+            hasil = ' seribu ' + terbilang(angka - 1000);
+        } else if (angka < 1000000) {
+            hasil = terbilang(Math.floor(angka / 1000)) + ' ribu ' + terbilang(angka % 1000);
+        } else if (angka < 1000000000) {
+            hasil = terbilang(Math.floor(angka / 1000000)) + ' juta ' + terbilang(angka % 1000000);
+        } else if (angka < 1000000000000) {
+            hasil = terbilang(Math.floor(angka / 1000000000)) + ' milyar ' + terbilang(angka % 1000000000);
+        } else if (angka < 1000000000000000) {
+            hasil = terbilang(Math.floor(angka / 1000000000000)) + ' triliun ' + terbilang(angka % 1000000000000);
+        }
+        
+        return hasil.replace(/\s+/g, ' ').trim();
+    }
+
+    function bindTerbilangInput(inputId, labelId) {
+        const inputEl = document.getElementById(inputId);
+        const labelEl = document.getElementById(labelId);
+        if (inputEl && labelEl) {
+            const handler = function() {
+                const val = parseInt(inputEl.value, 10);
+                if (val && val > 0) {
+                    const text = terbilang(val);
+                    labelEl.textContent = text ? 'Terbilang: ' + text + ' rupiah' : '';
+                } else {
+                    labelEl.textContent = '';
+                }
+            };
+            inputEl.addEventListener('input', handler);
+            inputEl.addEventListener('change', handler);
+        }
+    }
+
+    bindTerbilangInput('amount', 'amount_terbilang');
+    bindTerbilangInput('edit_amount', 'edit_amount_terbilang');
 })();
 </script>
 <?= $this->endSection() ?>
