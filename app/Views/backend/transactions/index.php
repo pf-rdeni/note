@@ -297,7 +297,7 @@
                     
                     <!-- DESKTOP TABLE (tersembunyi di mobile) -->
                     <div class="table-responsive txn-desktop-table">
-                        <table class="table table-hover table-striped mb-0 txn-desktop-table">
+                        <table class="table table-hover table-striped mb-0 txn-desktop-table" id="txnTable">
                             <thead>
                                 <tr>
                                     <th>Tanggal</th>
@@ -312,7 +312,7 @@
                             </thead>
                             <tbody>
                                 <?php if (empty($transactions)): ?>
-                                    <tr>
+                                    <tr class="no-data">
                                         <td colspan="8" class="text-center py-5 text-muted">
                                             <i class="fas fa-receipt fa-2x mb-2 d-block text-warning"></i>
                                             Belum ada transaksi tercatat untuk trip/periode terpilih.
@@ -321,7 +321,7 @@
                                 <?php else: ?>
                                     <?php foreach ($transactions as $t): ?>
                                         <tr>
-                                            <td class="align-middle">
+                                            <td class="align-middle" data-order="<?= strtotime($t['date']) ?>">
                                                 <?= date('d M Y', strtotime($t['date'])) ?>
                                             </td>
                                             <td class="align-middle">
@@ -336,13 +336,13 @@
                                                         <span class="text-xs font-weight-bold text-info"><i class="fas fa-info-circle"></i> Beban Anggota:</span>
                                                         <ul class="list-unstyled mb-0 pl-1 text-xs">
                                                             <?php foreach ($t['adjustments'] as $adj): ?>
-                                                                <li>
-                                                                    <i class="far fa-user text-muted mr-1"></i><?= esc($adj['username']) ?>: 
-                                                                    <span class="font-weight-bold">Rp <?= number_format($adj['amount'], 0, ',', '.') ?></span>
-                                                                    <?= $adj['note'] ? '<span class="text-muted small">(' . esc($adj['note']) . ')</span>' : '' ?>
-                                                                </li>
+                                                                 <li>
+                                                                     <i class="far fa-user text-muted mr-1"></i><?= esc($adj['username']) ?>: 
+                                                                     <span class="font-weight-bold">Rp <?= number_format($adj['amount'], 0, ',', '.') ?></span>
+                                                                     <?= $adj['note'] ? '<span class="text-muted small">(' . esc($adj['note']) . ')</span>' : '' ?>
+                                                                 </li>
                                                             <?php endforeach; ?>
-                                                        </ul>
+                                                         </ul>
                                                     </div>
                                                 <?php endif; ?>
                                             </td>
@@ -359,7 +359,7 @@
                                             <td class="align-middle">
                                                 <i class="fas fa-user-circle text-muted mr-1"></i><?= esc($t['paid_by_name']) ?>
                                             </td>
-                                            <td class="align-middle text-right font-weight-bold text-dark">
+                                            <td class="align-middle text-right font-weight-bold text-dark" data-order="<?= $t['amount'] ?>">
                                                 Rp <?= number_format($t['amount'], 0, ',', '.') ?>
                                             </td>
                                             <td class="text-center align-middle">
@@ -1410,6 +1410,27 @@ $(document).ready(function() {
             printWindow.close();
         }, 500);
     });
+
+    // Inisialisasi DataTables untuk tabel transaksi desktop jika ada data transaksi
+    if ($.fn.DataTable && $('#txnTable tbody tr.no-data').length === 0 && $('#txnTable tbody tr').length > 0) {
+        if ($.fn.DataTable.isDataTable('#txnTable')) {
+            $('#txnTable').DataTable().destroy();
+        }
+
+        $('#txnTable').DataTable({
+            order: [[0, 'desc']], 
+            columnDefs: [
+                { targets: [6, 7], orderable: false, searchable: false } 
+            ],
+            dom: "<'row p-3'<'col-sm-12 col-md-6'l><'col-sm-12 col-md-6'f>>" +
+                 "<'row'<'col-sm-12'tr>>" +
+                 "<'row p-3'<'col-sm-12 col-md-5'i><'col-sm-12 col-md-7'p>>",
+            language: {
+                search: "Cari:",
+                searchPlaceholder: "Cari transaksi..."
+            }
+        });
+    }
 });
 </script>
 <?= $this->endSection() ?>
