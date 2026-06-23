@@ -269,6 +269,28 @@ $(document).ready(function() {
         }
     });
 
+    // =================================================================
+    // LAST PAGE TRACKING - LOGOUT CLEANUP
+    // =================================================================
+    const currentUserId = <?= function_exists('user_id') ? (user_id() ?? 'null') : 'null' ?>;
+    if (currentUserId) {
+        const redirectDoneKey = 'lastPageRedirectDone_' + currentUserId;
+        const lastPageStorageKey = 'lastPage_' + currentUserId;
+
+        $(document).on('click', 'a[href*="logout"], a[href*="/logout"]', function(e) {
+            const currentPath = window.location.pathname;
+            const skipPages = ['/login', '/logout', '/register', '/forgot', '/reset-password'];
+            const shouldSkip = skipPages.some(page => currentPath.includes(page));
+            
+            // Simpan halaman sebelum keluar (selama bukan halaman auth)
+            if (!shouldSkip) {
+                localStorage.setItem(lastPageStorageKey, window.location.href);
+            }
+            // Hapus redirect flag
+            sessionStorage.removeItem(redirectDoneKey);
+        });
+    }
+
     console.log('Backend scripts initialized');
 });
 

@@ -55,6 +55,8 @@ $routes->group('backend', ['filter' => 'login', 'namespace' => 'App\Controllers\
     // Transactions & Adjustments
     $routes->group('transactions', static function($routes) {
         $routes->get('/', 'Transactions::index');
+        $routes->get('pdf', 'Transactions::pdf');
+        $routes->get('get-periods', 'Transactions::getPeriodsAjax');
         $routes->post('store', 'Transactions::store');
         $routes->get('get/(:num)', 'Transactions::get/$1');
         $routes->post('update/(:num)', 'Transactions::update/$1');

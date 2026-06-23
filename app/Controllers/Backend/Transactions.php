@@ -56,16 +56,29 @@ class Transactions extends BaseController
                                           ->where('group_members.user_id', $userId)
                                           ->findAll();
 
-        $selectedTripId = $this->request->getGet('trip_id');
+        // --- Session preference: simpan/restore trip & periode terakhir ---
+        $session = session();
+
+        $selectedTripId   = $this->request->getGet('trip_id');
+        $selectedPeriodId = $this->request->getGet('period_id');
+        $fromGet          = $this->request->getGet('trip_id') !== null;
+
+        // Jika tidak ada GET param, coba restore dari session
+        if (!$fromGet) {
+            $selectedTripId   = $session->get('txn_last_trip_id');
+            $selectedPeriodId = $session->get('txn_last_period_id');
+        }
+
+        // Fallback: gunakan trip pertama jika masih kosong
         if (empty($selectedTripId) && !empty($availableTrips)) {
             $selectedTripId = $availableTrips[0]['id'];
         }
 
-        $transactions = [];
-        $selectedTrip = null;
-        $periods = [];
-        $groupMembers = [];
-        $selectedPeriodId = $this->request->getGet('period_id');
+        $transactions      = [];
+        $selectedTrip      = null;
+        $periods           = [];
+        $openPeriods       = [];
+        $groupMembers      = [];
         $currentMembership = null;
 
         if (!empty($selectedTripId)) {
@@ -111,6 +124,10 @@ class Transactions extends BaseController
                                                    ->join('users', 'users.id = group_members.user_id')
                                                    ->where('group_members.group_id', $selectedTrip['group_id'])
                                                    ->findAll();
+
+            // --- Simpan preferensi terakhir ke session ---
+            $session->set('txn_last_trip_id',   $selectedTripId);
+            $session->set('txn_last_period_id', $selectedPeriodId ?: null);
         }
 
         $calculationResult = null;
@@ -121,6 +138,17 @@ class Transactions extends BaseController
             } catch (\Exception $e) {
                 // Biarkan null jika gagal
             }
+        }
+
+        // Kumpulkan semua periode per trip untuk rendering sisi klien (filter tanpa reload)
+        $allPeriodsJson = [];
+        foreach ($availableTrips as $at) {
+            $tripPeriods = $this->periodModel
+                ->select('id, label, status')
+                ->where('trip_id', $at['id'])
+                ->orderBy('created_at', 'ASC')
+                ->findAll();
+            $allPeriodsJson[$at['id']] = $tripPeriods;
         }
 
         $data = [
@@ -135,10 +163,35 @@ class Transactions extends BaseController
             'groupMembers'      => $groupMembers,
             'currentMembership' => $currentMembership,
             'calculationResult' => $calculationResult,
+            'allPeriodsJson'    => json_encode($allPeriodsJson),
             'user'              => user(),
         ];
 
         return view('backend/transactions/index', $data);
+    }
+
+    /**
+     * AJAX: Ambil daftar periode berdasarkan trip_id
+     */
+    public function getPeriodsAjax()
+    {
+        $tripId = (int)$this->request->getGet('trip_id');
+        if (!$tripId) {
+            return $this->response->setJSON(['periods' => []]);
+        }
+
+        $membership = $this->checkTripAccess($tripId);
+        if (!$membership) {
+            return $this->response->setStatusCode(403)->setJSON(['error' => 'Akses ditolak']);
+        }
+
+        $periods = $this->periodModel
+            ->select('id, label, status')
+            ->where('trip_id', $tripId)
+            ->orderBy('created_at', 'ASC')
+            ->findAll();
+
+        return $this->response->setJSON(['periods' => $periods]);
     }
 
     /**
@@ -445,6 +498,87 @@ class Transactions extends BaseController
         $this->transactionModel->delete($transactionId);
 
         return redirect()->to('backend/transactions?trip_id=' . $transaction['trip_id'] . ($transaction['period_id'] ? '&period_id=' . $transaction['period_id'] : ''))->with('success', 'Transaksi berhasil dihapus.');
+    }
+
+    /**
+     * Ekspor PDF menggunakan Dompdf
+     */
+    public function pdf()
+    {
+        $selectedPeriodId = $this->request->getGet('period_id');
+        if (empty($selectedPeriodId)) {
+            return redirect()->back()->with('error', 'Periode tidak valid.');
+        }
+
+        $period = $this->periodModel->find($selectedPeriodId);
+        if (!$period) {
+            return redirect()->back()->with('error', 'Periode tidak ditemukan.');
+        }
+
+        $selectedTripId = $period['trip_id'];
+        $selectedTrip = $this->tripModel->find($selectedTripId);
+        if (!$selectedTrip) {
+            return redirect()->back()->with('error', 'Kegiatan tidak ditemukan.');
+        }
+
+        // Verifikasi akses ke trip terpilih
+        $currentMembership = $this->checkTripAccess((int)$selectedTripId);
+        if (!$currentMembership) {
+            return redirect()->to('backend/transactions')->with('error', 'Anda tidak memiliki akses ke kegiatan ini.');
+        }
+
+        // Query transaksi
+        $transactions = $this->transactionModel->select('transactions.*, users.username as paid_by_name, creator.username as creator_name, trip_periods.label as period_label')
+                                             ->join('users', 'users.id = transactions.paid_by')
+                                             ->join('users creator', 'creator.id = transactions.created_by')
+                                             ->join('trip_periods', 'trip_periods.id = transactions.period_id', 'left')
+                                             ->where('transactions.trip_id', $selectedTripId)
+                                             ->where('transactions.period_id', $selectedPeriodId)
+                                             ->orderBy('transactions.date', 'DESC')
+                                             ->findAll();
+
+        // Tambahkan data detail adjustments untuk transaksi bertipe individual
+        foreach ($transactions as &$t) {
+            if ($t['type'] === 'individual') {
+                $t['adjustments'] = $this->adjustmentModel->select('transaction_adjustments.*, users.username')
+                                                          ->join('users', 'users.id = transaction_adjustments.target_user_id')
+                                                          ->where('transaction_adjustments.transaction_id', $t['id'])
+                                                          ->findAll();
+            }
+        }
+
+        // Hitung rekap pembagian saldo
+        $calculationResult = null;
+        $calculationEngine = new \App\Libraries\CalculationEngine();
+        try {
+            $calculationResult = $calculationEngine->calculatePeriod((int)$selectedPeriodId);
+        } catch (\Exception $e) {
+            return redirect()->back()->with('error', 'Gagal memproses perhitungan saldo: ' . $e->getMessage());
+        }
+
+        // Konfigurasi DOMPDF
+        $options = new \Dompdf\Options();
+        $options->set('isHtml5ParserEnabled', true);
+        $options->set('isRemoteEnabled', true);
+        $options->set('isPhpEnabled', true);
+        $dompdf = new \Dompdf\Dompdf($options);
+
+        // Render HTML view
+        $html = view('backend/transactions/pdf_template', [
+            'calculationResult' => $calculationResult,
+            'transactions'      => $transactions,
+        ]);
+
+        $dompdf->loadHtml($html);
+        $dompdf->setPaper('A4', 'portrait');
+        $dompdf->render();
+
+        $filename = 'rekap_saldo_' . str_replace(' ', '_', $calculationResult['period']['label']) . '.pdf';
+
+        return $this->response
+            ->setHeader('Content-Type', 'application/pdf')
+            ->setHeader('Content-Disposition', 'attachment; filename="' . $filename . '"')
+            ->setBody($dompdf->output());
     }
 
     /**

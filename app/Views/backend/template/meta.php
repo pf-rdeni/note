@@ -5,6 +5,85 @@
     <meta name="author" content="Deni Rusandi">
     
     <title><?= $title ?? 'Split Bill Keluarga' ?></title>
+    
+    <!-- Last Page Tracking & Redirect (localStorage) -->
+    <script>
+        (function() {
+            <?php
+            $currentUserId = function_exists('user_id') ? user_id() : null;
+            ?>
+            const currentUserId = <?= $currentUserId ?? 'null' ?>;
+            if (!currentUserId) return;
+
+            const lastPageStorageKey = 'lastPage_' + currentUserId;
+            const redirectDoneKey = 'lastPageRedirectDone_' + currentUserId;
+
+            // Cek query parameter after_login
+            const urlParams = new URLSearchParams(window.location.search);
+            const isAfterLogin = urlParams.get('after_login') === '1';
+            const currentPath = window.location.pathname;
+            const currentUrl = window.location.href;
+
+            if (isAfterLogin) {
+                // Reset status redirect done saat login baru
+                sessionStorage.removeItem(redirectDoneKey);
+
+                // Cek apakah ini halaman default (dashboard/landing) yang memicu redirect ke halaman terakhir
+                const isDashboardPage = currentPath === '/' || 
+                                        currentPath.endsWith('/dashboard') || 
+                                        currentPath.endsWith('/dashboard/') || 
+                                        currentPath.includes('/backend/dashboard');
+
+                if (isDashboardPage) {
+                    const lastPageCheck = localStorage.getItem(lastPageStorageKey);
+                    let cleanLastPageCheck = lastPageCheck;
+                    if (cleanLastPageCheck) {
+                        cleanLastPageCheck = cleanLastPageCheck.replace(/[?&]after_login=1/g, '').replace(/\?$/, '');
+                    }
+
+                    const currentUrlClean = currentUrl.replace(/[?&]after_login=1/g, '').replace(/\?$/, '');
+                    const currentUrlBase = window.location.origin + currentPath;
+                    
+                    const hasValidLastPage = cleanLastPageCheck &&
+                        !cleanLastPageCheck.includes('/login') &&
+                        !cleanLastPageCheck.includes('/logout') &&
+                        !cleanLastPageCheck.includes('/register') &&
+                        !cleanLastPageCheck.includes('/forgot') &&
+                        !cleanLastPageCheck.includes('/reset') &&
+                        !cleanLastPageCheck.includes('/backend/dashboard') &&
+                        cleanLastPageCheck !== currentUrlClean &&
+                        cleanLastPageCheck !== currentUrlBase &&
+                        cleanLastPageCheck !== window.location.origin + '/';
+
+                    if (hasValidLastPage) {
+                        sessionStorage.setItem(redirectDoneKey, 'true');
+                        window.location.href = cleanLastPageCheck;
+                        return; // Keluar awal agar langsung redirect
+                    } else {
+                        sessionStorage.setItem(redirectDoneKey, 'true');
+                    }
+                }
+            }
+
+            // Simpan halaman saat ini ke localStorage (kecuali halaman auth)
+            const skipPages = ['/login', '/logout', '/register', '/forgot', '/reset-password'];
+            const shouldSkip = skipPages.some(page => currentPath.includes(page));
+            const hasAfterLogin = currentUrl.includes('after_login=1');
+
+            if (!shouldSkip && !hasAfterLogin) {
+                localStorage.setItem(lastPageStorageKey, currentUrl);
+            }
+
+            // Bersihkan parameter after_login dari URL jika belum redirect
+            if (isAfterLogin && !sessionStorage.getItem(redirectDoneKey)) {
+                const newUrl = window.location.pathname + (window.location.search.replace(/[?&]after_login=1/, '').replace(/^\?/, '') ? '?' + window.location.search.replace(/[?&]after_login=1/, '').replace(/^\?/, '') : '');
+                if (newUrl !== window.location.pathname + window.location.search) {
+                    window.history.replaceState({}, '', newUrl);
+                }
+            }
+        })();
+    </script>
+
     <link rel="icon" href="<?= base_url('template/backend/dist/img/AdminLTELogo.png') ?>" type="image/png" sizes="32x32">
     <link rel="apple-touch-icon" href="<?= base_url('template/backend/dist/img/AdminLTELogo.png') ?>">
 

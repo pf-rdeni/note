@@ -36,100 +36,168 @@
     </div>
 </div>
 
-<div class="row">
-    <!-- Filter Sidebar Column -->
-    <div class="col-lg-3">
-        <!-- Mobile filter toggle -->
-        <button class="btn btn-outline-primary btn-sm mobile-filter-toggle" type="button" 
-                data-toggle="collapse" data-target="#filterPanel" 
-                aria-expanded="false" aria-controls="filterPanel">
-            <i class="fas fa-filter mr-1"></i> Filter Kegiatan & Periode
-        </button>
+<?php
+// Capture filter panel HTML in a variable to avoid duplication
+ob_start();
+?>
+<!-- Mobile filter toggle — tampilkan pilihan terakhir -->
+<button class="btn btn-outline-primary btn-sm w-100 mobile-filter-toggle d-lg-none mb-2" type="button"
+        data-toggle="collapse" data-target="#filterPanel"
+        aria-expanded="false" aria-controls="filterPanel" id="filterToggleBtn">
+    <i class="fas fa-filter mr-1"></i>
+    <span id="filterToggleLabel">
+        <?php
+        if (!empty($selectedTrip)) {
+            $currentPeriodLabel = 'Semua';
+            if (!empty($selectedPeriodId)) {
+                foreach ($periods as $pItem) {
+                    if ((int)$pItem['id'] === (int)$selectedPeriodId) {
+                        $currentPeriodLabel = $pItem['label'];
+                        break;
+                    }
+                }
+            }
+            echo esc($selectedTrip['name']) . ' &middot; ' . esc($currentPeriodLabel);
+        } else {
+            echo 'Filter Kegiatan &amp; Periode';
+        }
+        ?>
+    </span>
+    <i class="fas fa-chevron-down ml-1 fa-xs"></i>
+</button>
 
-        <div class="collapse show" id="filterPanel">
-        <!-- Trip Selector Card -->
-        <div class="card card-primary card-outline">
-            <div class="card-header">
-                <h3 class="card-title font-weight-bold">
-                    <i class="fas fa-filter mr-1"></i> Pilih Kegiatan
-                </h3>
-            </div>
-            <div class="card-body">
-                <form action="<?= base_url('backend/transactions') ?>" method="get" id="tripFilterForm">
-                    <div class="form-group mb-0">
-                        <label for="trip_select">Kegiatan:</label>
-                        <select class="form-control select2" id="trip_select" name="trip_id" onchange="this.form.submit()">
-                            <?php if (empty($availableTrips)): ?>
-                                <option value="" disabled selected>Belum ada kegiatan</option>
-                            <?php else: ?>
-                                <?php foreach ($availableTrips as $at): ?>
-                                    <option value="<?= $at['id'] ?>" <?= (int)$at['id'] === (int)$selectedTripId ? 'selected' : '' ?>>
-                                        <?= esc($at['group_name']) ?> - <?= esc($at['name']) ?>
-                                    </option>
-                                <?php endforeach; ?>
-                            <?php endif; ?>
-                        </select>
-                    </div>
-                </form>
-            </div>
+<div class="<?= !empty($selectedTripId) ? 'collapse' : 'collapse show' ?> d-lg-block mb-3" id="filterPanel">
+    <div class="card card-primary card-outline shadow-sm mb-0">
+        <div class="card-header py-2">
+            <h3 class="card-title font-weight-bold mb-0 text-sm" style="line-height: 1.8;">
+                <i class="fas fa-filter mr-1"></i> Pilihan Kegiatan &amp; Periode
+            </h3>
+            <?php if (!empty($selectedTripId)): ?>
+                <div class="card-tools d-lg-none">
+                    <button type="button" class="btn btn-tool" id="btnCollapseFilter">
+                        <i class="fas fa-times"></i>
+                    </button>
+                </div>
+            <?php endif; ?>
         </div>
 
-        <!-- Period Selector Card -->
-        <?php if (!empty($selectedTripId)): ?>
-            <div class="card card-info card-outline">
-                <div class="card-header">
-                    <h3 class="card-title font-weight-bold">
-                        <i class="far fa-calendar-alt mr-1"></i> Periode Pengeluaran
-                    </h3>
+        <div class="card-body p-3">
+            <div class="row">
+                <!-- Column 1: Kegiatan -->
+                <div class="col-md-6 mb-3 mb-md-0">
+                    <label class="text-xs font-weight-bold text-muted mb-1 d-block text-uppercase">
+                        <i class="fas fa-suitcase-rolling mr-1"></i> 1. Pilih Kegiatan
+                    </label>
+                    <!-- Search Box Kegiatan -->
+                    <input type="text" id="tripSearch" class="form-control form-control-sm mb-2" placeholder="Cari kegiatan..." style="border-radius: 6px; font-size: 0.8rem; height: auto; padding: 4px 8px;">
+
+                    <div class="list-group list-group-flush" id="tripList" style="max-height: 180px; overflow-y: auto; border-radius: 8px; border: 1px solid #dee2e6;">
+                        <?php foreach ($availableTrips as $at): ?>
+                            <button type="button"
+                                    class="list-group-item list-group-item-action d-flex justify-content-between align-items-center py-2 px-3 trip-select-btn <?= (int)$at['id'] === (int)$selectedTripId ? 'active' : '' ?>"
+                                    data-trip-id="<?= $at['id'] ?>"
+                                    data-trip-name="<?= esc($at['name']) ?>"
+                                    style="font-size: 0.85rem; border: none; border-bottom: 1px solid #f0f0f0;">
+                                <span>
+                                    <i class="fas fa-layer-group fa-xs mr-1 text-muted"></i>
+                                    <strong><?= esc($at['group_name']) ?></strong>
+                                    <span class="text-muted"> / <?= esc($at['name']) ?></span>
+                                </span>
+                                <?php if ((int)$at['id'] === (int)$selectedTripId): ?>
+                                    <i class="fas fa-check-circle text-primary fa-sm ml-1"></i>
+                                <?php endif; ?>
+                            </button>
+                        <?php endforeach; ?>
+                    </div>
                 </div>
-                <div class="card-body p-0">
-                    <div class="list-group list-group-flush">
-                        <a href="<?= base_url('backend/transactions?trip_id=' . $selectedTripId) ?>" 
-                           class="list-group-item list-group-item-action d-flex justify-content-between align-items-center <?= empty($selectedPeriodId) ? 'active' : '' ?>">
-                            <span>Semua Periode</span>
-                            <span class="badge badge-secondary badge-pill">
-                                <i class="fas fa-globe"></i>
-                            </span>
-                        </a>
-                        <?php if (empty($periods)): ?>
-                            <div class="p-3 text-muted text-center small">
-                                <i class="fas fa-calendar-times mb-1 d-block text-warning"></i>
-                                Belum ada periode dibuat.
-                            </div>
-                        <?php else: ?>
-                            <?php foreach ($periods as $p): ?>
-                                <?php $pSettled = ($p['status'] ?? 'open') === 'settled'; ?>
-                                <a href="<?= base_url('backend/transactions?trip_id=' . $selectedTripId . '&period_id=' . $p['id']) ?>" 
-                                   class="list-group-item list-group-item-action d-flex justify-content-between align-items-center <?= (int)$p['id'] === (int)$selectedPeriodId ? 'active' : '' ?> <?= $pSettled ? 'text-muted' : '' ?>">
-                                    <span>
-                                        <?php if ($pSettled): ?>
-                                            <i class="fas fa-lock fa-xs mr-1 text-secondary"></i>
-                                        <?php endif; ?>
-                                        <?= esc($p['label']) ?>
-                                    </span>
-                                    <?php if ($pSettled): ?>
-                                        <span class="badge badge-secondary badge-pill" title="Periode sudah ditutup">
-                                            <i class="fas fa-lock"></i>
-                                        </span>
-                                    <?php else: ?>
-                                        <span class="badge badge-success badge-pill" title="Periode aktif">
-                                            <i class="fas fa-unlock-alt"></i>
-                                        </span>
-                                    <?php endif; ?>
+
+                <!-- Column 2: Periode -->
+                <div class="col-md-6">
+                    <label class="text-xs font-weight-bold text-muted mb-1 d-block text-uppercase">
+                        <i class="far fa-calendar-alt mr-1"></i> 2. Pilih Periode Pengeluaran
+                    </label>
+                    <div id="periodStep" class="<?= !empty($selectedTripId) ? '' : 'd-none' ?>">
+                        <div class="list-group list-group-flush" id="periodList" style="max-height: 180px; overflow-y: auto; border-radius: 8px; border: 1px solid #dee2e6;">
+                            <?php if (!empty($selectedTripId)): ?>
+                                <a href="<?= base_url('backend/transactions?trip_id=' . $selectedTripId) ?>"
+                                   class="list-group-item list-group-item-action d-flex justify-content-between align-items-center py-2 px-3 period-nav-item <?= empty($selectedPeriodId) ? 'active' : '' ?>"
+                                   style="font-size: 0.85rem;"
+                                   data-trip-id="<?= $selectedTripId ?>" data-period-id="">
+                                    <span><i class="fas fa-globe fa-xs mr-1"></i> Semua Periode</span>
+                                    <span class="badge badge-secondary badge-pill"><i class="fas fa-globe fa-xs"></i></span>
                                 </a>
-                            <?php endforeach; ?>
-                        <?php endif; ?>
+                                <?php 
+                                $openPeriods = [];
+                                $settledPeriods = [];
+                                foreach ($periods as $p) {
+                                    if (($p['status'] ?? 'open') === 'settled') {
+                                        $settledPeriods[] = $p;
+                                    } else {
+                                        $openPeriods[] = $p;
+                                    }
+                                }
+
+                                // Render open periods
+                                foreach ($openPeriods as $p): ?>
+                                    <a href="<?= base_url('backend/transactions?trip_id=' . $selectedTripId . '&period_id=' . $p['id']) ?>"
+                                       class="list-group-item list-group-item-action d-flex justify-content-between align-items-center py-2 px-3 period-nav-item <?= (int)$p['id'] === (int)$selectedPeriodId ? 'active' : '' ?>"
+                                       style="font-size: 0.85rem;"
+                                       data-trip-id="<?= $selectedTripId ?>" data-period-id="<?= $p['id'] ?>">
+                                        <span><?= esc($p['label']) ?></span>
+                                        <span class="badge badge-success badge-pill" title="Open"><i class="fas fa-unlock-alt fa-xs"></i></span>
+                                    </a>
+                                <?php endforeach; ?>
+
+                                <?php 
+                                // Render settled periods inside collapse
+                                if (!empty($settledPeriods)): 
+                                    $isSettledActive = false;
+                                    foreach ($settledPeriods as $p) {
+                                        if ((int)$p['id'] === (int)$selectedPeriodId) {
+                                            $isSettledActive = true;
+                                            break;
+                                        }
+                                    }
+                                    ?>
+                                    <button class="list-group-item list-group-item-action d-flex justify-content-between align-items-center py-2 px-3 bg-light text-muted font-weight-bold" 
+                                            type="button" data-toggle="collapse" data-target="#settledPeriodsCollapse" 
+                                            aria-expanded="<?= $isSettledActive ? 'true' : 'false' ?>" aria-controls="settledPeriodsCollapse" 
+                                            style="font-size: 0.8rem; outline: none; border: none; border-top: 1px solid #dee2e6;">
+                                        <span><i class="fas fa-history fa-xs mr-1"></i> Periode Terkunci (<?= count($settledPeriods) ?>)</span>
+                                        <i class="fas fa-chevron-down fa-xs text-muted collapse-chevron"></i>
+                                    </button>
+                                    <div class="collapse <?= $isSettledActive ? 'show' : '' ?>" id="settledPeriodsCollapse">
+                                        <?php foreach ($settledPeriods as $p): ?>
+                                            <a href="<?= base_url('backend/transactions?trip_id=' . $selectedTripId . '&period_id=' . $p['id']) ?>"
+                                               class="list-group-item list-group-item-action d-flex justify-content-between align-items-center py-2 px-3 period-nav-item <?= (int)$p['id'] === (int)$selectedPeriodId ? 'active' : '' ?> text-muted"
+                                               style="font-size: 0.85rem;"
+                                               data-trip-id="<?= $selectedTripId ?>" data-period-id="<?= $p['id'] ?>">
+                                                <span><i class="fas fa-lock fa-xs mr-1 text-secondary"></i><?= esc($p['label']) ?></span>
+                                                <span class="badge badge-secondary badge-pill" title="Settled"><i class="fas fa-lock fa-xs"></i></span>
+                                            </a>
+                                        <?php endforeach; ?>
+                                    </div>
+                                <?php endif; ?>
+                            <?php endif; ?>
+                        </div>
                     </div>
                 </div>
             </div>
-        <?php endif; ?>
-        </div><!-- /.collapse -->
+        </div>
     </div>
+</div>
+<?php
+$filterPanelHtml = ob_get_clean();
+?>
 
-    <!-- Transactions List Column -->
-    <div class="col-lg-9">
+<div class="row">
+    <div class="col-lg-12">
         <?php if (empty($selectedTripId)): ?>
-            <div class="card card-outline card-warning text-center py-5">
+            
+            <!-- Tampilkan Filter Selection di Atas jika belum pilih kegiatan -->
+            <?= $filterPanelHtml ?>
+            
+            <div class="card card-outline card-warning text-center py-5 mt-3">
                 <div class="card-body">
                     <i class="fas fa-clipboard-list text-warning fa-3x mb-3"></i>
                     <h4>Pilih Kegiatan Terlebih Dahulu</h4>
@@ -139,49 +207,47 @@
                     </a>
                 </div>
             </div>
+            
         <?php else: ?>
             
+            <!-- 1. Summary Widgets -->
             <?php if (!empty($calculationResult)): ?>
-                <!-- Summary Widgets -->
-                <div class="row">
-                    <div class="col-md-3 col-6">
-                        <div class="info-box bg-gradient-primary">
-                            <span class="info-box-icon"><i class="fas fa-wallet"></i></span>
-                            <div class="info-box-content">
-                                <span class="info-box-text">Total Belanja</span>
-                                <span class="info-box-number">Rp <?= number_format($calculationResult['summary']['total_transactions'], 0, ',', '.') ?></span>
-                            </div>
+                <div class="row" style="gap: 0;">
+                    <div class="col-6 col-md-3 mb-3 px-1 px-md-2">
+                        <div class="summary-stat-card" style="background: linear-gradient(135deg, #3b82f6, #1d4ed8);">
+                            <div class="summary-stat-icon"><i class="fas fa-wallet"></i></div>
+                            <div class="summary-stat-label">Total Belanja</div>
+                            <div class="summary-stat-value">Rp <?= number_format($calculationResult['summary']['total_transactions'], 0, ',', '.') ?></div>
                         </div>
                     </div>
-                    <div class="col-md-3 col-6">
-                        <div class="info-box bg-gradient-success">
-                            <span class="info-box-icon"><i class="fas fa-divide"></i></span>
-                            <div class="info-box-content">
-                                <span class="info-box-text">Beban Shared</span>
-                                <span class="info-box-number">Rp <?= number_format($calculationResult['summary']['total_shared'], 0, ',', '.') ?></span>
-                            </div>
+                    <div class="col-6 col-md-3 mb-3 px-1 px-md-2">
+                        <div class="summary-stat-card" style="background: linear-gradient(135deg, #22c55e, #15803d);">
+                            <div class="summary-stat-icon"><i class="fas fa-divide"></i></div>
+                            <div class="summary-stat-label">Beban Shared</div>
+                            <div class="summary-stat-value">Rp <?= number_format($calculationResult['summary']['total_shared'], 0, ',', '.') ?></div>
                         </div>
                     </div>
-                    <div class="col-md-3 col-6">
-                        <div class="info-box bg-gradient-warning text-white">
-                            <span class="info-box-icon text-white"><i class="fas fa-user-friends"></i></span>
-                            <div class="info-box-content">
-                                <span class="info-box-text text-white">Bagi Rata (Split)</span>
-                                <span class="info-box-number text-white">Rp <?= number_format($calculationResult['summary']['split_rata'], 0, ',', '.') ?> <small>/org</small></span>
-                            </div>
+                    <div class="col-6 col-md-3 mb-3 px-1 px-md-2">
+                        <div class="summary-stat-card" style="background: linear-gradient(135deg, #f59e0b, #d97706);">
+                            <div class="summary-stat-icon"><i class="fas fa-user-friends"></i></div>
+                            <div class="summary-stat-label">Bagi Rata / Orang</div>
+                            <div class="summary-stat-value">Rp <?= number_format($calculationResult['summary']['split_rata'], 0, ',', '.') ?></div>
                         </div>
                     </div>
-                    <div class="col-md-3 col-6">
-                        <div class="info-box bg-gradient-info">
-                            <span class="info-box-icon"><i class="fas fa-user-tag"></i></span>
-                            <div class="info-box-content">
-                                <span class="info-box-text">Beban Kustom</span>
-                                <span class="info-box-number">Rp <?= number_format($calculationResult['summary']['total_individual'], 0, ',', '.') ?></span>
-                            </div>
+                    <div class="col-6 col-md-3 mb-3 px-1 px-md-2">
+                        <div class="summary-stat-card" style="background: linear-gradient(135deg, #06b6d4, #0e7490);">
+                            <div class="summary-stat-icon"><i class="fas fa-user-tag"></i></div>
+                            <div class="summary-stat-label">Beban Kustom</div>
+                            <div class="summary-stat-value">Rp <?= number_format($calculationResult['summary']['total_individual'], 0, ',', '.') ?></div>
                         </div>
                     </div>
                 </div>
+            <?php endif; ?>
 
+            <!-- 2. Filter Panel di bawah Summary Card -->
+            <?= $filterPanelHtml ?>
+
+            <?php if (!empty($calculationResult)): ?>
                 <!-- Excel-style Rekap Table Card -->
                 <div class="card card-success card-outline shadow-sm">
                     <div class="card-header border-0 d-flex justify-content-between align-items-center py-3">
@@ -193,7 +259,7 @@
                                 <i class="fas fa-file-excel mr-1"></i> <span class="d-none d-sm-inline">Ekspor </span>Excel
                             </button>
                             <button type="button" class="btn btn-xs btn-outline-info font-weight-bold btn-print-rekap">
-                                <i class="fas fa-print mr-1"></i> <span class="d-none d-sm-inline">Cetak </span>PDF
+                                <i class="fas fa-file-pdf mr-1"></i> <span class="d-none d-sm-inline">Unduh </span>PDF
                             </button>
                             <span class="badge badge-success py-2 px-2 font-weight-bold ml-1 d-none d-sm-inline">Periode: <?= esc($calculationResult['period']['label']) ?></span>
                         </div>
@@ -537,6 +603,55 @@
                 </div>
                 <!-- /.card-body -->
             </div>
+        <!-- Hidden print table for Excel/PDF exports containing all transaction details -->
+        <table id="rekapTransactionsPrintTable" style="display: none;">
+            <thead>
+                <tr>
+                    <th style="background-color: #007bff; color: white; font-weight: bold; text-align: center;">Tanggal</th>
+                    <th style="background-color: #007bff; color: white; font-weight: bold; text-align: left;">Deskripsi / Detail Beban</th>
+                    <th style="background-color: #007bff; color: white; font-weight: bold; text-align: center;">Periode</th>
+                    <th style="background-color: #007bff; color: white; font-weight: bold; text-align: center;">Tipe</th>
+                    <th style="background-color: #007bff; color: white; font-weight: bold; text-align: center;">Pembayar (Payer)</th>
+                    <th style="background-color: #007bff; color: white; font-weight: bold; text-align: right;">Nominal</th>
+                </tr>
+            </thead>
+            <tbody>
+                <?php if (empty($transactions)): ?>
+                    <tr>
+                        <td colspan="6" style="text-align: center; color: #777; padding: 20px;">Belum ada transaksi.</td>
+                    </tr>
+                <?php else: ?>
+                    <?php foreach ($transactions as $t): ?>
+                        <tr>
+                            <td style="vertical-align: top; text-align: center; font-size: 0.85rem; border: 1px solid #ddd; padding: 8px;"><?= date('d M Y', strtotime($t['date'])) ?></td>
+                            <td style="vertical-align: top; text-align: left; font-size: 0.85rem; border: 1px solid #ddd; padding: 8px;">
+                                <strong><?= esc($t['description']) ?></strong>
+                                <div style="font-size: 0.75rem; color: #666; margin-top: 2px;">
+                                    Dicatat oleh: <?= esc($t['creator_name']) ?> pada <?= date('d/m/Y H:i', strtotime($t['created_at'])) ?>
+                                </div>
+                                <?php if ($t['type'] === 'individual' && !empty($t['adjustments'])): ?>
+                                    <div style="margin-top: 6px; padding-left: 8px; border-left: 2px solid #17a2b8; font-size: 0.75rem;">
+                                        <div style="font-weight: bold; color: #17a2b8; margin-bottom: 2px;">Beban Anggota:</div>
+                                        <ul style="margin: 0; padding-left: 15px; list-style-type: disc;">
+                                            <?php foreach ($t['adjustments'] as $adj): ?>
+                                                <li>
+                                                    <?= esc($adj['username']) ?>: <strong>Rp <?= number_format($adj['amount'], 0, ',', '.') ?></strong>
+                                                    <?= $adj['note'] ? '<span style="color: #666;">(' . esc($adj['note']) . ')</span>' : '' ?>
+                                                </li>
+                                            <?php endforeach; ?>
+                                        </ul>
+                                    </div>
+                                <?php endif; ?>
+                            </td>
+                            <td style="vertical-align: top; text-align: center; font-size: 0.85rem; border: 1px solid #ddd; padding: 8px;"><?= esc($t['period_label'] ?? 'Umum / Non-Periode') ?></td>
+                            <td style="vertical-align: top; text-align: center; font-size: 0.85rem; border: 1px solid #ddd; padding: 8px;"><?= $t['type'] === 'shared' ? 'Shared' : 'Individual' ?></td>
+                            <td style="vertical-align: top; text-align: center; font-size: 0.85rem; border: 1px solid #ddd; padding: 8px;"><?= esc($t['paid_by_name']) ?></td>
+                            <td style="vertical-align: top; text-align: right; font-weight: bold; font-size: 0.85rem; border: 1px solid #ddd; padding: 8px;">Rp <?= number_format($t['amount'], 0, ',', '.') ?></td>
+                        </tr>
+                    <?php endforeach; ?>
+                <?php endif; ?>
+            </tbody>
+        </table>
         <?php endif; ?>
     </div>
 </div>
@@ -1186,9 +1301,19 @@ $(document).ready(function() {
     // Ekspor Excel Client-side
     $('.btn-export-excel').on('click', function() {
         const table = document.getElementById('rekapTable');
+        const printTable = document.getElementById('rekapTransactionsPrintTable');
         if (!table) return;
 
         let html = table.outerHTML;
+        let printTableHtml = '';
+        if (printTable) {
+            // Bersihkan properti inline display:none agar tabel detail tampil di excel
+            printTableHtml = `
+                <br><br>
+                <h3 style="text-align: center; margin-bottom: 20px;">Rincian Transaksi Detail - Periode: <?= esc($calculationResult['period']['label'] ?? '') ?></h3>
+                ` + printTable.outerHTML.replace('display: none;', 'display: table; width: 100%;');
+        }
+
         const template = `
             <html xmlns:o="urn:schemas-microsoft-com:office:office" xmlns:x="urn:schemas-microsoft-com:office:excel" xmlns="http://www.w3.org/TR/REC-html40">
             <head>
@@ -1206,6 +1331,7 @@ $(document).ready(function() {
             <body>
                 <h3 style="text-align: center; margin-bottom: 20px;">Rekapitulasi Pembagian Saldo Keluarga - Periode: <?= esc($calculationResult['period']['label'] ?? '') ?></h3>
                 ${html}
+                ${printTableHtml}
             </body>
             </html>
         `;
@@ -1447,41 +1573,15 @@ $(document).ready(function() {
     // Cetak PDF/Cetak Card
     // =============================================
 
-    // Cetak PDF/Cetak Card
     $('.btn-print-rekap').on('click', function() {
-        const table = document.getElementById('rekapTable');
-        if (!table) return;
+        const periodId = '<?= $selectedPeriodId ?? "" ?>';
+        if (!periodId) {
+            Swal.fire('Info', 'Silakan pilih periode pengeluaran terlebih dahulu sebelum mengunduh PDF.', 'info');
+            return;
+        }
 
-        const printWindow = window.open('', '_blank', 'height=600,width=800');
-        printWindow.document.write('<html><head><title>Cetak Rekapitulasi</title>');
-        printWindow.document.write('<link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css">');
-        printWindow.document.write('<style>');
-        printWindow.document.write('body { padding: 30px; font-family: sans-serif; }');
-        printWindow.document.write('table { width: 100%; border-collapse: collapse; margin-top: 20px; }');
-        printWindow.document.write('th, td { border: 1px solid #dee2e6; padding: 12px; text-align: center; vertical-align: middle; }');
-        printWindow.document.write('th { background-color: #28a745 !important; color: white !important; font-weight: bold; }');
-        printWindow.document.write('.badge-success { background-color: #28a745; color: white; padding: 4px 8px; border-radius: 4px; font-size: 0.8rem; }');
-        printWindow.document.write('.badge-secondary { background-color: #6c757d; color: white; padding: 4px 8px; border-radius: 4px; font-size: 0.8rem; }');
-        printWindow.document.write('.text-success { color: #28a745 !important; }');
-        printWindow.document.write('.text-danger { color: #dc3545 !important; }');
-        printWindow.document.write('.text-right { text-align: right !important; }');
-        printWindow.document.write('.text-left { text-align: left !important; }');
-        printWindow.document.write('</style>');
-        printWindow.document.write('</head><body>');
-        printWindow.document.write('<div class="text-center mb-4">');
-        printWindow.document.write('<h2>Aplikasi Split Bill Keluarga</h2>');
-        printWindow.document.write('<h5>Rekapitulasi Pembagian Saldo</h5>');
-        printWindow.document.write('<p class="text-muted">Periode: <?= esc($calculationResult['period']['label'] ?? "") ?></p>');
-        printWindow.document.write('</div>');
-        printWindow.document.write(table.outerHTML);
-        printWindow.document.write('</body></html>');
-        printWindow.document.close();
-
-        setTimeout(function() {
-            printWindow.focus();
-            printWindow.print();
-            printWindow.close();
-        }, 500);
+        // Langsung arahkan ke URL ekspor PDF Dompdf di backend
+        window.location.href = '<?= base_url() ?>/backend/transactions/pdf?period_id=' + periodId;
     });
 
     // Inisialisasi DataTables untuk tabel transaksi desktop jika ada data transaksi
@@ -1505,5 +1605,306 @@ $(document).ready(function() {
         });
     }
 });
+</script>
+
+<style>
+/* =============================================
+   Summary Stat Cards — Mobile-friendly, Equal Height
+   ============================================= */
+.summary-stat-card {
+    border-radius: 14px;
+    padding: 14px 12px;
+    color: #fff;
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    justify-content: space-between;
+    min-height: 100px;
+    height: 100%;
+    box-shadow: 0 4px 15px rgba(0,0,0,0.15);
+    position: relative;
+    overflow: hidden;
+    transition: transform 0.15s ease, box-shadow 0.15s ease;
+}
+.summary-stat-card:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 8px 20px rgba(0,0,0,0.2);
+}
+.summary-stat-card::after {
+    content: '';
+    position: absolute;
+    right: -18px;
+    bottom: -18px;
+    width: 80px;
+    height: 80px;
+    border-radius: 50%;
+    background: rgba(255,255,255,0.1);
+}
+.summary-stat-icon {
+    font-size: 1.4rem;
+    opacity: 0.9;
+    margin-bottom: 6px;
+    line-height: 1;
+}
+.summary-stat-label {
+    font-size: 0.72rem;
+    font-weight: 600;
+    letter-spacing: 0.03em;
+    text-transform: uppercase;
+    opacity: 0.88;
+    line-height: 1.2;
+    margin-bottom: 4px;
+}
+.summary-stat-value {
+    font-size: 1rem;
+    font-weight: 700;
+    line-height: 1.25;
+    word-break: break-word;
+}
+@media (min-width: 768px) {
+    .summary-stat-value {
+        font-size: 1.15rem;
+    }
+}
+@media (max-width: 400px) {
+    .summary-stat-card {
+        min-height: 90px;
+        padding: 12px 10px;
+    }
+    .summary-stat-icon { font-size: 1.1rem; }
+    .summary-stat-value { font-size: 0.9rem; }
+}
+</style>
+
+<style>
+/* Filter sidebar interactive styles */
+.trip-select-btn.active {
+    background-color: #e8f4fd !important;
+    color: #1a56db !important;
+    border-left: 3px solid #1a56db !important;
+    font-weight: 600;
+}
+.trip-select-btn:last-child {
+    border-bottom: none !important;
+}
+.period-nav-item {
+    transition: background-color 0.1s;
+}
+.period-nav-item.active {
+    background-color: #1a56db !important;
+    color: #fff !important;
+    border-color: #1a56db !important;
+}
+.period-nav-item.active .badge {
+    background-color: rgba(255,255,255,0.3) !important;
+    color: #fff !important;
+}
+#filterPanel .card {
+    border-radius: 10px;
+    overflow: hidden;
+}
+#periodStep {
+    animation: fadeSlideIn 0.2s ease;
+}
+@keyframes fadeSlideIn {
+    from { opacity: 0; transform: translateY(-6px); }
+    to   { opacity: 1; transform: translateY(0); }
+}
+.mobile-filter-toggle {
+    border-radius: 8px;
+    text-align: left;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+}
+.collapse-chevron {
+    transition: transform 0.2s ease;
+}
+button[aria-expanded="true"] .collapse-chevron {
+    transform: rotate(180deg);
+}
+</style>
+
+<script>
+(function () {
+    const currentUserId = <?= function_exists('user_id') ? (user_id() ?? 'null') : 'null' ?>;
+    const lastTripKey = 'txn_last_trip_id_' + currentUserId;
+    const lastPeriodKey = 'txn_last_period_id_' + currentUserId;
+
+    // Data semua periode per trip dari server (PHP)
+    const allPeriods = <?= $allPeriodsJson ?? '{}' ?>;
+    const baseUrl    = '<?= base_url('backend/transactions') ?>';
+    const activeTripId   = '<?= $selectedTripId ?? '' ?>';
+    const activePeriodId = '<?= $selectedPeriodId ?? '' ?>';
+
+    // Cek parameter dari URL
+    const urlParams = new URLSearchParams(window.location.search);
+    const hasTrip = urlParams.has('trip_id');
+    const hasPeriod = urlParams.has('period_id');
+
+    if (currentUserId) {
+        if (hasTrip) {
+            // Simpan pilihan filter ke localStorage saat diakses dengan parameter
+            localStorage.setItem(lastTripKey, urlParams.get('trip_id') || '');
+            localStorage.setItem(lastPeriodKey, urlParams.get('period_id') || '');
+        } else {
+            // URL tidak memiliki parameter (akses langsung)
+            const savedTrip = localStorage.getItem(lastTripKey);
+            const savedPeriod = localStorage.getItem(lastPeriodKey);
+            
+            if (savedTrip) {
+                // Redirect ke URL dengan parameter dari localStorage
+                let redirectUrl = `${baseUrl}?trip_id=${savedTrip}`;
+                if (savedPeriod) {
+                    redirectUrl += `&period_id=${savedPeriod}`;
+                }
+                window.location.href = redirectUrl;
+                return; // Batalkan eksekusi script ini
+            } else if (activeTripId) {
+                // Jika belum ada di localStorage, simpan default trip & period yang dimuat PHP ke localStorage
+                localStorage.setItem(lastTripKey, activeTripId);
+                localStorage.setItem(lastPeriodKey, activePeriodId);
+            }
+        }
+    }
+
+    // Filter Kegiatan (Search)
+    const tripSearch = document.getElementById('tripSearch');
+    if (tripSearch) {
+        tripSearch.addEventListener('input', function() {
+            const query = this.value.toLowerCase().trim();
+            document.querySelectorAll('.trip-select-btn').forEach(btn => {
+                const text = btn.textContent.toLowerCase();
+                if (text.includes(query)) {
+                    btn.classList.add('d-flex');
+                    btn.classList.remove('d-none');
+                } else {
+                    btn.classList.remove('d-flex');
+                    btn.classList.add('d-none');
+                }
+            });
+        });
+    }
+
+    // Helper: render daftar periode ke #periodList
+    function renderPeriods(tripId, activePeriodId) {
+        const periods   = allPeriods[tripId] || [];
+        const container = document.getElementById('periodList');
+        const step      = document.getElementById('periodStep');
+        if (!container) return;
+
+        let html = `<a href="${baseUrl}?trip_id=${tripId}"
+                       class="list-group-item list-group-item-action d-flex justify-content-between align-items-center py-2 px-3 period-nav-item ${!activePeriodId ? 'active' : ''}"
+                       style="font-size:0.85rem;"
+                       data-trip-id="${tripId}" data-period-id="">
+                        <span><i class="fas fa-globe fa-xs mr-1"></i> Semua Periode</span>
+                        <span class="badge badge-secondary badge-pill"><i class="fas fa-globe fa-xs"></i></span>
+                    </a>`;
+
+        if (periods.length === 0) {
+            html += `<div class="p-3 text-muted text-center small">
+                        <i class="fas fa-calendar-times mb-1 d-block text-warning"></i>Belum ada periode.
+                     </div>`;
+        } else {
+            const openPeriods = periods.filter(p => p.status !== 'settled');
+            const settledPeriods = periods.filter(p => p.status === 'settled');
+
+            // Render open periods
+            openPeriods.forEach(p => {
+                const isActive = String(p.id) === String(activePeriodId);
+                const badge = '<span class="badge badge-success badge-pill" title="Open"><i class="fas fa-unlock-alt fa-xs"></i></span>';
+                html += `<a href="${baseUrl}?trip_id=${tripId}&period_id=${p.id}"
+                            class="list-group-item list-group-item-action d-flex justify-content-between align-items-center py-2 px-3 period-nav-item ${isActive ? 'active' : ''}"
+                            style="font-size:0.85rem;"
+                            data-trip-id="${tripId}" data-period-id="${p.id}">
+                             <span>${p.label}</span>${badge}
+                          </a>`;
+            });
+
+            // Render settled periods inside collapse
+            if (settledPeriods.length > 0) {
+                const isSettledActive = settledPeriods.some(p => String(p.id) === String(activePeriodId));
+                html += `<button class="list-group-item list-group-item-action d-flex justify-content-between align-items-center py-2 px-3 bg-light text-muted font-weight-bold" 
+                                 type="button" data-toggle="collapse" data-target="#settledPeriodsCollapse" 
+                                 aria-expanded="${isSettledActive ? 'true' : 'false'}" aria-controls="settledPeriodsCollapse" style="font-size: 0.8rem; outline:none; border:none; border-top: 1px solid #dee2e6;">
+                            <span><i class="fas fa-history fa-xs mr-1"></i> Periode Terkunci (${settledPeriods.length})</span>
+                            <i class="fas fa-chevron-down fa-xs text-muted collapse-chevron"></i>
+                         </button>
+                         <div class="collapse ${isSettledActive ? 'show' : ''}" id="settledPeriodsCollapse">`;
+                
+                settledPeriods.forEach(p => {
+                    const isActive = String(p.id) === String(activePeriodId);
+                    const badge = '<span class="badge badge-secondary badge-pill" title="Settled"><i class="fas fa-lock fa-xs"></i></span>';
+                    html += `<a href="${baseUrl}?trip_id=${tripId}&period_id=${p.id}"
+                                class="list-group-item list-group-item-action d-flex justify-content-between align-items-center py-2 px-3 period-nav-item ${isActive ? 'active' : ''} text-muted"
+                                style="font-size:0.85rem;"
+                                data-trip-id="${tripId}" data-period-id="${p.id}">
+                                 <span><i class="fas fa-lock fa-xs mr-1 text-secondary"></i>${p.label}</span>${badge}
+                              </a>`;
+                });
+
+                html += `</div>`;
+            }
+        }
+
+        container.innerHTML = html;
+        step.classList.remove('d-none');
+
+        // Bind navigasi periode: navigate + collapse filter mobile
+        container.querySelectorAll('.period-nav-item').forEach(el => {
+            el.addEventListener('click', function (e) {
+                e.preventDefault();
+                const href = this.getAttribute('href');
+                // Collapse filter di mobile
+                const panel = document.getElementById('filterPanel');
+                if (panel && window.innerWidth < 992) {
+                    $(panel).collapse('hide');
+                }
+                window.location.href = href;
+            });
+        });
+    }
+
+    // Bind klik trip
+    document.querySelectorAll('.trip-select-btn').forEach(btn => {
+        btn.addEventListener('click', function () {
+            const tripId   = this.dataset.tripId;
+            const tripName = this.dataset.tripName;
+
+            // Highlight aktif
+            document.querySelectorAll('.trip-select-btn').forEach(b => b.classList.remove('active'));
+            this.classList.add('active');
+
+            // Render periode (tanpa active period karena baru ganti trip)
+            renderPeriods(tripId, null);
+
+            // Update toggle label mobile
+            const lbl = document.getElementById('filterToggleLabel');
+            if (lbl) lbl.textContent = tripName + ' · Semua';
+        });
+    });
+
+    // Bind periode yang sudah dirender dari PHP (server-side)
+    document.querySelectorAll('#periodList .period-nav-item').forEach(el => {
+        el.addEventListener('click', function (e) {
+            e.preventDefault();
+            const href = this.getAttribute('href');
+            const panel = document.getElementById('filterPanel');
+            if (panel && window.innerWidth < 992) {
+                $(panel).collapse('hide');
+            }
+            window.location.href = href;
+        });
+    });
+
+    // Tombol close filter (mobile)
+    const btnClose = document.getElementById('btnCollapseFilter');
+    if (btnClose) {
+        btnClose.addEventListener('click', function () {
+            const panel = document.getElementById('filterPanel');
+            if (panel) $(panel).collapse('hide');
+        });
+    }
+})();
 </script>
 <?= $this->endSection() ?>

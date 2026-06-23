@@ -49,6 +49,9 @@ class AuthController extends Controller
             $redirectURL = session('redirect_url') ?? site_url('/');
             unset($_SESSION['redirect_url']);
 
+            $separator = strpos($redirectURL, '?') !== false ? '&' : '?';
+            $redirectURL .= $separator . 'after_login=1';
+
             return redirect()->to($redirectURL);
         }
 
@@ -95,6 +98,9 @@ class AuthController extends Controller
 
         $redirectURL = session('redirect_url') ?? site_url('/');
         unset($_SESSION['redirect_url']);
+
+        $separator = strpos($redirectURL, '?') !== false ? '&' : '?';
+        $redirectURL .= $separator . 'after_login=1';
 
         return redirect()->to($redirectURL)->withCookies()->with('message', lang('Auth.loginSuccess'));
     }
