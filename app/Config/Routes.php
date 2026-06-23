@@ -28,6 +28,8 @@ $routes->group('backend', ['filter' => 'login', 'namespace' => 'App\Controllers\
         $routes->post('store', 'Groups::store');
         $routes->get('detail/(:num)', 'Groups::detail/$1');
         $routes->post('update/(:num)', 'Groups::update/$1');
+        $routes->get('delete-preview/(:num)', 'Groups::deletePreview/$1');
+        $routes->post('delete/(:num)', 'Groups::delete/$1');
         $routes->post('add-member/(:num)', 'Groups::addMember/$1');
         $routes->get('update-role/(:num)/(:num)/(:alpha)', 'Groups::updateRole/$1/$2/$3');
         $routes->get('remove-member/(:num)/(:num)', 'Groups::removeMember/$1/$2');
@@ -39,6 +41,8 @@ $routes->group('backend', ['filter' => 'login', 'namespace' => 'App\Controllers\
         $routes->get('create', 'Trips::create');
         $routes->post('store', 'Trips::store');
         $routes->get('detail/(:num)', 'Trips::detail/$1');
+        $routes->get('delete-preview/(:num)', 'Trips::deletePreview/$1');
+        $routes->post('delete/(:num)', 'Trips::delete/$1');
         $routes->post('add-period/(:num)', 'Trips::addPeriod/$1');
         $routes->post('save-active-members/(:num)', 'Trips::saveActiveMembers/$1'); // period_id
     });

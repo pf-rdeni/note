@@ -8,6 +8,8 @@ use App\Models\PeriodModel;
 use App\Models\PeriodActiveMemberModel;
 use App\Models\GroupModel;
 use App\Models\GroupMemberModel;
+use App\Models\TransactionModel;
+use App\Models\SettlementModel;
 
 class Trips extends BaseController
 {
@@ -270,5 +272,110 @@ class Trips extends BaseController
         }
 
         return redirect()->to('backend/trips/detail/' . $trip['id'])->with('success', 'Keanggotaan aktif periode berhasil diperbarui.');
+    }
+
+    /**
+     * Preview dampak penghapusan trip (JSON)
+     */
+    public function deletePreview(int $tripId)
+    {
+        $trip = $this->tripModel->find($tripId);
+        if (!$trip) {
+            return $this->response->setJSON([
+                'success' => false,
+                'message' => 'Trip tidak ditemukan.'
+            ])->setStatusCode(404);
+        }
+
+        // Cek apakah user adalah admin dari grup trip ini
+        $membership = $this->checkMembership((int)$trip['group_id']);
+        if (!$membership || $membership['role'] !== 'admin') {
+            return $this->response->setJSON([
+                'success' => false,
+                'message' => 'Hanya admin grup yang dapat mengakses aksi ini.'
+            ])->setStatusCode(403);
+        }
+
+        $periodModel = new PeriodModel();
+        $transactionModel = new TransactionModel();
+        $settlementModel = new SettlementModel();
+
+        // 1. Periods
+        $periodsCount = $periodModel->where('trip_id', $tripId)->countAllResults();
+
+        // 2. Transactions
+        $transactionsCount = $transactionModel->where('trip_id', $tripId)->countAllResults();
+
+        // 3. Settlements
+        $settlementsCount = $settlementModel->where('trip_id', $tripId)->countAllResults();
+
+        // 4. Files
+        $receiptFilesCount = $transactionModel->where('trip_id', $tripId)
+                                              ->where("receipt_image IS NOT NULL AND receipt_image != ''")
+                                              ->countAllResults();
+
+        $proofFilesCount = $settlementModel->where('trip_id', $tripId)
+                                            ->where("proof_image IS NOT NULL AND proof_image != ''")
+                                            ->countAllResults();
+
+        $totalFilesCount = $receiptFilesCount + $proofFilesCount;
+
+        return $this->response->setJSON([
+            'success'      => true,
+            'trip_name'    => $trip['name'],
+            'periods'      => $periodsCount,
+            'transactions' => $transactionsCount,
+            'settlements'  => $settlementsCount,
+            'files'        => $totalFilesCount
+        ]);
+    }
+
+    /**
+     * Hapus trip beserta seluruh data terkait & berkas fisik
+     */
+    public function delete(int $tripId)
+    {
+        $trip = $this->tripModel->find($tripId);
+        if (!$trip) {
+            return redirect()->to('backend/trips')->with('error', 'Trip tidak ditemukan.');
+        }
+
+        // Cek apakah user adalah admin dari grup trip ini
+        $membership = $this->checkMembership((int)$trip['group_id']);
+        if (!$membership || $membership['role'] !== 'admin') {
+            return redirect()->back()->with('error', 'Hanya admin grup yang dapat menghapus trip.');
+        }
+
+        $transactionModel = new TransactionModel();
+        $settlementModel = new SettlementModel();
+
+        // 1. Hapus berkas nota transaksi
+        $transactions = $transactionModel->where('trip_id', $tripId)
+                                          ->where("receipt_image IS NOT NULL AND receipt_image != ''")
+                                          ->findAll();
+
+        foreach ($transactions as $t) {
+            $filePath = FCPATH . $t['receipt_image'];
+            if (file_exists($filePath) && is_file($filePath)) {
+                unlink($filePath);
+            }
+        }
+
+        // 2. Hapus berkas bukti transfer
+        $settlements = $settlementModel->where('trip_id', $tripId)
+                                        ->where("proof_image IS NOT NULL AND proof_image != ''")
+                                        ->findAll();
+
+        foreach ($settlements as $s) {
+            $filePath = FCPATH . $s['proof_image'];
+            if (file_exists($filePath) && is_file($filePath)) {
+                unlink($filePath);
+            }
+        }
+
+        // 3. Hapus database (cascade akan otomatis menghapus periode, transaksi, dll)
+        $this->tripModel->delete($tripId);
+
+        return redirect()->to('backend/trips')->with('success', 'Trip beserta seluruh data dan berkas terkait berhasil dihapus secara bersih.');
     }
 }

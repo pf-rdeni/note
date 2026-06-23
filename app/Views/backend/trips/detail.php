@@ -33,7 +33,20 @@
                 <?php endif; ?>
             </div>
             <!-- /.card-body -->
+            <?php if ($currentMembership['role'] === 'admin'): ?>
+                <div class="card-footer">
+                    <button type="button" class="btn btn-danger btn-block btn-delete-trip" data-id="<?= $trip['id'] ?>">
+                        <i class="fas fa-trash-alt mr-1"></i> Hapus Trip
+                    </button>
+                </div>
+            <?php endif; ?>
         </div>
+
+        <?php if ($currentMembership['role'] === 'admin'): ?>
+            <form id="delete-trip-form" action="<?= base_url('backend/trips/delete/' . $trip['id']) ?>" method="post" style="display:none;">
+                <?= csrf_field() ?>
+            </form>
+        <?php endif; ?>
 
         <!-- Add Period Card (Admin Only) -->
         <?php if ($currentMembership['role'] === 'admin'): ?>
@@ -173,4 +186,79 @@
         transition: transform 0.2s ease;
     }
 </style>
+<script>
+$(document).ready(function() {
+    $('.btn-delete-trip').on('click', function() {
+        const tripId = $(this).data('id');
+        
+        Swal.fire({
+            title: 'Mempersiapkan pratinjau...',
+            text: 'Sedang menghitung data yang terpengaruh...',
+            allowOutsideClick: false,
+            didOpen: () => {
+                Swal.showLoading();
+            }
+        });
+
+        $.ajax({
+            url: `<?= base_url('backend/trips/delete-preview') ?>/${tripId}`,
+            type: 'GET',
+            dataType: 'json',
+            success: function(res) {
+                Swal.close();
+                if (res.success) {
+                    Swal.fire({
+                        title: 'Hapus Trip Permanen?',
+                        html: `
+                            <div class="text-left border p-3 rounded mb-3 bg-light" style="font-size: 0.9rem;">
+                                <p class="mb-2 text-danger font-weight-bold"><i class="fas fa-exclamation-triangle mr-2"></i>Tindakan ini tidak dapat dibatalkan!</p>
+                                <p class="mb-2">Menghapus trip <strong>${res.trip_name}</strong> juga akan menghapus secara permanen data berikut:</p>
+                                <ul class="pl-4 mb-0">
+                                    <li><strong>${res.periods}</strong> Periode Pengeluaran</li>
+                                    <li><strong>${res.transactions}</strong> Catatan Transaksi</li>
+                                    <li><strong>${res.settlements}</strong> Riwayat Settlement</li>
+                                    <li><strong>${res.files}</strong> Lampiran Nota/Bukti Transfer</li>
+                                </ul>
+                            </div>
+                            <span class="text-dark">Ketik kata <strong>HAPUS</strong> untuk mengonfirmasi tindakan ini:</span>
+                            <input type="text" id="confirm-delete-text" class="form-control mt-2 text-center text-bold" placeholder="Ketik HAPUS di sini" style="text-transform: uppercase;">
+                        `,
+                        icon: 'warning',
+                        showCancelButton: true,
+                        confirmButtonColor: '#d33',
+                        cancelButtonColor: '#3085d6',
+                        confirmButtonText: '<i class="fas fa-trash-alt mr-1"></i> Ya, Hapus Semua!',
+                        cancelButtonText: 'Batal',
+                        preConfirm: () => {
+                            const confirmText = Swal.getPopup().querySelector('#confirm-delete-text').value;
+                            if (confirmText.trim().toUpperCase() !== 'HAPUS') {
+                                Swal.showValidationMessage('Anda harus mengetik kata HAPUS untuk melanjutkan!');
+                            }
+                            return true;
+                        }
+                    }).then((result) => {
+                        if (result.isConfirmed) {
+                            Swal.fire({
+                                title: 'Sedang menghapus...',
+                                text: 'Mohon tunggu sementara kami membersihkan data...',
+                                allowOutsideClick: false,
+                                didOpen: () => {
+                                    Swal.showLoading();
+                                }
+                            });
+                            $('#delete-trip-form').submit();
+                        }
+                    });
+                } else {
+                    Swal.fire('Gagal', res.message || 'Gagal mengambil pratinjau.', 'error');
+                }
+            },
+            error: function(xhr) {
+                Swal.close();
+                Swal.fire('Gagal', 'Terjadi kesalahan pada server saat memuat pratinjau.', 'error');
+            }
+        });
+    });
+});
+</script>
 <?= $this->endSection() ?>

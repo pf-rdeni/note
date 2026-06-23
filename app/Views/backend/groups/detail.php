@@ -168,7 +168,13 @@
                         <button type="submit" class="btn btn-primary btn-block">
                             <i class="fas fa-save mr-1"></i> Simpan Perubahan
                         </button>
+                        <button type="button" class="btn btn-outline-danger btn-block mt-2 btn-delete-group" data-id="<?= $group['id'] ?>">
+                            <i class="fas fa-trash-alt mr-1"></i> Hapus Grup
+                        </button>
                     </div>
+                </form>
+                <form id="delete-group-form" action="<?= base_url('backend/groups/delete/' . $group['id']) ?>" method="post" style="display:none;">
+                    <?= csrf_field() ?>
                 </form>
             <?php else: ?>
                 <div class="card-body">
@@ -291,6 +297,81 @@ $(document).ready(function() {
         }).then((result) => {
             if (result.isConfirmed) {
                 window.location.href = url;
+            }
+        });
+    });
+
+    // Konfirmasi hapus grup
+    $('.btn-delete-group').on('click', function() {
+        const groupId = $(this).data('id');
+        
+        Swal.fire({
+            title: 'Mempersiapkan pratinjau...',
+            text: 'Sedang menghitung data yang terpengaruh...',
+            allowOutsideClick: false,
+            didOpen: () => {
+                Swal.showLoading();
+            }
+        });
+
+        $.ajax({
+            url: `<?= base_url('backend/groups/delete-preview') ?>/${groupId}`,
+            type: 'GET',
+            dataType: 'json',
+            success: function(res) {
+                Swal.close();
+                if (res.success) {
+                    Swal.fire({
+                        title: 'Hapus Grup Permanen?',
+                        html: `
+                            <div class="text-left border p-3 rounded mb-3 bg-light" style="font-size: 0.9rem;">
+                                <p class="mb-2 text-danger font-weight-bold"><i class="fas fa-exclamation-triangle mr-2"></i>Tindakan ini tidak dapat dibatalkan!</p>
+                                <p class="mb-2">Menghapus grup <strong>${res.group_name}</strong> juga akan menghapus secara permanen data berikut:</p>
+                                <ul class="pl-4 mb-0">
+                                    <li><strong>${res.members}</strong> Anggota Grup</li>
+                                    <li><strong>${res.trips}</strong> Trip/Perjalanan</li>
+                                    <li><strong>${res.periods}</strong> Periode Pengeluaran</li>
+                                    <li><strong>${res.transactions}</strong> Catatan Transaksi</li>
+                                    <li><strong>${res.settlements}</strong> Riwayat Settlement</li>
+                                    <li><strong>${res.files}</strong> Lampiran Nota/Bukti Transfer</li>
+                                </ul>
+                            </div>
+                            <span class="text-dark">Ketik kata <strong>HAPUS</strong> untuk mengonfirmasi tindakan ini:</span>
+                            <input type="text" id="confirm-delete-text" class="form-control mt-2 text-center text-bold" placeholder="Ketik HAPUS di sini" style="text-transform: uppercase;">
+                        `,
+                        icon: 'warning',
+                        showCancelButton: true,
+                        confirmButtonColor: '#d33',
+                        cancelButtonColor: '#3085d6',
+                        confirmButtonText: '<i class="fas fa-trash-alt mr-1"></i> Ya, Hapus Semua!',
+                        cancelButtonText: 'Batal',
+                        preConfirm: () => {
+                            const confirmText = Swal.getPopup().querySelector('#confirm-delete-text').value;
+                            if (confirmText.trim().toUpperCase() !== 'HAPUS') {
+                                Swal.showValidationMessage('Anda harus mengetik kata HAPUS untuk melanjutkan!');
+                            }
+                            return true;
+                        }
+                    }).then((result) => {
+                        if (result.isConfirmed) {
+                            Swal.fire({
+                                title: 'Sedang menghapus...',
+                                text: 'Mohon tunggu sementara kami membersihkan data...',
+                                allowOutsideClick: false,
+                                didOpen: () => {
+                                    Swal.showLoading();
+                                }
+                            });
+                            $('#delete-group-form').submit();
+                        }
+                    });
+                } else {
+                    Swal.fire('Gagal', res.message || 'Gagal mengambil pratinjau.', 'error');
+                }
+            },
+            error: function(xhr) {
+                Swal.close();
+                Swal.fire('Gagal', 'Terjadi kesalahan pada server saat memuat pratinjau.', 'error');
             }
         });
     });

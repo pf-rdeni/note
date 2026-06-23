@@ -5,6 +5,10 @@ namespace App\Controllers\Backend;
 use App\Controllers\BaseController;
 use App\Models\GroupModel;
 use App\Models\GroupMemberModel;
+use App\Models\TripModel;
+use App\Models\PeriodModel;
+use App\Models\TransactionModel;
+use App\Models\SettlementModel;
 use Myth\Auth\Models\UserModel;
 
 class Groups extends BaseController
@@ -304,5 +308,129 @@ class Groups extends BaseController
         ]);
 
         return redirect()->to('backend/groups/detail/' . $groupId)->with('success', 'Nama grup berhasil diperbarui.');
+    }
+
+    /**
+     * Preview dampak penghapusan grup (JSON)
+     */
+    public function deletePreview(int $groupId)
+    {
+        $currentMembership = $this->checkMembership($groupId);
+        if (!$currentMembership || $currentMembership['role'] !== 'admin') {
+            return $this->response->setJSON([
+                'success' => false,
+                'message' => 'Hanya admin grup yang dapat mengakses aksi ini.'
+            ])->setStatusCode(403);
+        }
+
+        $group = $this->groupModel->find($groupId);
+        if (!$group) {
+            return $this->response->setJSON([
+                'success' => false,
+                'message' => 'Grup tidak ditemukan.'
+            ])->setStatusCode(404);
+        }
+
+        $tripModel = new TripModel();
+        $periodModel = new PeriodModel();
+        $transactionModel = new TransactionModel();
+        $settlementModel = new SettlementModel();
+
+        // 1. Members
+        $membersCount = $this->memberModel->where('group_id', $groupId)->countAllResults();
+
+        // 2. Trips
+        $tripsCount = $tripModel->where('group_id', $groupId)->countAllResults();
+
+        // 3. Periods
+        $periodsCount = $periodModel->join('trips', 'trips.id = trip_periods.trip_id')
+                                    ->where('trips.group_id', $groupId)
+                                    ->countAllResults();
+
+        // 4. Transactions
+        $transactionsCount = $transactionModel->join('trips', 'trips.id = transactions.trip_id')
+                                              ->where('trips.group_id', $groupId)
+                                              ->countAllResults();
+
+        // 5. Settlements
+        $settlementsCount = $settlementModel->join('trips', 'trips.id = settlements.trip_id')
+                                            ->where('trips.group_id', $groupId)
+                                            ->countAllResults();
+
+        // 6. Files (receipts + proofs)
+        $receiptFilesCount = $transactionModel->join('trips', 'trips.id = transactions.trip_id')
+                                              ->where('trips.group_id', $groupId)
+                                              ->where("receipt_image IS NOT NULL AND receipt_image != ''")
+                                              ->countAllResults();
+
+        $proofFilesCount = $settlementModel->join('trips', 'trips.id = settlements.trip_id')
+                                            ->where('trips.group_id', $groupId)
+                                            ->where("proof_image IS NOT NULL AND proof_image != ''")
+                                            ->countAllResults();
+
+        $totalFilesCount = $receiptFilesCount + $proofFilesCount;
+
+        return $this->response->setJSON([
+            'success'      => true,
+            'group_name'   => $group['name'],
+            'members'      => $membersCount,
+            'trips'        => $tripsCount,
+            'periods'      => $periodsCount,
+            'transactions' => $transactionsCount,
+            'settlements'  => $settlementsCount,
+            'files'        => $totalFilesCount
+        ]);
+    }
+
+    /**
+     * Hapus grup beserta seluruh data terkait & berkas fisik
+     */
+    public function delete(int $groupId)
+    {
+        $currentMembership = $this->checkMembership($groupId);
+        if (!$currentMembership || $currentMembership['role'] !== 'admin') {
+            return redirect()->back()->with('error', 'Hanya admin grup yang dapat menghapus grup.');
+        }
+
+        $group = $this->groupModel->find($groupId);
+        if (!$group) {
+            return redirect()->to('backend/groups')->with('error', 'Grup tidak ditemukan.');
+        }
+
+        $transactionModel = new TransactionModel();
+        $settlementModel = new SettlementModel();
+
+        // 1. Hapus berkas nota transaksi
+        $transactions = $transactionModel->select('transactions.receipt_image')
+                                          ->join('trips', 'trips.id = transactions.trip_id')
+                                          ->where('trips.group_id', $groupId)
+                                          ->where("receipt_image IS NOT NULL AND receipt_image != ''")
+                                          ->findAll();
+
+        foreach ($transactions as $t) {
+            $filePath = FCPATH . $t['receipt_image'];
+            if (file_exists($filePath) && is_file($filePath)) {
+                unlink($filePath);
+            }
+        }
+
+        // 2. Hapus berkas bukti transfer
+        $settlements = $settlementModel->select('settlements.proof_image')
+                                        ->join('trips', 'trips.id = settlements.trip_id')
+                                        ->where('trips.group_id', $groupId)
+                                        ->where("proof_image IS NOT NULL AND proof_image != ''")
+                                        ->findAll();
+
+        foreach ($settlements as $s) {
+            $filePath = FCPATH . $s['proof_image'];
+            if (file_exists($filePath) && is_file($filePath)) {
+                unlink($filePath);
+            }
+        }
+
+        // 3. Hapus database (cascade di MySQL akan menangani relasi table)
+        $this->groupModel->delete($groupId);
+
+        return redirect()->to('backend/groups')->with('success', 'Grup beserta seluruh data dan berkas terkait berhasil dihapus secara bersih.');
     }
 }
