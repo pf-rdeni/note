@@ -45,6 +45,9 @@ $routes->group('backend', ['filter' => 'login', 'namespace' => 'App\Controllers\
         $routes->get('delete-preview/(:num)', 'Trips::deletePreview/$1');
         $routes->post('delete/(:num)', 'Trips::delete/$1');
         $routes->post('add-period/(:num)', 'Trips::addPeriod/$1');
+        $routes->post('update-period/(:num)', 'Trips::updatePeriod/$1');
+        $routes->get('delete-period-preview/(:num)', 'Trips::deletePeriodPreview/$1');
+        $routes->post('delete-period/(:num)', 'Trips::deletePeriod/$1');
         $routes->post('save-active-members/(:num)', 'Trips::saveActiveMembers/$1'); // period_id
     });
 

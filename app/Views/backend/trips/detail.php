@@ -201,7 +201,23 @@
                                     </div>
                                     
                                     <?php if ($currentMembership['role'] === 'admin'): ?>
-                                        <div class="mt-4 pt-3 border-top text-right">
+                                        <div class="mt-4 pt-3 border-top d-flex justify-content-between align-items-center">
+                                            <div>
+                                                <button type="button" 
+                                                        class="btn btn-outline-warning btn-sm btn-edit-period mr-2" 
+                                                        data-id="<?= $p['id'] ?>" 
+                                                        data-label="<?= esc($p['label']) ?>" 
+                                                        data-start="<?= $p['start_date'] ?>" 
+                                                        data-end="<?= $p['end_date'] ?>">
+                                                    <i class="fas fa-edit mr-1"></i> Edit Periode
+                                                </button>
+                                                <button type="button" 
+                                                        class="btn btn-outline-danger btn-sm btn-delete-period" 
+                                                        data-id="<?= $p['id'] ?>" 
+                                                        data-label="<?= esc($p['label']) ?>">
+                                                    <i class="fas fa-trash-alt mr-1"></i> Hapus Periode
+                                                </button>
+                                            </div>
                                             <button type="submit" class="btn btn-primary btn-sm">
                                                 <i class="fas fa-save mr-1"></i> Simpan Keaktifan Periode
                                             </button>
@@ -216,6 +232,48 @@
         <?php endif; ?>
     </div>
 </div>
+
+<!-- Modal Edit Periode (Admin Only) -->
+<?php if ($currentMembership['role'] === 'admin'): ?>
+    <div class="modal fade" id="modalEditPeriod" tabindex="-1" role="dialog" aria-labelledby="modalEditPeriodLabel" aria-hidden="true">
+        <div class="modal-dialog" role="document">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title font-weight-bold" id="modalEditPeriodLabel"><i class="fas fa-edit text-warning mr-1"></i> Edit Periode</h5>
+                    <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+                        <span aria-hidden="true">&times;</span>
+                    </button>
+                </div>
+                <form id="formEditPeriod" action="" method="post">
+                    <?= csrf_field() ?>
+                    <div class="modal-body">
+                        <div class="form-group">
+                            <label for="edit_period_label">Label Periode</label>
+                            <input type="text" class="form-control" id="edit_period_label" name="label" required placeholder="Misal: April 2026">
+                        </div>
+                        <div class="form-group">
+                            <label for="edit_period_start">Mulai (Opsional)</label>
+                            <input type="date" class="form-control" id="edit_period_start" name="start_date">
+                        </div>
+                        <div class="form-group">
+                            <label for="edit_period_end">Selesai (Opsional)</label>
+                            <input type="date" class="form-control" id="edit_period_end" name="end_date">
+                        </div>
+                    </div>
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-default" data-dismiss="modal">Batal</button>
+                        <button type="submit" class="btn btn-primary">Simpan Perubahan</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <!-- Hidden Form for Period Deletion -->
+    <form id="delete-period-form" action="" method="post" style="display:none;">
+        <?= csrf_field() ?>
+    </form>
+<?php endif; ?>
 
 <?= $this->endSection() ?>
 
@@ -292,6 +350,96 @@ $(document).ready(function() {
                                 }
                             });
                             $('#delete-trip-form').submit();
+                        }
+                    });
+                } else {
+                    Swal.fire('Gagal', res.message || 'Gagal mengambil pratinjau.', 'error');
+                }
+            },
+            error: function(xhr) {
+                Swal.close();
+                Swal.fire('Gagal', 'Terjadi kesalahan pada server saat memuat pratinjau.', 'error');
+            }
+        });
+    });
+
+    // Edit Periode
+    $('.btn-edit-period').on('click', function(e) {
+        e.stopPropagation(); // Mencegah accordion collapse/expand
+        const periodId = $(this).data('id');
+        const label = $(this).data('label');
+        const start = $(this).data('start');
+        const end = $(this).data('end');
+
+        $('#formEditPeriod').attr('action', `<?= base_url('backend/trips/update-period') ?>/${periodId}`);
+        $('#edit_period_label').val(label);
+        $('#edit_period_start').val(start);
+        $('#edit_period_end').val(end);
+
+        $('#modalEditPeriod').modal('show');
+    });
+
+    // Konfirmasi hapus periode
+    $('.btn-delete-period').on('click', function(e) {
+        e.stopPropagation(); // Mencegah accordion collapse/expand
+        const periodId = $(this).data('id');
+
+        Swal.fire({
+            title: 'Mempersiapkan pratinjau...',
+            text: 'Sedang menghitung data yang terpengaruh...',
+            allowOutsideClick: false,
+            didOpen: () => {
+                Swal.showLoading();
+            }
+        });
+
+        $.ajax({
+            url: `<?= base_url('backend/trips/delete-period-preview') ?>/${periodId}`,
+            type: 'GET',
+            dataType: 'json',
+            success: function(res) {
+                Swal.close();
+                if (res.success) {
+                    Swal.fire({
+                        title: 'Hapus Periode Permanen?',
+                        html: `
+                            <div class="text-left border p-3 rounded mb-3 bg-light" style="font-size: 0.9rem;">
+                                <p class="mb-2 text-danger font-weight-bold"><i class="fas fa-exclamation-triangle mr-2"></i>Tindakan ini tidak dapat dibatalkan!</p>
+                                <p class="mb-2">Menghapus periode <strong>${res.label}</strong> juga akan menghapus secara permanen data berikut:</p>
+                                <ul class="pl-4 mb-0">
+                                    <li><strong>${res.transactions}</strong> Catatan Transaksi</li>
+                                    <li><strong>${res.settlements}</strong> Riwayat Settlement</li>
+                                    <li><strong>${res.files}</strong> Lampiran Nota/Bukti Transfer</li>
+                                </ul>
+                            </div>
+                            <span class="text-dark">Ketik kata <strong>HAPUS</strong> untuk mengonfirmasi tindakan ini:</span>
+                            <input type="text" id="confirm-delete-period-text" class="form-control mt-2 text-center text-bold" placeholder="Ketik HAPUS di sini" style="text-transform: uppercase;">
+                        `,
+                        icon: 'warning',
+                        showCancelButton: true,
+                        confirmButtonColor: '#d33',
+                        cancelButtonColor: '#3085d6',
+                        confirmButtonText: '<i class="fas fa-trash-alt mr-1"></i> Ya, Hapus Semua!',
+                        cancelButtonText: 'Batal',
+                        preConfirm: () => {
+                            const confirmText = Swal.getPopup().querySelector('#confirm-delete-period-text').value;
+                            if (confirmText.trim().toUpperCase() !== 'HAPUS') {
+                                Swal.showValidationMessage('Anda harus mengetik kata HAPUS untuk melanjutkan!');
+                            }
+                            return true;
+                        }
+                    }).then((result) => {
+                        if (result.isConfirmed) {
+                            Swal.fire({
+                                title: 'Sedang menghapus...',
+                                text: 'Mohon tunggu sementara kami membersihkan data...',
+                                allowOutsideClick: false,
+                                didOpen: () => {
+                                    Swal.showLoading();
+                                }
+                            });
+                            $('#delete-period-form').attr('action', `<?= base_url('backend/trips/delete-period') ?>/${periodId}`);
+                            $('#delete-period-form').submit();
                         }
                     });
                 } else {

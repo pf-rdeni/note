@@ -416,4 +416,149 @@ class Trips extends BaseController
 
         return redirect()->to('backend/trips/detail/' . $tripId)->with('success', 'Detail trip perjalanan berhasil diperbarui.');
     }
+
+    /**
+     * Update data periode (Hanya Admin Grup yang bisa)
+     */
+    public function updatePeriod(int $periodId)
+    {
+        $periodModel = new PeriodModel();
+        $period = $periodModel->find($periodId);
+        if (!$period) {
+            return redirect()->back()->with('error', 'Periode tidak ditemukan.');
+        }
+
+        $trip = $this->tripModel->find($period['trip_id']);
+        
+        // Cek membership grup
+        $membership = $this->checkMembership((int)$trip['group_id']);
+        if (!$membership || $membership['role'] !== 'admin') {
+            return redirect()->back()->with('error', 'Hanya admin grup yang dapat mengubah periode.');
+        }
+
+        $rules = [
+            'label'      => 'required|min_length[3]|max_length[50]',
+            'start_date' => 'permit_empty|valid_date[Y-m-d]',
+            'end_date'   => 'permit_empty|valid_date[Y-m-d]'
+        ];
+
+        if (!$this->validate($rules)) {
+            return redirect()->back()->withInput()->with('errors', $this->validator->getErrors());
+        }
+
+        $periodModel->update($periodId, [
+            'label'      => $this->request->getPost('label'),
+            'start_date' => $this->request->getPost('start_date') ?: null,
+            'end_date'   => $this->request->getPost('end_date') ?: null,
+            'trip_id'    => $period['trip_id']
+        ]);
+
+        return redirect()->to('backend/trips/detail/' . $trip['id'])->with('success', 'Periode berhasil diperbarui.');
+    }
+
+    /**
+     * Preview dampak penghapusan periode (JSON)
+     */
+    public function deletePeriodPreview(int $periodId)
+    {
+        $periodModel = new PeriodModel();
+        $period = $periodModel->find($periodId);
+        if (!$period) {
+            return $this->response->setJSON([
+                'success' => false,
+                'message' => 'Periode tidak ditemukan.'
+            ])->setStatusCode(404);
+        }
+
+        $trip = $this->tripModel->find($period['trip_id']);
+
+        // Cek membership grup
+        $membership = $this->checkMembership((int)$trip['group_id']);
+        if (!$membership || $membership['role'] !== 'admin') {
+            return $this->response->setJSON([
+                'success' => false,
+                'message' => 'Hanya admin grup yang dapat mengakses aksi ini.'
+            ])->setStatusCode(403);
+        }
+
+        $transactionModel = new TransactionModel();
+        $settlementModel = new SettlementModel();
+
+        // 1. Transactions
+        $transactionsCount = $transactionModel->where('period_id', $periodId)->countAllResults();
+
+        // 2. Settlements
+        $settlementsCount = $settlementModel->where('period_id', $periodId)->countAllResults();
+
+        // 3. Files (receipts + proofs)
+        $receiptFilesCount = $transactionModel->where('period_id', $periodId)
+                                              ->where("receipt_image IS NOT NULL AND receipt_image != ''")
+                                              ->countAllResults();
+
+        $proofFilesCount = $settlementModel->where('period_id', $periodId)
+                                            ->where("proof_image IS NOT NULL AND proof_image != ''")
+                                            ->countAllResults();
+
+        $totalFilesCount = $receiptFilesCount + $proofFilesCount;
+
+        return $this->response->setJSON([
+            'success'      => true,
+            'label'        => $period['label'],
+            'transactions' => $transactionsCount,
+            'settlements'  => $settlementsCount,
+            'files'        => $totalFilesCount
+        ]);
+    }
+
+    /**
+     * Hapus periode beserta transaksi & settlement terkait & file fisiknya
+     */
+    public function deletePeriod(int $periodId)
+    {
+        $periodModel = new PeriodModel();
+        $period = $periodModel->find($periodId);
+        if (!$period) {
+            return redirect()->back()->with('error', 'Periode tidak ditemukan.');
+        }
+
+        $trip = $this->tripModel->find($period['trip_id']);
+
+        // Cek membership grup
+        $membership = $this->checkMembership((int)$trip['group_id']);
+        if (!$membership || $membership['role'] !== 'admin') {
+            return redirect()->back()->with('error', 'Hanya admin grup yang dapat menghapus periode.');
+        }
+
+        $transactionModel = new TransactionModel();
+        $settlementModel = new SettlementModel();
+
+        // 1. Hapus berkas nota transaksi
+        $transactions = $transactionModel->where('period_id', $periodId)
+                                          ->where("receipt_image IS NOT NULL AND receipt_image != ''")
+                                          ->findAll();
+
+        foreach ($transactions as $t) {
+            $filePath = FCPATH . $t['receipt_image'];
+            if (file_exists($filePath) && is_file($filePath)) {
+                unlink($filePath);
+            }
+        }
+
+        // 2. Hapus berkas bukti transfer settlement
+        $settlements = $settlementModel->where('period_id', $periodId)
+                                        ->where("proof_image IS NOT NULL AND proof_image != ''")
+                                        ->findAll();
+
+        foreach ($settlements as $s) {
+            $filePath = FCPATH . $s['proof_image'];
+            if (file_exists($filePath) && is_file($filePath)) {
+                unlink($filePath);
+            }
+        }
+
+        // 3. Hapus database (cascade akan otomatis menghapus transaksi, settlement dll)
+        $periodModel->delete($periodId);
+
+        return redirect()->to('backend/trips/detail/' . $trip['id'])->with('success', 'Periode beserta seluruh transaksi, settlement, dan berkas terkait berhasil dihapus secara bersih.');
+    }
 }
