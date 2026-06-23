@@ -4,40 +4,85 @@
 <div class="row">
     <!-- Trip Info Sidebar -->
     <div class="col-lg-4">
-        <div class="card card-primary card-outline">
-            <div class="card-body box-profile">
-                <div class="text-center">
-                    <i class="fas fa-map-marked-alt fa-3x text-primary mb-3"></i>
-                </div>
-                <h3 class="profile-username text-center font-weight-bold"><?= esc($trip['name']) ?></h3>
-                <p class="text-muted text-center">Kelompok: <?= esc($group['name']) ?></p>
-
-                <ul class="list-group list-group-unbordered mb-3">
-                    <li class="list-group-item">
-                        <b>Tanggal Mulai</b> 
-                        <span class="float-right font-weight-bold">
-                            <?= $trip['start_date'] ? date('d M Y', strtotime($trip['start_date'])) : '-' ?>
-                        </span>
-                    </li>
-                    <li class="list-group-item">
-                        <b>Tanggal Selesai</b> 
-                        <span class="float-right font-weight-bold">
-                            <?= $trip['end_date'] ? date('d M Y', strtotime($trip['end_date'])) : '-' ?>
-                        </span>
-                    </li>
+        <?php if (session()->getFlashdata('trip_errors')): ?>
+            <div class="alert alert-danger alert-dismissible fade show mb-3 small" role="alert">
+                <i class="fas fa-exclamation-triangle mr-2"></i> <strong>Gagal memperbarui trip:</strong>
+                <ul class="pl-3 mb-0 mt-1">
+                    <?php foreach (session()->getFlashdata('trip_errors') as $err): ?>
+                        <li><?= esc($err) ?></li>
+                    <?php endforeach; ?>
                 </ul>
-
-                <?php if ($trip['notes']): ?>
-                    <strong><i class="far fa-file-alt mr-1"></i> Catatan</strong>
-                    <p class="text-muted small"><?= nl2br(esc($trip['notes'])) ?></p>
-                <?php endif; ?>
+                <button type="button" class="close" data-dismiss="alert"><span>&times;</span></button>
             </div>
-            <!-- /.card-body -->
+        <?php endif; ?>
+
+        <div class="card card-primary card-outline">
             <?php if ($currentMembership['role'] === 'admin'): ?>
-                <div class="card-footer">
-                    <button type="button" class="btn btn-danger btn-block btn-delete-trip" data-id="<?= $trip['id'] ?>">
-                        <i class="fas fa-trash-alt mr-1"></i> Hapus Trip
-                    </button>
+                <form action="<?= base_url('backend/trips/update/' . $trip['id']) ?>" method="post">
+                    <?= csrf_field() ?>
+                    <div class="card-body">
+                        <div class="text-center">
+                            <i class="fas fa-map-marked-alt fa-3x text-primary mb-3"></i>
+                        </div>
+                        <h3 class="profile-username text-center font-weight-bold mb-3"><?= esc($trip['name']) ?></h3>
+                        <p class="text-muted text-center mb-4">Kelompok: <?= esc($group['name']) ?></p>
+
+                        <div class="form-group">
+                            <label for="trip_name">Nama Trip</label>
+                            <input type="text" name="name" id="trip_name" class="form-control" value="<?= old('name', esc($trip['name'])) ?>" required placeholder="Masukkan nama trip">
+                        </div>
+                        
+                        <div class="form-group">
+                            <label for="trip_start_date">Tanggal Mulai</label>
+                            <input type="date" name="start_date" id="trip_start_date" class="form-control" value="<?= old('start_date', $trip['start_date']) ?>">
+                        </div>
+
+                        <div class="form-group">
+                            <label for="trip_end_date">Tanggal Selesai</label>
+                            <input type="date" name="end_date" id="trip_end_date" class="form-control" value="<?= old('end_date', $trip['end_date']) ?>">
+                        </div>
+
+                        <div class="form-group">
+                            <label for="trip_notes">Catatan / Keterangan</label>
+                            <textarea name="notes" id="trip_notes" class="form-control" rows="3" placeholder="Tambahkan catatan trip..."><?= old('notes', esc($trip['notes'])) ?></textarea>
+                        </div>
+                    </div>
+                    <div class="card-footer d-flex" style="gap: 10px;">
+                        <button type="submit" class="btn btn-primary flex-fill">
+                            <i class="fas fa-save mr-1"></i> Simpan
+                        </button>
+                        <button type="button" class="btn btn-outline-danger flex-fill btn-delete-trip" data-id="<?= $trip['id'] ?>">
+                            <i class="fas fa-trash-alt mr-1"></i> Hapus
+                        </button>
+                    </div>
+                </form>
+            <?php else: ?>
+                <div class="card-body box-profile">
+                    <div class="text-center">
+                        <i class="fas fa-map-marked-alt fa-3x text-primary mb-3"></i>
+                    </div>
+                    <h3 class="profile-username text-center font-weight-bold"><?= esc($trip['name']) ?></h3>
+                    <p class="text-muted text-center">Kelompok: <?= esc($group['name']) ?></p>
+
+                    <ul class="list-group list-group-unbordered mb-3">
+                        <li class="list-group-item">
+                            <b>Tanggal Mulai</b> 
+                            <span class="float-right font-weight-bold">
+                                <?= $trip['start_date'] ? date('d M Y', strtotime($trip['start_date'])) : '-' ?>
+                            </span>
+                        </li>
+                        <li class="list-group-item">
+                            <b>Tanggal Selesai</b> 
+                            <span class="float-right font-weight-bold">
+                                <?= $trip['end_date'] ? date('d M Y', strtotime($trip['end_date'])) : '-' ?>
+                            </span>
+                        </li>
+                    </ul>
+
+                    <?php if ($trip['notes']): ?>
+                        <strong><i class="far fa-file-alt mr-1"></i> Catatan</strong>
+                        <p class="text-muted small"><?= nl2br(esc($trip['notes'])) ?></p>
+                    <?php endif; ?>
                 </div>
             <?php endif; ?>
         </div>

@@ -41,6 +41,7 @@ $routes->group('backend', ['filter' => 'login', 'namespace' => 'App\Controllers\
         $routes->get('create', 'Trips::create');
         $routes->post('store', 'Trips::store');
         $routes->get('detail/(:num)', 'Trips::detail/$1');
+        $routes->post('update/(:num)', 'Trips::update/$1');
         $routes->get('delete-preview/(:num)', 'Trips::deletePreview/$1');
         $routes->post('delete/(:num)', 'Trips::delete/$1');
         $routes->post('add-period/(:num)', 'Trips::addPeriod/$1');

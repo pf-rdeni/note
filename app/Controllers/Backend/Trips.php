@@ -378,4 +378,42 @@ class Trips extends BaseController
 
         return redirect()->to('backend/trips')->with('success', 'Trip beserta seluruh data dan berkas terkait berhasil dihapus secara bersih.');
     }
+
+    /**
+     * Update data trip (Hanya Admin Grup dari trip terkait yang bisa)
+     */
+    public function update(int $tripId)
+    {
+        $trip = $this->tripModel->find($tripId);
+        if (!$trip) {
+            return redirect()->to('backend/trips')->with('error', 'Trip tidak ditemukan.');
+        }
+
+        // Cek membership grup
+        $membership = $this->checkMembership((int)$trip['group_id']);
+        if (!$membership || $membership['role'] !== 'admin') {
+            return redirect()->back()->with('error', 'Hanya admin grup yang dapat mengubah detail trip.');
+        }
+
+        $rules = [
+            'name'       => 'required|min_length[3]|max_length[100]',
+            'start_date' => 'permit_empty|valid_date[Y-m-d]',
+            'end_date'   => 'permit_empty|valid_date[Y-m-d]',
+            'notes'      => 'permit_empty'
+        ];
+
+        if (!$this->validate($rules)) {
+            return redirect()->back()->withInput()->with('trip_errors', $this->validator->getErrors());
+        }
+
+        $this->tripModel->update($tripId, [
+            'name'       => $this->request->getPost('name'),
+            'start_date' => $this->request->getPost('start_date') ?: null,
+            'end_date'   => $this->request->getPost('end_date') ?: null,
+            'notes'      => $this->request->getPost('notes') ?: null,
+            'group_id'   => $trip['group_id']
+        ]);
+
+        return redirect()->to('backend/trips/detail/' . $tripId)->with('success', 'Detail trip perjalanan berhasil diperbarui.');
+    }
 }
