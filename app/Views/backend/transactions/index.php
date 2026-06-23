@@ -217,9 +217,9 @@ $filterPanelHtml = ob_get_clean();
 
                 // WhatsApp Markdown (Detailed per-participant calculation format)
                 $waSummaryText = "🟢 *REKAPITULASI PEMBAGIAN SALDO*\n";
-                $waSummaryText .= "*Kegiatan:* " . $tripName . "\n";
+                $waSummaryText .= "*Agenda:* " . $tripName . "\n";
                 $waSummaryText .= "*Periode:* " . $periodLabel . "\n";
-                $waSummaryText .= "*Total Belanja:* Rp " . $totalBelanja . "\n";
+                $waSummaryText .= "*Total Pengeluaran:* Rp " . $totalBelanja . "\n";
                 
                 $activeMemberCount = 0;
                 foreach ($calculationResult['participants'] as $p) {
@@ -228,7 +228,7 @@ $filterPanelHtml = ob_get_clean();
                     }
                 }
                 $splitRataVal = number_format($calculationResult['summary']['split_rata'], 0, ',', '.');
-                $waSummaryText .= "*Bagi Rata/Orang:* Rp " . $splitRataVal . " (Dibagi untuk " . $activeMemberCount . " anggota aktif)\n";
+                $waSummaryText .= "*Bagi Rata/Orang:* Rp " . $splitRataVal . "\n";
                 $waSummaryText .= "----------------------------------------\n\n";
                 
                 $waSummaryText .= "*Rincian Per Anggota:*\n";
@@ -239,13 +239,13 @@ $filterPanelHtml = ob_get_clean();
                     
                     $waSummaryText .= "👤 *" . $p['username'] . "*\n";
                     $waSummaryText .= "  - Total Bayar: Rp " . number_format($p['total_paid'], 0, ',', '.') . "\n";
-                    $waSummaryText .= "  - Split Rata (Shared): Rp " . number_format($p['shared_share'], 0, ',', '.') . "\n";
-                    $waSummaryText .= "  - Individual (Kustom): Rp " . number_format($p['individual_charge'], 0, ',', '.') . "\n";
+                    $waSummaryText .= "  - Bagi Rata: Rp " . number_format($p['shared_share'], 0, ',', '.') . "\n";
+                    $waSummaryText .= "  - Murni Pribadi: Rp " . number_format($p['individual_charge'], 0, ',', '.') . "\n";
                     $waSummaryText .= "  - Saldo Akhir: *" . $sign . "Rp " . number_format(abs($bal), 0, ',', '.') . "* (" . $status . ")\n\n";
                 }
                 
                 $waSummaryText .= "----------------------------------------\n";
-                $waSummaryText .= "🤝 *REKOMENDASI SETTLEMENT*\n";
+                $waSummaryText .= "🤝 *REKOMENDASI PELUNASAN*\n";
                 if (empty($calculationResult['settlements'])) {
                     $waSummaryText .= "Semua saldo seimbang! Tidak ada transfer yang diperlukan.\n";
                 } else {
@@ -259,7 +259,7 @@ $filterPanelHtml = ob_get_clean();
                     <div class="col-6 col-md-3 mb-3 px-1 px-md-2">
                         <div class="summary-stat-card" style="background: linear-gradient(135deg, #3b82f6, #1d4ed8);">
                             <div class="summary-stat-icon"><i class="fas fa-wallet"></i></div>
-                            <div class="summary-stat-label">Total Belanja</div>
+                            <div class="summary-stat-label">Total Pengeluaran</div>
                             <div class="summary-stat-value">Rp <?= number_format($calculationResult['summary']['total_transactions'], 0, ',', '.') ?></div>
                         </div>
                     </div>
