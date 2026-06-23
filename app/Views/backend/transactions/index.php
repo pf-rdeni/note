@@ -209,6 +209,51 @@ $filterPanelHtml = ob_get_clean();
             
             <!-- 1. Summary Widgets -->
             <?php if (!empty($calculationResult)): ?>
+                <?php
+                // Generate WhatsApp Markdown Summary
+                $tripName = $selectedTrip['name'] ?? '';
+                $periodLabel = $calculationResult['period']['label'] ?? '';
+                $totalBelanja = number_format($calculationResult['summary']['total_transactions'], 0, ',', '.');
+
+                // WhatsApp Markdown (Detailed per-participant calculation format)
+                $waSummaryText = "🟢 *REKAPITULASI PEMBAGIAN SALDO*\n";
+                $waSummaryText .= "*Kegiatan:* " . $tripName . "\n";
+                $waSummaryText .= "*Periode:* " . $periodLabel . "\n";
+                $waSummaryText .= "*Total Belanja:* Rp " . $totalBelanja . "\n";
+                
+                $activeMemberCount = 0;
+                foreach ($calculationResult['participants'] as $p) {
+                    if ($p['is_active_member']) {
+                        $activeMemberCount++;
+                    }
+                }
+                $splitRataVal = number_format($calculationResult['summary']['split_rata'], 0, ',', '.');
+                $waSummaryText .= "*Bagi Rata/Orang:* Rp " . $splitRataVal . " (Dibagi untuk " . $activeMemberCount . " anggota aktif)\n";
+                $waSummaryText .= "----------------------------------------\n\n";
+                
+                $waSummaryText .= "*Rincian Per Anggota:*\n";
+                foreach ($calculationResult['participants'] as $p) {
+                    $bal = $p['net_balance'];
+                    $sign = $bal >= 0 ? '+' : '-';
+                    $status = $bal >= 0 ? 'Terima Saldo' : 'Bayar/Hutang';
+                    
+                    $waSummaryText .= "👤 *" . $p['username'] . "*\n";
+                    $waSummaryText .= "  - Total Bayar: Rp " . number_format($p['total_paid'], 0, ',', '.') . "\n";
+                    $waSummaryText .= "  - Split Rata (Shared): Rp " . number_format($p['shared_share'], 0, ',', '.') . "\n";
+                    $waSummaryText .= "  - Individual (Kustom): Rp " . number_format($p['individual_charge'], 0, ',', '.') . "\n";
+                    $waSummaryText .= "  - Saldo Akhir: *" . $sign . "Rp " . number_format(abs($bal), 0, ',', '.') . "* (" . $status . ")\n\n";
+                }
+                
+                $waSummaryText .= "----------------------------------------\n";
+                $waSummaryText .= "🤝 *REKOMENDASI SETTLEMENT*\n";
+                if (empty($calculationResult['settlements'])) {
+                    $waSummaryText .= "Semua saldo seimbang! Tidak ada transfer yang diperlukan.\n";
+                } else {
+                    foreach ($calculationResult['settlements'] as $s) {
+                        $waSummaryText .= "👉 *" . $s['from_username'] . "* transfer ke *" . $s['to_username'] . "* sebesar *Rp " . number_format($s['amount'], 0, ',', '.') . "*\n";
+                    }
+                }
+                ?>
                 <div class="row" style="gap: 0;">
                     <div class="col-6 col-md-3 mb-3 px-1 px-md-2">
                         <div class="summary-stat-card" style="background: linear-gradient(135deg, #3b82f6, #1d4ed8);">
@@ -257,6 +302,9 @@ $filterPanelHtml = ob_get_clean();
                             </button>
                             <button type="button" class="btn btn-xs btn-outline-info font-weight-bold btn-print-rekap">
                                 <i class="fas fa-file-pdf mr-1"></i> <span class="d-none d-sm-inline">Unduh </span>PDF
+                            </button>
+                            <button type="button" class="btn btn-xs font-weight-bold btn-share-wa" style="background-color: #25D366; border-color: #25D366; color: #fff;">
+                                <i class="fab fa-whatsapp mr-1"></i> <span class="d-none d-sm-inline">Bagikan ke </span>WhatsApp
                             </button>
                             <span class="badge badge-success py-2 px-2 font-weight-bold ml-1 d-none d-sm-inline">Periode: <?= esc($calculationResult['period']['label']) ?></span>
                         </div>
@@ -1733,6 +1781,7 @@ button[aria-expanded="true"] .collapse-chevron {
     const baseUrl    = '<?= base_url('backend/transactions') ?>';
     const activeTripId   = '<?= $selectedTripId ?? '' ?>';
     const activePeriodId = '<?= $selectedPeriodId ?? '' ?>';
+    const waSummaryText  = <?= json_encode($waSummaryText ?? '') ?>;
 
     // Cek parameter dari URL
     const urlParams = new URLSearchParams(window.location.search);
@@ -1945,6 +1994,16 @@ button[aria-expanded="true"] .collapse-chevron {
         btnClose.addEventListener('click', function () {
             const panel = document.getElementById('filterPanel');
             if (panel) $(panel).collapse('hide');
+        });
+    }
+
+    // WhatsApp Share Button
+    const btnShareWa = document.querySelector('.btn-share-wa');
+    if (btnShareWa) {
+        btnShareWa.addEventListener('click', function() {
+            if (!waSummaryText) return;
+            const waUrl = 'https://api.whatsapp.com/send?text=' + encodeURIComponent(waSummaryText);
+            window.open(waUrl, '_blank');
         });
     }
 })();
