@@ -5,12 +5,7 @@
 <div class="row">
     <div class="col-12">
         <?php if (session()->getFlashdata('success')) : ?>
-            <div class="alert alert-success alert-dismissible fade show" role="alert">
-                <i class="icon fas fa-check mr-2"></i> <?= session()->getFlashdata('success') ?>
-                <button type="button" class="close" data-dismiss="alert" aria-label="Close">
-                    <span aria-hidden="true">&times;</span>
-                </button>
-            </div>
+            <!-- Success alert is handled via SweetAlert2 at the bottom of the page -->
         <?php endif; ?>
         <?php if (session()->getFlashdata('error')) : ?>
             <div class="alert alert-danger alert-dismissible fade show" role="alert">
@@ -1674,6 +1669,38 @@ $(document).ready(function() {
             }
         });
     }
+
+    // Flash Alert success handler using SweetAlert2
+    <?php if (session()->getFlashdata('success')) : ?>
+        const successMsg = <?= json_encode(session()->getFlashdata('success')) ?>;
+        if (successMsg === 'Transaksi berhasil dicatat.') {
+            Swal.fire({
+                title: 'Berhasil!',
+                text: successMsg,
+                icon: 'success',
+                showCancelButton: true,
+                confirmButtonColor: '#28a745',
+                cancelButtonColor: '#007bff',
+                confirmButtonText: 'Tutup',
+                cancelButtonText: '<i class="fas fa-plus mr-1"></i> Catat Transaksi Lain',
+                timer: 5000,
+                timerProgressBar: true
+            }).then((result) => {
+                if (result.dismiss === Swal.DismissReason.cancel) {
+                    $('#modalTransaction').modal('show');
+                }
+            });
+        } else {
+            Swal.fire({
+                title: 'Berhasil!',
+                text: successMsg,
+                icon: 'success',
+                confirmButtonColor: '#28a745',
+                timer: 3000,
+                timerProgressBar: true
+            });
+        }
+    <?php endif; ?>
 });
 </script>
 
