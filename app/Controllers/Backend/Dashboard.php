@@ -46,14 +46,71 @@ class Dashboard extends BaseController
                                ->getRow();
                 $totalExpenses = (int)($sumQuery->amount ?? 0);
 
-                // Cari jumlah nominal belanja yang dibayar oleh user login
-                $mySumQuery = $db->table('transactions')
-                                 ->selectSum('amount')
-                                 ->whereIn('trip_id', $tripIds)
-                                 ->where('paid_by', $userId)
-                                 ->get()
-                                 ->getRow();
-                $myExpenses = (int)($mySumQuery->amount ?? 0);
+                // Cari total pengeluaran pembagian rata (shared) & individual untuk user login
+                $allTransactions = $db->table('transactions')
+                                      ->select('id, amount, type, period_id')
+                                      ->whereIn('trip_id', $tripIds)
+                                      ->get()
+                                      ->getResultArray();
+
+                $periodActiveMembers = [];
+                if (!empty($tripIds)) {
+                    $periodIdsQuery = $db->table('trip_periods')
+                                         ->select('id')
+                                         ->whereIn('trip_id', $tripIds)
+                                         ->get()
+                                         ->getResultArray();
+                    $allPeriodIds = array_column($periodIdsQuery, 'id');
+
+                    if (!empty($allPeriodIds)) {
+                        $periodActiveMembers = $db->table('period_active_members')
+                                                  ->select('period_id, user_id')
+                                                  ->whereIn('period_id', $allPeriodIds)
+                                                  ->get()
+                                                  ->getResultArray();
+                    }
+                }
+
+                $activeUsersByPeriod = [];
+                foreach ($periodActiveMembers as $pam) {
+                    $activeUsersByPeriod[$pam['period_id']][] = (int)$pam['user_id'];
+                }
+
+                $myAdjustments = [];
+                if (!empty($allTransactions)) {
+                    $allTransIds = array_column($allTransactions, 'id');
+                    $myAdjustments = $db->table('transaction_adjustments')
+                                        ->select('transaction_id, amount')
+                                        ->where('target_user_id', $userId)
+                                        ->whereIn('transaction_id', $allTransIds)
+                                        ->get()
+                                        ->getResultArray();
+                }
+
+                $myAdjustmentsByTrans = [];
+                foreach ($myAdjustments as $adj) {
+                    $myAdjustmentsByTrans[$adj['transaction_id']] = (int)$adj['amount'];
+                }
+
+                $myExpenses = 0;
+                foreach ($allTransactions as $t) {
+                    $transId = $t['id'];
+                    $amount = (int)$t['amount'];
+                    $type = $t['type'];
+                    $periodId = $t['period_id'];
+
+                    if ($type === 'shared') {
+                        $activeList = $activeUsersByPeriod[$periodId] ?? [];
+                        $numActive = count($activeList);
+                        if ($numActive > 0 && in_array($userId, $activeList)) {
+                            $myExpenses += (int)round($amount / $numActive);
+                        }
+                    } elseif ($type === 'individual') {
+                        if (isset($myAdjustmentsByTrans[$transId])) {
+                            $myExpenses += $myAdjustmentsByTrans[$transId];
+                        }
+                    }
+                }
 
                 // 4. Ambil 5 transaksi terbaru
                 $recentTransactions = $transactionModel->select('transactions.*, COALESCE(NULLIF(users.fullname, \'\'), users.username) as paid_by_name, trips.name as trip_name')
