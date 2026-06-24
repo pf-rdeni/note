@@ -1113,6 +1113,24 @@ $(document).ready(function() {
         dropdownParent: $('#modalTransaction')
     });
 
+    // Save and restore last paid_by selection in Add Transaction form using localStorage
+    const currentUserId = <?= function_exists('user_id') ? (user_id() ?? 'null') : 'null' ?>;
+    const lastPaidByKey = 'txn_last_paid_by_' + currentUserId;
+
+    if (currentUserId) {
+        const savedPaidBy = localStorage.getItem(lastPaidByKey);
+        if (savedPaidBy && $('#paid_by option[value="' + savedPaidBy + '"]').length > 0) {
+            $('#paid_by').val(savedPaidBy).trigger('change');
+        }
+    }
+
+    $('#paid_by').on('change', function() {
+        const val = $(this).val();
+        if (val && currentUserId) {
+            localStorage.setItem(lastPaidByKey, val);
+        }
+    });
+
     // =============================================
     // RECEIPT UPLOAD: Kamera & Galeri Handler (Modal Tambah)
     // =============================================
