@@ -48,19 +48,29 @@ class Dashboard extends BaseController
 
                 // Cari total pengeluaran pembagian rata (shared) & individual untuk user login
                 $allTransactions = $db->table('transactions')
-                                      ->select('id, amount, type, period_id')
-                                      ->whereIn('trip_id', $tripIds)
+                                      ->select('transactions.id, transactions.amount, transactions.type, transactions.period_id, transactions.trip_id, trips.group_id, trips.name as trip_name, groups.name as group_name')
+                                      ->join('trips', 'trips.id = transactions.trip_id')
+                                      ->join('groups', 'groups.id = trips.group_id')
+                                      ->whereIn('transactions.trip_id', $tripIds)
                                       ->get()
                                       ->getResultArray();
 
                 $periodActiveMembers = [];
+                $periodMeta = [];
                 if (!empty($tripIds)) {
-                    $periodIdsQuery = $db->table('trip_periods')
-                                         ->select('id')
+                    $periodsData = $db->table('trip_periods')
+                                         ->select('id, label, created_at')
                                          ->whereIn('trip_id', $tripIds)
+                                         ->orderBy('created_at', 'ASC')
                                          ->get()
                                          ->getResultArray();
-                    $allPeriodIds = array_column($periodIdsQuery, 'id');
+                    $allPeriodIds = array_column($periodsData, 'id');
+                    foreach ($periodsData as $p) {
+                        $periodMeta[$p['id']] = [
+                            'label' => $p['label'],
+                            'created_at' => $p['created_at']
+                        ];
+                    }
 
                     if (!empty($allPeriodIds)) {
                         $periodActiveMembers = $db->table('period_active_members')
@@ -93,22 +103,41 @@ class Dashboard extends BaseController
                 }
 
                 $myExpenses = 0;
+                $myExpensesByPeriod = [];
+                $myExpensesByTrip = [];
+                $myExpensesByGroup = [];
+                $tripMeta = [];
+                $groupMeta = [];
+
                 foreach ($allTransactions as $t) {
                     $transId = $t['id'];
                     $amount = (int)$t['amount'];
                     $type = $t['type'];
-                    $periodId = $t['period_id'];
+                    $periodId = (int)$t['period_id'];
+                    $tripId = (int)$t['trip_id'];
+                    $groupId = (int)$t['group_id'];
 
+                    $tripMeta[$tripId] = $t['trip_name'];
+                    $groupMeta[$groupId] = $t['group_name'];
+
+                    $transShare = 0;
                     if ($type === 'shared') {
                         $activeList = $activeUsersByPeriod[$periodId] ?? [];
                         $numActive = count($activeList);
                         if ($numActive > 0 && in_array($userId, $activeList)) {
-                            $myExpenses += (int)round($amount / $numActive);
+                            $transShare = (int)round($amount / $numActive);
                         }
                     } elseif ($type === 'individual') {
                         if (isset($myAdjustmentsByTrans[$transId])) {
-                            $myExpenses += $myAdjustmentsByTrans[$transId];
+                            $transShare = $myAdjustmentsByTrans[$transId];
                         }
+                    }
+
+                    if ($transShare > 0) {
+                        $myExpenses += $transShare;
+                        $myExpensesByPeriod[$periodId] = ($myExpensesByPeriod[$periodId] ?? 0) + $transShare;
+                        $myExpensesByTrip[$tripId] = ($myExpensesByTrip[$tripId] ?? 0) + $transShare;
+                        $myExpensesByGroup[$groupId] = ($myExpensesByGroup[$groupId] ?? 0) + $transShare;
                     }
                 }
 
@@ -139,63 +168,30 @@ class Dashboard extends BaseController
                     ];
                 }
 
-                // 6. Agregasi pengeluaran rata-rata per orang per periode
-                $periodAvgQuery = $db->table('transactions')
-                                     ->select('trip_periods.label as period_label, SUM(transactions.amount) as total_amount, (SELECT COUNT(*) FROM group_members WHERE group_members.group_id = trips.group_id) as member_count')
-                                     ->join('trip_periods', 'trip_periods.id = transactions.period_id')
-                                     ->join('trips', 'trips.id = transactions.trip_id')
-                                     ->whereIn('transactions.trip_id', $tripIds)
-                                     ->groupBy(['transactions.period_id', 'trip_periods.label', 'trips.group_id', 'trip_periods.created_at'])
-                                     ->orderBy('trip_periods.created_at', 'ASC')
-                                     ->get()
-                                     ->getResultArray();
-
+                // 6. Agregasi beban pengeluaran saya per periode
                 $avgPeriodChartData = [];
-                foreach ($periodAvgQuery as $row) {
-                    $memberCount = (int)($row['member_count'] ?? 1);
-                    $memberCount = $memberCount > 0 ? $memberCount : 1;
+                foreach ($periodMeta as $pid => $meta) {
                     $avgPeriodChartData[] = [
-                        'label'  => $row['period_label'],
-                        'amount' => (int)($row['total_amount'] / $memberCount)
+                        'label'  => $meta['label'],
+                        'amount' => $myExpensesByPeriod[$pid] ?? 0
                     ];
                 }
 
-                // 7. Agregasi pengeluaran rata-rata per orang per kegiatan
-                $tripAvgQuery = $db->table('transactions')
-                                   ->select('trips.name as trip_name, SUM(transactions.amount) as total_amount, (SELECT COUNT(*) FROM group_members WHERE group_members.group_id = trips.group_id) as member_count')
-                                   ->join('trips', 'trips.id = transactions.trip_id')
-                                   ->whereIn('transactions.trip_id', $tripIds)
-                                   ->groupBy(['transactions.trip_id', 'trips.name', 'trips.group_id'])
-                                   ->get()
-                                   ->getResultArray();
-
+                // 7. Agregasi beban pengeluaran saya per kegiatan
                 $avgTripChartData = [];
-                foreach ($tripAvgQuery as $row) {
-                    $memberCount = (int)($row['member_count'] ?? 1);
-                    $memberCount = $memberCount > 0 ? $memberCount : 1;
+                foreach ($myExpensesByTrip as $tripId => $amount) {
                     $avgTripChartData[] = [
-                        'label'  => $row['trip_name'],
-                        'amount' => (int)($row['total_amount'] / $memberCount)
+                        'label'  => $tripMeta[$tripId] ?? 'Unknown Trip',
+                        'amount' => $amount
                     ];
                 }
 
-                // 7.5. Agregasi pengeluaran rata-rata per orang per kelompok (grup)
-                $groupAvgQuery = $db->table('transactions')
-                                    ->select('groups.name as group_name, SUM(transactions.amount) as total_amount, (SELECT COUNT(*) FROM group_members WHERE group_members.group_id = groups.id) as member_count')
-                                    ->join('trips', 'trips.id = transactions.trip_id')
-                                    ->join('groups', 'groups.id = trips.group_id')
-                                    ->whereIn('transactions.trip_id', $tripIds)
-                                    ->groupBy(['trips.group_id', 'groups.name', 'groups.id'])
-                                    ->get()
-                                    ->getResultArray();
-
+                // 7.5. Agregasi beban pengeluaran saya per kelompok (grup)
                 $avgGroupChartData = [];
-                foreach ($groupAvgQuery as $row) {
-                    $memberCount = (int)($row['member_count'] ?? 1);
-                    $memberCount = $memberCount > 0 ? $memberCount : 1;
+                foreach ($myExpensesByGroup as $groupId => $amount) {
                     $avgGroupChartData[] = [
-                        'label'  => $row['group_name'],
-                        'amount' => (int)($row['total_amount'] / $memberCount)
+                        'label'  => $groupMeta[$groupId] ?? 'Unknown Group',
+                        'amount' => $amount
                     ];
                 }
 
@@ -219,22 +215,48 @@ class Dashboard extends BaseController
 
                 // 9. Ambil semua transaksi per periode untuk tren/perbandingan item pengeluaran
                 $transactionTrendsQuery = $db->table('transactions')
-                                             ->select('transactions.id, transactions.description, transactions.amount, transactions.period_id, transactions.paid_by, COALESCE(NULLIF(users.fullname, \'\'), users.username) as paid_by_name, trip_periods.label as period_label')
+                                             ->select('transactions.id, transactions.description, transactions.amount, transactions.period_id, transactions.paid_by, COALESCE(NULLIF(users.fullname, \'\'), users.username) as paid_by_name, trip_periods.label as period_label, trip_periods.trip_id, trips.name as trip_name, trips.group_id, groups.name as group_name')
                                              ->join('users', 'users.id = transactions.paid_by')
                                              ->join('trip_periods', 'trip_periods.id = transactions.period_id')
+                                             ->join('trips', 'trips.id = trip_periods.trip_id')
+                                             ->join('groups', 'groups.id = trips.group_id')
                                              ->whereIn('transactions.trip_id', $tripIds)
                                              ->orderBy('transactions.amount', 'DESC')
                                              ->get()
                                              ->getResultArray();
 
+                $trendHierarchy = [];
                 $trendPeriods = [];
                 $trendTransactionsByPeriod = [];
                 foreach ($transactionTrendsQuery as $row) {
-                    $pid = $row['period_id'];
-                    if (!isset($trendPeriods[$pid])) {
-                        $trendPeriods[$pid] = $row['period_label'];
+                    $groupId = (int)$row['group_id'];
+                    $groupName = $row['group_name'];
+                    $tripId = (int)$row['trip_id'];
+                    $tripName = $row['trip_name'];
+                    $periodId = (int)$row['period_id'];
+                    $periodLabel = $row['period_label'];
+
+                    if (!isset($trendHierarchy[$groupId])) {
+                        $trendHierarchy[$groupId] = [
+                            'name' => $groupName,
+                            'trips' => []
+                        ];
                     }
-                    $trendTransactionsByPeriod[$pid][] = [
+                    if (!isset($trendHierarchy[$groupId]['trips'][$tripId])) {
+                        $trendHierarchy[$groupId]['trips'][$tripId] = [
+                            'name' => $tripName,
+                            'periods' => []
+                        ];
+                    }
+                    if (!isset($trendHierarchy[$groupId]['trips'][$tripId]['periods'][$periodId])) {
+                        $trendHierarchy[$groupId]['trips'][$tripId]['periods'][$periodId] = $periodLabel;
+                    }
+
+                    if (!isset($trendPeriods[$periodId])) {
+                        $trendPeriods[$periodId] = $periodLabel;
+                    }
+
+                    $trendTransactionsByPeriod[$periodId][] = [
                         'description'  => $row['description'],
                         'amount'       => (int)$row['amount'],
                         'paid_by_name' => $row['paid_by_name'],
@@ -259,6 +281,7 @@ class Dashboard extends BaseController
             'memberSpendingChartData'   => $memberSpendingChartData ?? [],
             'trendPeriods'              => $trendPeriods ?? [],
             'trendTransactionsByPeriod' => $trendTransactionsByPeriod ?? [],
+            'trendHierarchy'            => $trendHierarchy ?? [],
         ];
 
         return view('backend/dashboard/index', $data);

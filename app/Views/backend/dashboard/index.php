@@ -83,17 +83,17 @@
                     </li>
                     <li class="nav-item">
                         <a class="nav-link" id="avg-group-tab" data-toggle="pill" href="#avg-group-content" role="tab" aria-controls="avg-group-content" aria-selected="false">
-                            <i class="fas fa-users mr-1 text-purple"></i> Rerata / Anggota (Grup)
+                            <i class="fas fa-users mr-1 text-purple"></i> Beban Saya (Grup)
                         </a>
                     </li>
                     <li class="nav-item">
                         <a class="nav-link" id="avg-trip-tab" data-toggle="pill" href="#avg-trip-content" role="tab" aria-controls="avg-trip-content" aria-selected="false">
-                            <i class="fas fa-suitcase-rolling mr-1 text-success"></i> Rerata / Anggota (Kegiatan)
+                            <i class="fas fa-suitcase-rolling mr-1 text-success"></i> Beban Saya (Kegiatan)
                         </a>
                     </li>
                     <li class="nav-item">
                         <a class="nav-link" id="avg-period-tab" data-toggle="pill" href="#avg-period-content" role="tab" aria-controls="avg-period-content" aria-selected="false">
-                            <i class="far fa-calendar-alt mr-1 text-primary"></i> Rerata / Anggota (Periode)
+                            <i class="far fa-calendar-alt mr-1 text-primary"></i> Beban Saya (Periode)
                         </a>
                     </li>
                     <li class="nav-item">
@@ -122,11 +122,11 @@
                             </div>
                         <?php endif; ?>
                     </div>
-                    <!-- Tab 2: Rata-rata per Anggota per Grup -->
+                    <!-- Tab 2: Beban Saya per Grup -->
                     <div class="tab-pane fade" id="avg-group-content" role="tabpanel" aria-labelledby="avg-group-tab">
                         <div class="mb-3 text-muted" style="font-size: 0.88rem; line-height: 1.4;">
                             <i class="fas fa-info-circle text-purple mr-1"></i> 
-                            Menampilkan estimasi beban biaya rata-rata per orang untuk masing-masing kelompok/grup.
+                            Menampilkan total beban biaya pengeluaran Anda untuk masing-masing kelompok/grup.
                         </div>
                         <?php if (empty($avgGroupChartData)): ?>
                             <div class="text-center py-5 text-muted">
@@ -139,11 +139,11 @@
                             </div>
                         <?php endif; ?>
                     </div>
-                    <!-- Tab 3: Rata-rata per Anggota per Kegiatan -->
+                    <!-- Tab 3: Beban Saya per Kegiatan -->
                     <div class="tab-pane fade" id="avg-trip-content" role="tabpanel" aria-labelledby="avg-trip-tab">
                         <div class="mb-3 text-muted" style="font-size: 0.88rem; line-height: 1.4;">
                             <i class="fas fa-info-circle text-success mr-1"></i> 
-                            Menampilkan rata-rata pengeluaran per orang pada setiap kegiatan/event yang diselenggarakan.
+                            Menampilkan total beban biaya pengeluaran Anda pada setiap kegiatan/event yang diikuti.
                         </div>
                         <?php if (empty($avgTripChartData)): ?>
                             <div class="text-center py-5 text-muted">
@@ -156,11 +156,11 @@
                             </div>
                         <?php endif; ?>
                     </div>
-                    <!-- Tab 4: Rata-rata per Anggota per Periode -->
+                    <!-- Tab 4: Beban Saya per Periode -->
                     <div class="tab-pane fade" id="avg-period-content" role="tabpanel" aria-labelledby="avg-period-tab">
                         <div class="mb-3 text-muted" style="font-size: 0.88rem; line-height: 1.4;">
                             <i class="fas fa-info-circle text-primary mr-1"></i> 
-                            Menampilkan rata-rata pengeluaran per orang pada setiap periode waktu.
+                            Menampilkan total beban biaya pengeluaran Anda di setiap periode.
                         </div>
                         <?php if (empty($avgPeriodChartData)): ?>
                             <div class="text-center py-5 text-muted">
@@ -179,18 +179,79 @@
                             <i class="fas fa-info-circle text-danger mr-1"></i> 
                             Menampilkan perbandingan nominal belanja per item pada periode terpilih (dari terbesar).
                         </div>
-                        <div class="d-flex align-items-center mb-3">
-                            <label for="trend-period-select" class="mr-2 mb-0 font-weight-bold text-secondary" style="font-size: 0.95rem;">Pilih Periode:</label>
-                            <div style="min-width: 250px;">
-                                <select id="trend-period-select" class="form-control select2 shadow-xs font-weight-bold text-dark" style="width: 100%;">
-                                    <?php if (empty($trendPeriods)): ?>
-                                        <option value="">Belum ada periode</option>
-                                    <?php else: ?>
-                                        <?php foreach ($trendPeriods as $pid => $label): ?>
-                                            <option value="<?= $pid ?>"><?= esc($label) ?></option>
+                        <div class="d-flex align-items-center mb-3 flex-wrap" style="gap: 12px;">
+                            <label class="mb-0 font-weight-bold text-secondary" style="font-size: 0.95rem;">Pilih Periode:</label>
+                            <div class="dropdown custom-tree-dropdown" style="min-width: 300px; position: relative;">
+                                <?php 
+                                $initialPeriodId = !empty($trendPeriods) ? array_key_first($trendPeriods) : '';
+                                $initialPeriodLabel = !empty($trendPeriods) ? reset($trendPeriods) : 'Pilih Periode...';
+                                ?>
+                                <input type="hidden" id="trend-period-select" value="<?= $initialPeriodId ?>">
+                                <button class="btn btn-outline-secondary dropdown-toggle text-left w-100 font-weight-bold d-flex justify-content-between align-items-center shadow-xs" 
+                                        type="button" 
+                                        id="treeDropdownBtn" 
+                                        data-toggle="dropdown" 
+                                        aria-haspopup="true" 
+                                        aria-expanded="false" 
+                                        style="border-color: #ced4da; border-radius: 8px; height: calc(2.25rem + 10px); background: #fff; color: #495057; font-size: 0.9rem;">
+                                    <span id="selectedPeriodLabel"><?= esc($initialPeriodLabel) ?></span>
+                                </button>
+                                <div class="dropdown-menu p-3 shadow-lg border-0" 
+                                     aria-labelledby="treeDropdownBtn" 
+                                     style="max-height: 400px; overflow-y: auto; border-radius: 12px; min-width: 320px; width: 100%;">
+                                    
+                                    <!-- Search Input -->
+                                    <div class="input-group mb-3">
+                                        <div class="input-group-prepend">
+                                            <span class="input-group-text bg-light border-right-0" style="border-radius: 8px 0 0 8px;">
+                                                <i class="fas fa-search text-muted"></i>
+                                            </span>
+                                        </div>
+                                        <input type="text" id="treeSearchInput" class="form-control border-left-0" placeholder="Cari grup, kegiatan, atau periode..." style="border-radius: 0 8px 8px 0;">
+                                    </div>
+
+                                    <!-- Tree List -->
+                                    <ul class="list-unstyled mb-0" id="dropdownTreeList">
+                                        <?php foreach ($trendHierarchy as $gid => $gInfo): ?>
+                                            <li class="group-node mb-2" data-name="<?= esc(strtolower($gInfo['name'])) ?>">
+                                                <div class="d-flex align-items-center py-1 font-weight-bold text-dark node-header" 
+                                                     style="cursor: pointer; gap: 8px; font-size: 0.95rem;">
+                                                    <i class="fas fa-chevron-right text-muted node-arrow"></i>
+                                                    <i class="fas fa-users text-primary"></i>
+                                                    <span><?= esc($gInfo['name']) ?></span>
+                                                </div>
+                                                <ul class="list-unstyled pl-4 d-none nested-list mt-1">
+                                                    <?php foreach ($gInfo['trips'] as $tid => $tInfo): ?>
+                                                        <li class="trip-node mb-1" data-name="<?= esc(strtolower($tInfo['name'])) ?>">
+                                                            <div class="d-flex align-items-center py-1 font-weight-bold text-secondary node-header" 
+                                                                 style="cursor: pointer; gap: 8px; font-size: 0.88rem;">
+                                                                <i class="fas fa-chevron-right text-muted node-arrow"></i>
+                                                                <i class="fas fa-suitcase-rolling text-success"></i>
+                                                                <span><?= esc($tInfo['name']) ?></span>
+                                                            </div>
+                                                            <ul class="list-unstyled pl-4 d-none nested-list mt-1">
+                                                                <?php foreach ($tInfo['periods'] as $pid => $pLabel): ?>
+                                                                    <li class="period-node py-1 px-2 rounded hover-item" 
+                                                                        data-id="<?= $pid ?>" 
+                                                                        data-label="<?= esc($pLabel) ?>"
+                                                                        data-name="<?= esc(strtolower($pLabel)) ?>"
+                                                                        style="cursor: pointer; font-size: 0.85rem; transition: background-color 0.15s;">
+                                                                        <i class="far fa-calendar-alt text-info mr-2"></i>
+                                                                        <span class="text-dark font-weight-bold"><?= esc($pLabel) ?></span>
+                                                                    </li>
+                                                                <?php endforeach; ?>
+                                                            </ul>
+                                                        </li>
+                                                    <?php endforeach; ?>
+                                                </ul>
+                                            </li>
                                         <?php endforeach; ?>
-                                    <?php endif; ?>
-                                </select>
+                                    </ul>
+                                    <div id="noTreeResults" class="text-center py-3 text-muted d-none" style="font-size: 0.85rem;">
+                                        <i class="fas fa-search mb-2 fa-lg d-block"></i>
+                                        Tidak ada kecocokan
+                                    </div>
+                                </div>
                             </div>
                         </div>
                         <?php if (empty($trendPeriods)): ?>
@@ -326,6 +387,121 @@ $(document).ready(function() {
     const lastTabKey = 'dashboard_last_tab_' + currentUserId;
     const lastTrendPeriodKey = 'dashboard_last_trend_period_' + currentUserId;
 
+    // Custom Tree Dropdown logic
+    $('#dropdownTreeList').on('click', '.node-header', function(e) {
+        e.stopPropagation();
+        const $header = $(this);
+        const $arrow = $header.find('.node-arrow');
+        const $list = $header.next('.nested-list');
+
+        $arrow.toggleClass('expanded');
+        $list.toggleClass('d-none');
+    });
+
+    $('#dropdownTreeList').on('click', '.period-node', function(e) {
+        e.stopPropagation();
+        const $period = $(this);
+        const periodId = $period.data('id');
+        const label = $period.data('label');
+
+        $('#trend-period-select').val(periodId).trigger('change');
+        $('#selectedPeriodLabel').text(label);
+
+        // Highlight active node
+        $('#dropdownTreeList .period-node').removeClass('bg-primary text-white font-weight-bold').addClass('text-dark');
+        $period.addClass('bg-primary text-white font-weight-bold').removeClass('text-dark');
+
+        // Expand path to the selected node
+        $period.parents('.nested-list').removeClass('d-none');
+        $period.parents('li').find('> .node-header .node-arrow').addClass('expanded');
+
+        // Close dropdown if open
+        const $menu = $('.custom-tree-dropdown .dropdown-menu');
+        if ($menu.hasClass('show')) {
+            $('#treeDropdownBtn').dropdown('toggle');
+        }
+    });
+
+    $('.custom-tree-dropdown .dropdown-menu').on('click', function(e) {
+        e.stopPropagation();
+    });
+
+    // Custom Tree Search
+    $('#treeSearchInput').on('keyup input', function(e) {
+        const query = $(this).val().toLowerCase().trim();
+        const $tree = $('#dropdownTreeList');
+        const $noResults = $('#noTreeResults');
+
+        if (query === '') {
+            $tree.find('.nested-list').addClass('d-none');
+            $tree.find('.node-arrow').removeClass('expanded');
+            $tree.find('li').show();
+            $noResults.addClass('d-none');
+
+            // Keep the selected/active node path open
+            const currentVal = $('#trend-period-select').val();
+            if (currentVal) {
+                const $activeNode = $tree.find(`.period-node[data-id="${currentVal}"]`);
+                if ($activeNode.length) {
+                    $activeNode.parents('.nested-list').removeClass('d-none');
+                    $activeNode.parents('li').find('> .node-header .node-arrow').addClass('expanded');
+                }
+            }
+            return;
+        }
+
+        let anyMatch = false;
+
+        $tree.find('.nested-list').addClass('d-none');
+        $tree.find('.node-arrow').removeClass('expanded');
+        $tree.find('li').hide();
+
+        $tree.find('.group-node').each(function() {
+            const $group = $(this);
+            const groupName = $group.data('name') || '';
+            let groupMatched = groupName.includes(query);
+            let groupHasVisibleChild = false;
+
+            $group.find('.trip-node').each(function() {
+                const $trip = $(this);
+                const tripName = $trip.data('name') || '';
+                let tripMatched = tripName.includes(query);
+                let tripHasVisibleChild = false;
+
+                $trip.find('.period-node').each(function() {
+                    const $period = $(this);
+                    const periodLabel = $period.data('name') || '';
+                    if (periodLabel.includes(query) || tripMatched || groupMatched) {
+                        $period.show();
+                        tripHasVisibleChild = true;
+                        anyMatch = true;
+                    }
+                });
+
+                if (tripMatched || tripHasVisibleChild) {
+                    $trip.show();
+                    $trip.find('> .nested-list').removeClass('d-none');
+                    $trip.find('> .node-header .node-arrow').addClass('expanded');
+                    groupHasVisibleChild = true;
+                    anyMatch = true;
+                }
+            });
+
+            if (groupMatched || groupHasVisibleChild) {
+                $group.show();
+                $group.find('> .nested-list').removeClass('d-none');
+                $group.find('> .node-header .node-arrow').addClass('expanded');
+                anyMatch = true;
+            }
+        });
+
+        if (anyMatch) {
+            $noResults.addClass('d-none');
+        } else {
+            $noResults.removeClass('d-none');
+        }
+    });
+
     // Bootstrap Tab Change handler to resize Chart.js properly
     $('a[data-toggle="pill"]').on('shown.bs.tab', function(e) {
         const targetId = $(e.target).attr('href');
@@ -366,7 +542,7 @@ $(document).ready(function() {
             data: {
                 labels: labels,
                 datasets: [{
-                    label: 'Rerata per Orang',
+                    label: 'Beban Saya',
                     data: dataValues,
                     backgroundColor: gradient,
                     borderColor: '#4e73df',
@@ -383,7 +559,7 @@ $(document).ready(function() {
                     tooltip: {
                         callbacks: {
                             label: function(context) {
-                                return ' Rerata: ' + formatCurrency(context.raw);
+                                return ' Beban Saya: ' + formatCurrency(context.raw);
                             }
                         }
                     }
@@ -419,7 +595,7 @@ $(document).ready(function() {
             data: {
                 labels: labels,
                 datasets: [{
-                    label: 'Rerata per Orang',
+                    label: 'Beban Saya',
                     data: dataValues,
                     backgroundColor: gradient,
                     borderColor: '#1cc88a',
@@ -436,7 +612,7 @@ $(document).ready(function() {
                     tooltip: {
                         callbacks: {
                             label: function(context) {
-                                return ' Rerata: ' + formatCurrency(context.raw);
+                                return ' Beban Saya: ' + formatCurrency(context.raw);
                             }
                         }
                     }
@@ -472,7 +648,7 @@ $(document).ready(function() {
             data: {
                 labels: labels,
                 datasets: [{
-                    label: 'Rerata per Orang',
+                    label: 'Beban Saya',
                     data: dataValues,
                     backgroundColor: gradient,
                     borderColor: '#6f42c1',
@@ -489,7 +665,7 @@ $(document).ready(function() {
                     tooltip: {
                         callbacks: {
                             label: function(context) {
-                                return ' Rerata: ' + formatCurrency(context.raw);
+                                return ' Beban Saya: ' + formatCurrency(context.raw);
                             }
                         }
                     }
@@ -706,21 +882,14 @@ $(document).ready(function() {
         renderTrendChart(selectedVal);
     });
 
-    // Initialize Select2 for Trend Period select
-    $('#trend-period-select').select2({
-        theme: 'bootstrap4',
-        placeholder: 'Pilih Periode',
-        allowClear: false
-    });
-
     // Restore last selected period if exists, otherwise load default
     const cachedPeriod = localStorage.getItem(lastTrendPeriodKey);
-    if (cachedPeriod && $(`#trend-period-select option[value="${cachedPeriod}"]`).length) {
-        $('#trend-period-select').val(cachedPeriod).trigger('change');
+    if (cachedPeriod && $(`.period-node[data-id="${cachedPeriod}"]`).length) {
+        $(`.period-node[data-id="${cachedPeriod}"]`).trigger('click');
     } else {
         const initialPeriod = $('#trend-period-select').val();
         if (initialPeriod) {
-            renderTrendChart(initialPeriod);
+            $(`.period-node[data-id="${initialPeriod}"]`).trigger('click');
         }
     }
 
@@ -733,6 +902,33 @@ $(document).ready(function() {
 </script>
 
 <style>
+/* Custom Tree Dropdown style rules */
+.custom-tree-dropdown .hover-item:hover {
+    background-color: #f1f5f9;
+}
+.dark-mode .custom-tree-dropdown .hover-item:hover {
+    background-color: #1e293b;
+}
+.node-arrow {
+    transition: transform 0.2s ease;
+    font-size: 0.75rem;
+    width: 10px;
+}
+.node-arrow.expanded {
+    transform: rotate(90deg);
+}
+
+/* Prevent dropdown clipping in cards and tabs */
+.card-outline-tabs,
+.card-outline-tabs .card-body,
+.tab-content,
+.tab-pane {
+    overflow: visible !important;
+}
+.custom-tree-dropdown .dropdown-menu {
+    z-index: 1050 !important;
+}
+
 /* Micro-animations and hover cards */
 .hover-card {
     transition: transform 0.2s ease, box-shadow 0.2s ease;

@@ -142,13 +142,48 @@ class Transactions extends BaseController
 
         // Kumpulkan semua periode per trip untuk rendering sisi klien (filter tanpa reload)
         $allPeriodsJson = [];
+        $filterHierarchy = [];
+
+        $allPeriods = [];
+        if (!empty($availableTrips)) {
+            $allTripIds = array_column($availableTrips, 'id');
+            $allPeriods = $this->periodModel
+                               ->select('id, label, status, trip_id')
+                               ->whereIn('trip_id', $allTripIds)
+                               ->orderBy('created_at', 'ASC')
+                               ->findAll();
+        }
+
+        $periodsByTrip = [];
+        foreach ($allPeriods as $p) {
+            $periodsByTrip[$p['trip_id']][] = $p;
+            $allPeriodsJson[$p['trip_id']][] = [
+                'id' => $p['id'],
+                'label' => $p['label'],
+                'status' => $p['status']
+            ];
+        }
+
         foreach ($availableTrips as $at) {
-            $tripPeriods = $this->periodModel
-                ->select('id, label, status')
-                ->where('trip_id', $at['id'])
-                ->orderBy('created_at', 'ASC')
-                ->findAll();
-            $allPeriodsJson[$at['id']] = $tripPeriods;
+            $groupId = (int)$at['group_id'];
+            $groupName = $at['group_name'];
+            $tripId = (int)$at['id'];
+            $tripName = $at['name'];
+
+            if (!isset($filterHierarchy[$groupId])) {
+                $filterHierarchy[$groupId] = [
+                    'name' => $groupName,
+                    'trips' => []
+                ];
+            }
+            $filterHierarchy[$groupId]['trips'][$tripId] = [
+                'name' => $tripName,
+                'periods' => $periodsByTrip[$tripId] ?? []
+            ];
+
+            if (!isset($allPeriodsJson[$tripId])) {
+                $allPeriodsJson[$tripId] = [];
+            }
         }
 
         $data = [
@@ -165,6 +200,7 @@ class Transactions extends BaseController
             'calculationResult' => $calculationResult,
             'allPeriodsJson'    => json_encode($allPeriodsJson),
             'user'              => user(),
+            'filterHierarchy'   => $filterHierarchy,
         ];
 
         return view('backend/transactions/index', $data);

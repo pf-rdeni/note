@@ -77,103 +77,150 @@ ob_start();
         </div>
 
         <div class="card-body p-3">
-            <div class="row">
-                <!-- Column 1: Kegiatan -->
-                <div class="col-md-6 mb-3 mb-md-0">
-                    <label class="text-xs font-weight-bold text-muted mb-1 d-block text-uppercase">
-                        <i class="fas fa-suitcase-rolling mr-1"></i> 1. Pilih Kegiatan
-                    </label>
-                    <!-- Search Box Kegiatan -->
-                    <input type="text" id="tripSearch" class="form-control form-control-sm mb-2" placeholder="Cari kegiatan..." style="border-radius: 6px; font-size: 0.8rem; height: auto; padding: 4px 8px;">
-
-                    <div class="list-group list-group-flush" id="tripList" style="max-height: 180px; overflow-y: auto; border-radius: 8px; border: 1px solid #dee2e6;">
-                        <?php foreach ($availableTrips as $at): ?>
-                            <button type="button"
-                                    class="list-group-item list-group-item-action d-flex justify-content-between align-items-center py-2 px-3 trip-select-btn <?= (int)$at['id'] === (int)$selectedTripId ? 'active' : '' ?>"
-                                    data-trip-id="<?= $at['id'] ?>"
-                                    data-trip-name="<?= esc($at['name']) ?>"
-                                    style="font-size: 0.85rem; border: none; border-bottom: 1px solid #f0f0f0;">
-                                <span>
-                                    <i class="fas fa-layer-group fa-xs mr-1 text-muted"></i>
-                                    <strong><?= esc($at['group_name']) ?></strong>
-                                    <span class="text-muted"> / <?= esc($at['name']) ?></span>
-                                </span>
-                                <?php if ((int)$at['id'] === (int)$selectedTripId): ?>
-                                    <i class="fas fa-check-circle text-primary fa-sm ml-1"></i>
-                                <?php endif; ?>
-                            </button>
-                        <?php endforeach; ?>
-                    </div>
-                </div>
-
-                <!-- Column 2: Periode -->
-                <div class="col-md-6">
-                    <label class="text-xs font-weight-bold text-muted mb-1 d-block text-uppercase">
-                        <i class="far fa-calendar-alt mr-1"></i> 2. Pilih Periode Pengeluaran
-                    </label>
-                    <div id="periodStep" class="<?= !empty($selectedTripId) ? '' : 'd-none' ?>">
-                        <!-- Search Box Periode -->
-                        <input type="text" id="periodSearch" class="form-control form-control-sm mb-2" placeholder="Cari periode..." style="border-radius: 6px; font-size: 0.8rem; height: auto; padding: 4px 8px;">
-                        
-                        <div class="list-group list-group-flush" id="periodList" style="max-height: 180px; overflow-y: auto; border-radius: 8px; border: 1px solid #dee2e6;">
-                            <?php if (!empty($selectedTripId)): ?>
-
-                                <?php 
-                                $openPeriods = [];
-                                $settledPeriods = [];
-                                foreach ($periods as $p) {
-                                    if (($p['status'] ?? 'open') === 'settled') {
-                                        $settledPeriods[] = $p;
-                                    } else {
-                                        $openPeriods[] = $p;
-                                    }
+            <div class="d-flex align-items-center flex-wrap" style="gap: 12px;">
+                <label class="mb-0 font-weight-bold text-secondary" style="font-size: 0.95rem;">Filter Kegiatan &amp; Periode:</label>
+                <div class="dropdown custom-tree-dropdown flex-fill" style="position: relative; max-width: 500px;">
+                    <?php 
+                    $selectedLabel = 'Pilih Kegiatan atau Periode...';
+                    if (!empty($selectedTrip)) {
+                        $selectedLabel = esc($selectedTrip['name']);
+                        if (!empty($selectedPeriodId)) {
+                            foreach ($periods as $p) {
+                                if ((int)$p['id'] === (int)$selectedPeriodId) {
+                                    $selectedLabel .= ' / ' . esc($p['label']);
+                                    break;
                                 }
+                            }
+                        }
+                    }
+                    ?>
+                    <button class="btn btn-outline-secondary dropdown-toggle text-left w-100 font-weight-bold d-flex justify-content-between align-items-center shadow-xs" 
+                            type="button" 
+                            id="filterTreeDropdownBtn" 
+                            data-toggle="dropdown" 
+                            aria-haspopup="true" 
+                            aria-expanded="false" 
+                            style="border-color: #ced4da; border-radius: 8px; height: calc(2.25rem + 10px); background: #fff; color: #495057; font-size: 0.9rem;">
+                        <span id="selectedFilterLabel"><?= $selectedLabel ?></span>
+                    </button>
+                    <div class="dropdown-menu p-3 shadow-lg border-0" 
+                         aria-labelledby="filterTreeDropdownBtn" 
+                         style="max-height: 400px; overflow-y: auto; border-radius: 12px; min-width: 320px; width: 100%;">
+                        
+                        <!-- Search Input -->
+                        <div class="input-group mb-3">
+                            <div class="input-group-prepend">
+                                <span class="input-group-text bg-light border-right-0" style="border-radius: 8px 0 0 8px;">
+                                    <i class="fas fa-search text-muted"></i>
+                                </span>
+                            </div>
+                            <input type="text" id="filterTreeSearchInput" class="form-control border-left-0" placeholder="Cari grup, kegiatan, atau periode..." style="border-radius: 0 8px 8px 0;">
+                        </div>
 
-                                // Render open periods
-                                foreach ($openPeriods as $p): ?>
-                                    <a href="<?= base_url('backend/transactions?trip_id=' . $selectedTripId . '&period_id=' . $p['id']) ?>"
-                                       class="list-group-item list-group-item-action d-flex justify-content-between align-items-center py-2 px-3 period-nav-item <?= (int)$p['id'] === (int)$selectedPeriodId ? 'active' : '' ?>"
-                                       style="font-size: 0.85rem;"
-                                       data-trip-id="<?= $selectedTripId ?>" data-period-id="<?= $p['id'] ?>">
-                                        <span><?= esc($p['label']) ?></span>
-                                        <span class="badge badge-success badge-pill" title="Open"><i class="fas fa-unlock-alt fa-xs"></i></span>
-                                    </a>
-                                <?php endforeach; ?>
-
-                                <?php 
-                                // Render settled periods inside collapse
-                                if (!empty($settledPeriods)): 
-                                    $isSettledActive = false;
-                                    foreach ($settledPeriods as $p) {
-                                        if ((int)$p['id'] === (int)$selectedPeriodId) {
-                                            $isSettledActive = true;
-                                            break;
-                                        }
-                                    }
-                                    ?>
-                                    <button class="list-group-item list-group-item-action d-flex justify-content-between align-items-center py-2 px-3 bg-light text-muted font-weight-bold" 
-                                            type="button" data-toggle="collapse" data-target="#settledPeriodsCollapse" 
-                                            aria-expanded="<?= $isSettledActive ? 'true' : 'false' ?>" aria-controls="settledPeriodsCollapse" 
-                                            style="font-size: 0.8rem; outline: none; border: none; border-top: 1px solid #dee2e6;">
-                                        <span><i class="fas fa-history fa-xs mr-1"></i> Periode Terkunci (<?= count($settledPeriods) ?>)</span>
-                                        <i class="fas fa-chevron-down fa-xs text-muted collapse-chevron"></i>
-                                    </button>
-                                    <div class="collapse <?= $isSettledActive ? 'show' : '' ?>" id="settledPeriodsCollapse">
-                                        <?php foreach ($settledPeriods as $p): ?>
-                                            <a href="<?= base_url('backend/transactions?trip_id=' . $selectedTripId . '&period_id=' . $p['id']) ?>"
-                                               class="list-group-item list-group-item-action d-flex justify-content-between align-items-center py-2 px-3 period-nav-item <?= (int)$p['id'] === (int)$selectedPeriodId ? 'active' : '' ?> text-muted"
-                                               style="font-size: 0.85rem;"
-                                               data-trip-id="<?= $selectedTripId ?>" data-period-id="<?= $p['id'] ?>">
-                                                <span><i class="fas fa-lock fa-xs mr-1 text-secondary"></i><?= esc($p['label']) ?></span>
-                                                <span class="badge badge-secondary badge-pill" title="Settled"><i class="fas fa-lock fa-xs"></i></span>
-                                            </a>
-                                        <?php endforeach; ?>
+                        <!-- Tree List -->
+                        <ul class="list-unstyled mb-0" id="filterDropdownTreeList">
+                            <?php foreach ($filterHierarchy as $gid => $gInfo): ?>
+                                <li class="group-node mb-2" data-name="<?= esc(strtolower($gInfo['name'])) ?>">
+                                    <div class="d-flex align-items-center py-1 font-weight-bold text-dark node-header" 
+                                         style="cursor: pointer; gap: 8px; font-size: 0.95rem;">
+                                        <i class="fas fa-chevron-right text-muted node-arrow"></i>
+                                        <i class="fas fa-users text-primary"></i>
+                                        <span><?= esc($gInfo['name']) ?></span>
                                     </div>
-                                <?php endif; ?>
-                            <?php endif; ?>
+                                    <ul class="list-unstyled pl-4 d-none nested-list mt-1">
+                                        <?php foreach ($gInfo['trips'] as $tid => $tInfo): ?>
+                                            <li class="trip-node mb-2" data-name="<?= esc(strtolower($tInfo['name'])) ?>">
+                                                <div class="d-flex align-items-center py-1 font-weight-bold text-secondary node-header-wrapper" 
+                                                     style="cursor: pointer; justify-content: space-between; font-size: 0.88rem; gap: 8px;">
+                                                    <div class="d-flex align-items-center node-header-click" style="gap: 8px;">
+                                                        <i class="fas fa-chevron-right text-muted node-arrow"></i>
+                                                        <i class="fas fa-suitcase-rolling text-success"></i>
+                                                        <span><?= esc($tInfo['name']) ?></span>
+                                                    </div>
+                                                    <a href="<?= base_url('backend/transactions?trip_id=' . $tid) ?>" 
+                                                       class="btn btn-xs btn-outline-primary py-0 px-2 ml-auto select-trip-node"
+                                                       data-id="<?= $tid ?>"
+                                                       data-label="<?= esc($tInfo['name']) ?>"
+                                                       style="font-size: 0.72rem; border-radius: 4px;">
+                                                        Pilih Semua
+                                                    </a>
+                                                </div>
+                                                <ul class="list-unstyled pl-4 d-none nested-list mt-1">
+                                                    <?php 
+                                                    $openPeriodsList = array_filter($tInfo['periods'], fn($p) => (($p['status'] ?? 'open') === 'open'));
+                                                    $settledPeriodsList = array_filter($tInfo['periods'], fn($p) => (($p['status'] ?? 'open') === 'settled'));
+                                                    ?>
+
+                                                    <?php if (!empty($openPeriodsList)): ?>
+                                                        <li class="status-node mb-1">
+                                                            <div class="d-flex align-items-center py-1 font-weight-bold text-success node-header" 
+                                                                 style="cursor: pointer; gap: 8px; font-size: 0.8rem;">
+                                                                <i class="fas fa-chevron-right text-muted node-arrow"></i>
+                                                                <i class="fas fa-unlock text-success"></i>
+                                                                <span>Periode Terbuka (Open)</span>
+                                                            </div>
+                                                            <ul class="list-unstyled pl-3 d-none nested-list mt-1">
+                                                                <?php foreach ($openPeriodsList as $p): ?>
+                                                                    <li class="period-node py-1 px-2 rounded hover-item d-flex justify-content-between align-items-center" 
+                                                                        data-id="<?= $p['id'] ?>" 
+                                                                        data-trip-id="<?= $tid ?>"
+                                                                        data-label="<?= esc($tInfo['name'] . ' / ' . $p['label']) ?>"
+                                                                        data-name="<?= esc(strtolower($p['label'])) ?>"
+                                                                        style="cursor: pointer; font-size: 0.85rem; transition: background-color 0.15s;">
+                                                                        <div>
+                                                                            <i class="far fa-calendar-alt text-info mr-2"></i>
+                                                                            <span class="text-dark font-weight-bold"><?= esc($p['label']) ?></span>
+                                                                        </div>
+                                                                    </li>
+                                                                <?php endforeach; ?>
+                                                            </ul>
+                                                        </li>
+                                                    <?php endif; ?>
+
+                                                    <?php if (!empty($settledPeriodsList)): ?>
+                                                        <li class="status-node mb-1">
+                                                            <div class="d-flex align-items-center py-1 font-weight-bold text-secondary node-header" 
+                                                                 style="cursor: pointer; gap: 8px; font-size: 0.8rem;">
+                                                                <i class="fas fa-chevron-right text-muted node-arrow"></i>
+                                                                <i class="fas fa-lock text-secondary"></i>
+                                                                <span>Periode Selesai (Settled)</span>
+                                                            </div>
+                                                            <ul class="list-unstyled pl-3 d-none nested-list mt-1">
+                                                                <?php foreach ($settledPeriodsList as $p): ?>
+                                                                    <li class="period-node py-1 px-2 rounded hover-item d-flex justify-content-between align-items-center" 
+                                                                        data-id="<?= $p['id'] ?>" 
+                                                                        data-trip-id="<?= $tid ?>"
+                                                                        data-label="<?= esc($tInfo['name'] . ' / ' . $p['label']) ?>"
+                                                                        data-name="<?= esc(strtolower($p['label'])) ?>"
+                                                                        style="cursor: pointer; font-size: 0.85rem; transition: background-color 0.15s;">
+                                                                        <div>
+                                                                            <i class="fas fa-lock text-secondary mr-2"></i>
+                                                                            <span class="text-dark font-weight-bold"><?= esc($p['label']) ?></span>
+                                                                        </div>
+                                                                    </li>
+                                                                <?php endforeach; ?>
+                                                            </ul>
+                                                        </li>
+                                                    <?php endif; ?>
+                                                </ul>
+                                            </li>
+                                        <?php endforeach; ?>
+                                    </ul>
+                                </li>
+                            <?php endforeach; ?>
+                        </ul>
+                        <div id="noFilterTreeResults" class="text-center py-3 text-muted d-none" style="font-size: 0.85rem;">
+                            <i class="fas fa-search mb-2 fa-lg d-block"></i>
+                            Tidak ada kecocokan
                         </div>
                     </div>
                 </div>
+                
+                <?php if (!empty($selectedTripId)): ?>
+                    <a href="<?= base_url('backend/transactions') ?>" class="btn btn-outline-danger btn-sm" style="border-radius: 8px;">
+                        <i class="fas fa-redo mr-1"></i> Reset Filter
+                    </a>
+                <?php endif; ?>
             </div>
         </div>
     </div>
@@ -729,7 +776,7 @@ $filterPanelHtml = ob_get_clean();
                                 <div class="form-group">
                                     <label for="amount">Nominal Uang (Rp) <span class="text-danger">*</span></label>
                                     <input type="number" class="form-control" id="amount" name="amount" placeholder="Contoh: 150000" min="1" required>
-                                    <small id="amount_terbilang" class="form-text text-danger font-italic" style="font-size: 0.8rem; min-height: 1.2rem; display: block; margin-top: 4px;"></small>
+                                    <small id="amount_terbilang" class="form-text text-primary font-italic" style="font-size: 0.8rem; min-height: 1.2rem; display: block; margin-top: 4px;"></small>
                                 </div>
                             </div>
 
@@ -931,7 +978,7 @@ $filterPanelHtml = ob_get_clean();
                                 <div class="form-group">
                                     <label for="edit_amount">Nominal (Rp) <span class="text-danger">*</span></label>
                                     <input type="number" class="form-control" id="edit_amount" name="amount" min="1" required>
-                                    <small id="edit_amount_terbilang" class="form-text text-danger font-italic" style="font-size: 0.8rem; min-height: 1.2rem; display: block; margin-top: 4px;"></small>
+                                    <small id="edit_amount_terbilang" class="form-text text-primary font-italic" style="font-size: 0.8rem; min-height: 1.2rem; display: block; margin-top: 4px;"></small>
                                 </div>
                             </div>
                             <div class="col-md-6">
@@ -1097,6 +1144,177 @@ $filterPanelHtml = ob_get_clean();
 <?= $this->section('scripts') ?>
 <script>
 $(document).ready(function() {
+    // Custom Filter Tree Dropdown logic
+    $('#filterDropdownTreeList').on('click', '.node-header', function(e) {
+        e.stopPropagation();
+        const $header = $(this);
+        const $arrow = $header.find('.node-arrow');
+        const $list = $header.next('.nested-list');
+
+        $arrow.toggleClass('expanded');
+        $list.toggleClass('d-none');
+    });
+
+    $('#filterDropdownTreeList').on('click', '.node-header-click', function(e) {
+        e.stopPropagation();
+        const $header = $(this);
+        const $arrow = $header.find('.node-arrow');
+        const $list = $header.closest('.trip-node').find('> .nested-list');
+
+        $arrow.toggleClass('expanded');
+        $list.toggleClass('d-none');
+    });
+
+    $('#filterDropdownTreeList').on('click', '.period-node', function(e) {
+        e.stopPropagation();
+        const $period = $(this);
+        const periodId = $period.data('id');
+        const tripId = $period.data('trip-id');
+        const label = $period.data('label');
+
+        $('#selectedFilterLabel').text(label);
+        
+        window.location.href = `<?= base_url('backend/transactions') ?>?trip_id=${tripId}&period_id=${periodId}`;
+    });
+
+    $('#filterDropdownTreeList').on('click', '.select-trip-node', function(e) {
+        const label = $(this).data('label');
+        $('#selectedFilterLabel').text(label);
+    });
+
+    $('.custom-tree-dropdown .dropdown-menu').on('click', function(e) {
+        e.stopPropagation();
+    });
+
+    const currentTripId = "<?= $selectedTripId ?>";
+    const currentPeriodId = "<?= $selectedPeriodId ?>";
+
+    if (currentTripId) {
+        const $tripNode = $('#filterDropdownTreeList').find(`.trip-node .select-trip-node[data-id="${currentTripId}"]`).closest('.trip-node');
+        if ($tripNode.length) {
+            $tripNode.parents('.nested-list').removeClass('d-none');
+            $tripNode.parents('li').find('> .node-header .node-arrow').addClass('expanded');
+            
+            if (currentPeriodId) {
+                const $periodNode = $tripNode.find(`.period-node[data-id="${currentPeriodId}"]`);
+                if ($periodNode.length) {
+                    $periodNode.addClass('bg-primary text-white font-weight-bold').removeClass('text-dark');
+                    $tripNode.find('> .nested-list').removeClass('d-none');
+                    $tripNode.find('> .node-header-wrapper .node-arrow').addClass('expanded');
+                    
+                    const $statusNode = $periodNode.closest('.status-node');
+                    if ($statusNode.length) {
+                        $statusNode.find('> .nested-list').removeClass('d-none');
+                        $statusNode.find('> .node-header .node-arrow').addClass('expanded');
+                    }
+                }
+            } else {
+                $tripNode.find('> .node-header-wrapper').addClass('bg-primary text-white font-weight-bold rounded px-1');
+                $tripNode.find('> .node-header-wrapper .text-secondary').removeClass('text-secondary').addClass('text-white');
+                $tripNode.find('.select-trip-node').removeClass('btn-outline-primary').addClass('btn-outline-light text-white');
+            }
+        }
+    }
+
+    // Custom Filter Tree Search
+    $('#filterTreeSearchInput').on('keyup input', function(e) {
+        const query = $(this).val().toLowerCase().trim();
+        const $tree = $('#filterDropdownTreeList');
+        const $noResults = $('#noFilterTreeResults');
+
+        if (query === '') {
+            $tree.find('.nested-list').addClass('d-none');
+            $tree.find('.node-arrow').removeClass('expanded');
+            $tree.find('li').show();
+            $noResults.addClass('d-none');
+
+            if (currentTripId) {
+                const $tripNode = $tree.find(`.trip-node .select-trip-node[data-id="${currentTripId}"]`).closest('.trip-node');
+                if ($tripNode.length) {
+                    $tripNode.parents('.nested-list').removeClass('d-none');
+                    $tripNode.parents('li').find('> .node-header .node-arrow').addClass('expanded');
+                    if (currentPeriodId) {
+                        $tripNode.find('> .nested-list').removeClass('d-none');
+                        $tripNode.find('> .node-header-wrapper .node-arrow').addClass('expanded');
+                        
+                        const $periodNode = $tripNode.find(`.period-node[data-id="${currentPeriodId}"]`);
+                        const $statusNode = $periodNode.closest('.status-node');
+                        if ($statusNode.length) {
+                            $statusNode.find('> .nested-list').removeClass('d-none');
+                            $statusNode.find('> .node-header .node-arrow').addClass('expanded');
+                        }
+                    }
+                }
+            }
+            return;
+        }
+
+        let anyMatch = false;
+
+        $tree.find('.nested-list').addClass('d-none');
+        $tree.find('.node-arrow').removeClass('expanded');
+        $tree.find('li').hide();
+
+        $tree.find('.group-node').each(function() {
+            const $group = $(this);
+            const groupName = $group.data('name') || '';
+            let groupMatched = groupName.includes(query);
+            let groupHasVisibleChild = false;
+
+            $group.find('.trip-node').each(function() {
+                const $trip = $(this);
+                const tripName = $trip.data('name') || '';
+                let tripMatched = tripName.includes(query);
+                let tripHasVisibleChild = false;
+
+                $trip.find('.status-node').each(function() {
+                    const $statusNode = $(this);
+                    let statusNodeHasVisibleChild = false;
+
+                    $statusNode.find('.period-node').each(function() {
+                        const $period = $(this);
+                        const periodLabel = $period.data('name') || '';
+                        if (periodLabel.includes(query) || tripMatched || groupMatched) {
+                            $period.show();
+                            statusNodeHasVisibleChild = true;
+                            anyMatch = true;
+                        }
+                    });
+
+                    if (statusNodeHasVisibleChild || tripMatched || groupMatched) {
+                        $statusNode.show();
+                        $statusNode.find('> .nested-list').removeClass('d-none');
+                        $statusNode.find('> .node-header .node-arrow').addClass('expanded');
+                        tripHasVisibleChild = true;
+                    } else {
+                        $statusNode.hide();
+                    }
+                });
+
+                if (tripMatched || tripHasVisibleChild) {
+                    $trip.show();
+                    $trip.find('> .nested-list').removeClass('d-none');
+                    $trip.find('> .node-header-wrapper .node-arrow').addClass('expanded');
+                    groupHasVisibleChild = true;
+                    anyMatch = true;
+                }
+            });
+
+            if (groupMatched || groupHasVisibleChild) {
+                $group.show();
+                $group.find('> .nested-list').removeClass('d-none');
+                $group.find('> .node-header .node-arrow').addClass('expanded');
+                anyMatch = true;
+            }
+        });
+
+        if (anyMatch) {
+            $noResults.addClass('d-none');
+        } else {
+            $noResults.removeClass('d-none');
+        }
+    });
+
     // Inisialisasi Select2
     $('.select2').select2({
         theme: 'bootstrap4'
@@ -1774,6 +1992,22 @@ $(document).ready(function() {
 </style>
 
 <style>
+/* Custom Tree Dropdown style rules */
+.custom-tree-dropdown .hover-item:hover {
+    background-color: #f1f5f9;
+}
+.dark-mode .custom-tree-dropdown .hover-item:hover {
+    background-color: #1e293b;
+}
+.node-arrow {
+    transition: transform 0.2s ease;
+    font-size: 0.75rem;
+    width: 10px;
+}
+.node-arrow.expanded {
+    transform: rotate(90deg);
+}
+
 /* Filter sidebar interactive styles */
 .trip-select-btn.active {
     background-color: #e8f4fd !important;
@@ -1796,9 +2030,12 @@ $(document).ready(function() {
     background-color: rgba(255,255,255,0.3) !important;
     color: #fff !important;
 }
+#filterPanel {
+    overflow: visible !important;
+}
 #filterPanel .card {
     border-radius: 10px;
-    overflow: hidden;
+    overflow: visible !important;
 }
 #periodStep {
     animation: fadeSlideIn 0.2s ease;
@@ -1865,180 +2102,6 @@ button[aria-expanded="true"] .collapse-chevron {
             }
         }
     }
-
-    // Filter Kegiatan (Search)
-    const tripSearch = document.getElementById('tripSearch');
-    if (tripSearch) {
-        tripSearch.addEventListener('input', function() {
-            const query = this.value.toLowerCase().trim();
-            document.querySelectorAll('.trip-select-btn').forEach(btn => {
-                const text = btn.textContent.toLowerCase();
-                if (text.includes(query)) {
-                    btn.classList.add('d-flex');
-                    btn.classList.remove('d-none');
-                } else {
-                    btn.classList.remove('d-flex');
-                    btn.classList.add('d-none');
-                }
-            });
-        });
-    }
-
-    // Filter Periode (Search)
-    const periodSearch = document.getElementById('periodSearch');
-    if (periodSearch) {
-        periodSearch.addEventListener('input', function() {
-            const query = this.value.toLowerCase().trim();
-            const periodList = document.getElementById('periodList');
-            if (!periodList) return;
-
-            let matchOpenCount = 0;
-            let matchSettledCount = 0;
-            
-            periodList.querySelectorAll('.period-nav-item').forEach(btn => {
-                const text = btn.textContent.toLowerCase();
-                const isMatch = text.includes(query);
-                const isSettled = btn.closest('#settledPeriodsCollapse') !== null;
-                
-                if (isMatch) {
-                    btn.classList.add('d-flex');
-                    btn.classList.remove('d-none');
-                    if (isSettled) matchSettledCount++;
-                    else matchOpenCount++;
-                } else {
-                    btn.classList.remove('d-flex');
-                    btn.classList.add('d-none');
-                }
-            });
-
-            const settledToggle = periodList.querySelector('[data-target="#settledPeriodsCollapse"]');
-            const settledCollapse = document.getElementById('settledPeriodsCollapse');
-            
-            if (settledToggle) {
-                if (matchSettledCount > 0) {
-                    settledToggle.classList.add('d-flex');
-                    settledToggle.classList.remove('d-none');
-                    if (query !== '' && settledCollapse && !settledCollapse.classList.contains('show')) {
-                        $(settledCollapse).collapse('show');
-                    }
-                } else {
-                    settledToggle.classList.remove('d-flex');
-                    settledToggle.classList.add('d-none');
-                    if (settledCollapse && settledCollapse.classList.contains('show')) {
-                        $(settledCollapse).collapse('hide');
-                    }
-                }
-            }
-        });
-    }
-
-    // Helper: render daftar periode ke #periodList
-    function renderPeriods(tripId, activePeriodId) {
-        const pSearch = document.getElementById('periodSearch');
-        if (pSearch) pSearch.value = '';
-
-        const periods   = allPeriods[tripId] || [];
-        const container = document.getElementById('periodList');
-        const step      = document.getElementById('periodStep');
-        if (!container) return;
-
-        let html = '';
-
-        if (periods.length === 0) {
-            html += `<div class="p-3 text-muted text-center small">
-                        <i class="fas fa-calendar-times mb-1 d-block text-warning"></i>Belum ada periode.
-                     </div>`;
-        } else {
-            const openPeriods = periods.filter(p => p.status !== 'settled');
-            const settledPeriods = periods.filter(p => p.status === 'settled');
-
-            // Render open periods
-            openPeriods.forEach(p => {
-                const isActive = String(p.id) === String(activePeriodId);
-                const badge = '<span class="badge badge-success badge-pill" title="Open"><i class="fas fa-unlock-alt fa-xs"></i></span>';
-                html += `<a href="${baseUrl}?trip_id=${tripId}&period_id=${p.id}"
-                            class="list-group-item list-group-item-action d-flex justify-content-between align-items-center py-2 px-3 period-nav-item ${isActive ? 'active' : ''}"
-                            style="font-size:0.85rem;"
-                            data-trip-id="${tripId}" data-period-id="${p.id}">
-                             <span>${p.label}</span>${badge}
-                          </a>`;
-            });
-
-            // Render settled periods inside collapse
-            if (settledPeriods.length > 0) {
-                const isSettledActive = settledPeriods.some(p => String(p.id) === String(activePeriodId));
-                html += `<button class="list-group-item list-group-item-action d-flex justify-content-between align-items-center py-2 px-3 bg-light text-muted font-weight-bold" 
-                                 type="button" data-toggle="collapse" data-target="#settledPeriodsCollapse" 
-                                 aria-expanded="${isSettledActive ? 'true' : 'false'}" aria-controls="settledPeriodsCollapse" style="font-size: 0.8rem; outline:none; border:none; border-top: 1px solid #dee2e6;">
-                            <span><i class="fas fa-history fa-xs mr-1"></i> Periode Terkunci (${settledPeriods.length})</span>
-                            <i class="fas fa-chevron-down fa-xs text-muted collapse-chevron"></i>
-                         </button>
-                         <div class="collapse ${isSettledActive ? 'show' : ''}" id="settledPeriodsCollapse">`;
-                
-                settledPeriods.forEach(p => {
-                    const isActive = String(p.id) === String(activePeriodId);
-                    const badge = '<span class="badge badge-secondary badge-pill" title="Settled"><i class="fas fa-lock fa-xs"></i></span>';
-                    html += `<a href="${baseUrl}?trip_id=${tripId}&period_id=${p.id}"
-                                class="list-group-item list-group-item-action d-flex justify-content-between align-items-center py-2 px-3 period-nav-item ${isActive ? 'active' : ''} text-muted"
-                                style="font-size:0.85rem;"
-                                data-trip-id="${tripId}" data-period-id="${p.id}">
-                                 <span><i class="fas fa-lock fa-xs mr-1 text-secondary"></i>${p.label}</span>${badge}
-                              </a>`;
-                });
-
-                html += `</div>`;
-            }
-        }
-
-        container.innerHTML = html;
-        step.classList.remove('d-none');
-
-        // Bind navigasi periode: navigate + collapse filter mobile
-        container.querySelectorAll('.period-nav-item').forEach(el => {
-            el.addEventListener('click', function (e) {
-                e.preventDefault();
-                const href = this.getAttribute('href');
-                // Collapse filter di mobile
-                const panel = document.getElementById('filterPanel');
-                if (panel && window.innerWidth < 992) {
-                    $(panel).collapse('hide');
-                }
-                window.location.href = href;
-            });
-        });
-    }
-
-    // Bind klik trip
-    document.querySelectorAll('.trip-select-btn').forEach(btn => {
-        btn.addEventListener('click', function () {
-            const tripId   = this.dataset.tripId;
-            const tripName = this.dataset.tripName;
-
-            // Highlight aktif
-            document.querySelectorAll('.trip-select-btn').forEach(b => b.classList.remove('active'));
-            this.classList.add('active');
-
-            // Render periode (tanpa active period karena baru ganti trip)
-            renderPeriods(tripId, null);
-
-            // Update toggle label mobile
-            const lbl = document.getElementById('filterToggleLabel');
-            if (lbl) lbl.textContent = tripName + ' · Pilih Periode';
-        });
-    });
-
-    // Bind periode yang sudah dirender dari PHP (server-side)
-    document.querySelectorAll('#periodList .period-nav-item').forEach(el => {
-        el.addEventListener('click', function (e) {
-            e.preventDefault();
-            const href = this.getAttribute('href');
-            const panel = document.getElementById('filterPanel');
-            if (panel && window.innerWidth < 992) {
-                $(panel).collapse('hide');
-            }
-            window.location.href = href;
-        });
-    });
 
     // Tombol close filter (mobile)
     const btnClose = document.getElementById('btnCollapseFilter');
