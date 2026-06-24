@@ -29,7 +29,7 @@
 
 <!-- Info Cards Row -->
 <div class="row">
-    <div class="col-12 col-sm-6 col-md-4">
+    <div class="col-12 col-sm-6 col-md-3">
         <div class="info-box shadow-xs hover-card">
             <span class="info-box-icon bg-info elevation-1"><i class="fas fa-users"></i></span>
             <div class="info-box-content">
@@ -39,7 +39,7 @@
         </div>
     </div>
     
-    <div class="col-12 col-sm-6 col-md-4">
+    <div class="col-12 col-sm-6 col-md-3">
         <div class="info-box shadow-xs hover-card">
             <span class="info-box-icon bg-success elevation-1"><i class="fas fa-clipboard-list"></i></span>
             <div class="info-box-content">
@@ -49,12 +49,22 @@
         </div>
     </div>
 
-    <div class="col-12 col-sm-6 col-md-4">
+    <div class="col-12 col-sm-6 col-md-3">
         <div class="info-box shadow-xs hover-card">
             <span class="info-box-icon bg-warning elevation-1"><i class="fas fa-wallet text-white"></i></span>
             <div class="info-box-content">
                 <span class="info-box-text font-weight-bold text-muted text-warning">Total Pengeluaran</span>
                 <span class="info-box-number text-lg text-dark">Rp <?= number_format($totalExpenses, 0, ',', '.') ?></span>
+            </div>
+        </div>
+    </div>
+
+    <div class="col-12 col-sm-6 col-md-3">
+        <div class="info-box shadow-xs hover-card">
+            <span class="info-box-icon bg-danger elevation-1"><i class="fas fa-coins text-white"></i></span>
+            <div class="info-box-content">
+                <span class="info-box-text font-weight-bold text-muted text-danger">Pengeluaran Saya</span>
+                <span class="info-box-number text-lg text-dark">Rp <?= number_format($myExpenses, 0, ',', '.') ?></span>
             </div>
         </div>
     </div>
@@ -97,58 +107,78 @@
                 <div class="tab-content" id="dashboard-tabsContent">
                     <!-- Tab 1: Total Pengeluaran per Periode -->
                     <div class="tab-pane fade show active" id="total-period-content" role="tabpanel" aria-labelledby="total-period-tab">
+                        <div class="mb-3 text-muted" style="font-size: 0.88rem; line-height: 1.4;">
+                            <i class="fas fa-info-circle text-warning mr-1"></i> 
+                            Menampilkan akumulasi total belanja seluruh keluarga di setiap periode.
+                        </div>
                         <?php if (empty($spendingChartData)): ?>
                             <div class="text-center py-5 text-muted">
                                 <i class="far fa-chart-bar fa-3x mb-3 text-secondary"></i>
                                 <p class="mb-0">Belum ada data transaksi periodik.</p>
                             </div>
                         <?php else: ?>
-                            <div class="chart-container" style="position: relative; height: 280px; width: 100%;">
+                            <div class="chart-container" style="position: relative; height: 250px; width: 100%;">
                                 <canvas id="spendingChart"></canvas>
                             </div>
                         <?php endif; ?>
                     </div>
                     <!-- Tab 2: Rata-rata per Anggota per Grup -->
                     <div class="tab-pane fade" id="avg-group-content" role="tabpanel" aria-labelledby="avg-group-tab">
+                        <div class="mb-3 text-muted" style="font-size: 0.88rem; line-height: 1.4;">
+                            <i class="fas fa-info-circle text-purple mr-1"></i> 
+                            Menampilkan estimasi beban biaya rata-rata per orang untuk masing-masing kelompok/grup.
+                        </div>
                         <?php if (empty($avgGroupChartData)): ?>
                             <div class="text-center py-5 text-muted">
                                 <i class="far fa-chart-bar fa-3x mb-3 text-secondary"></i>
                                 <p class="mb-0">Belum ada data transaksi grup.</p>
                             </div>
                         <?php else: ?>
-                            <div class="chart-container" style="position: relative; height: 280px; width: 100%;">
+                            <div class="chart-container" style="position: relative; height: 250px; width: 100%;">
                                 <canvas id="avgGroupChart"></canvas>
                             </div>
                         <?php endif; ?>
                     </div>
                     <!-- Tab 3: Rata-rata per Anggota per Kegiatan -->
                     <div class="tab-pane fade" id="avg-trip-content" role="tabpanel" aria-labelledby="avg-trip-tab">
+                        <div class="mb-3 text-muted" style="font-size: 0.88rem; line-height: 1.4;">
+                            <i class="fas fa-info-circle text-success mr-1"></i> 
+                            Menampilkan rata-rata pengeluaran per orang pada setiap kegiatan/event yang diselenggarakan.
+                        </div>
                         <?php if (empty($avgTripChartData)): ?>
                             <div class="text-center py-5 text-muted">
                                 <i class="far fa-chart-bar fa-3x mb-3 text-secondary"></i>
                                 <p class="mb-0">Belum ada data transaksi kegiatan.</p>
                             </div>
                         <?php else: ?>
-                            <div class="chart-container" style="position: relative; height: 280px; width: 100%;">
+                            <div class="chart-container" style="position: relative; height: 250px; width: 100%;">
                                 <canvas id="avgTripChart"></canvas>
                             </div>
                         <?php endif; ?>
                     </div>
                     <!-- Tab 4: Rata-rata per Anggota per Periode -->
                     <div class="tab-pane fade" id="avg-period-content" role="tabpanel" aria-labelledby="avg-period-tab">
+                        <div class="mb-3 text-muted" style="font-size: 0.88rem; line-height: 1.4;">
+                            <i class="fas fa-info-circle text-primary mr-1"></i> 
+                            Menampilkan rata-rata pengeluaran per orang pada setiap periode waktu.
+                        </div>
                         <?php if (empty($avgPeriodChartData)): ?>
                             <div class="text-center py-5 text-muted">
                                 <i class="far fa-chart-bar fa-3x mb-3 text-secondary"></i>
                                 <p class="mb-0">Belum ada data transaksi periodik.</p>
                             </div>
                         <?php else: ?>
-                            <div class="chart-container" style="position: relative; height: 280px; width: 100%;">
+                            <div class="chart-container" style="position: relative; height: 250px; width: 100%;">
                                 <canvas id="avgPeriodChart"></canvas>
                             </div>
                         <?php endif; ?>
                     </div>
                     <!-- Tab 5: Tren Item per Periode -->
                     <div class="tab-pane fade" id="trend-content" role="tabpanel" aria-labelledby="trend-tab">
+                        <div class="mb-3 text-muted" style="font-size: 0.88rem; line-height: 1.4;">
+                            <i class="fas fa-info-circle text-danger mr-1"></i> 
+                            Menampilkan perbandingan nominal belanja per item pada periode terpilih (dari terbesar).
+                        </div>
                         <div class="d-flex align-items-center mb-3">
                             <label for="trend-period-select" class="mr-2 mb-0 font-weight-bold text-secondary" style="font-size: 0.95rem;">Pilih Periode:</label>
                             <div style="min-width: 250px;">
@@ -169,7 +199,7 @@
                                 <p class="mb-0">Belum ada data transaksi periodik.</p>
                             </div>
                         <?php else: ?>
-                            <div class="chart-container" style="position: relative; height: 240px; width: 100%;">
+                            <div class="chart-container" style="position: relative; height: 230px; width: 100%;">
                                 <canvas id="trendItemChart"></canvas>
                             </div>
                             <div id="trend-legend" class="mt-3 text-center d-flex flex-wrap justify-content-center"></div>
@@ -188,14 +218,18 @@
                     <i class="fas fa-chart-pie mr-1"></i> Kontribusi Pembayaran
                 </h3>
             </div>
-            <div class="card-body d-flex align-items-center justify-content-center">
+            <div class="card-body d-flex flex-column align-items-center justify-content-center">
                 <?php if (empty($memberSpendingChartData)): ?>
                     <div class="text-center py-5 text-muted w-100">
                         <i class="fas fa-chart-pie fa-3x mb-3 text-secondary"></i>
                         <p class="mb-0">Belum ada data transaksi anggota.</p>
                     </div>
                 <?php else: ?>
-                    <div class="chart-container" style="position: relative; height: 260px; width: 100%;">
+                    <div class="mb-3 text-muted w-100 text-center" style="font-size: 0.85rem; line-height: 1.4;">
+                        <i class="fas fa-info-circle text-info mr-1"></i> 
+                        Menampilkan total uang yang telah ditalangi oleh masing-masing anggota.
+                    </div>
+                    <div class="chart-container" style="position: relative; height: 230px; width: 100%;">
                         <canvas id="memberContributionChart"></canvas>
                     </div>
                 <?php endif; ?>
@@ -288,16 +322,15 @@ $(document).ready(function() {
     // Helper to format currency
     const formatCurrency = (val) => 'Rp ' + new Intl.NumberFormat('id-ID').format(val);
 
-    // Initialize Select2 for Trend Period select
-    $('#trend-period-select').select2({
-        theme: 'bootstrap4',
-        placeholder: 'Pilih Periode',
-        allowClear: false
-    });
+    const currentUserId = <?= user_id() ?>;
+    const lastTabKey = 'dashboard_last_tab_' + currentUserId;
+    const lastTrendPeriodKey = 'dashboard_last_trend_period_' + currentUserId;
 
     // Bootstrap Tab Change handler to resize Chart.js properly
     $('a[data-toggle="pill"]').on('shown.bs.tab', function(e) {
         const targetId = $(e.target).attr('href');
+        localStorage.setItem(lastTabKey, targetId); // Save last active tab
+
         if (targetId === '#trend-content') {
             const currentPeriod = $('#trend-period-select').val();
             if (currentPeriod) {
@@ -668,13 +701,33 @@ $(document).ready(function() {
 
     // Trigger on period change
     $('#trend-period-select').on('change', function() {
-        renderTrendChart($(this).val());
+        const selectedVal = $(this).val();
+        localStorage.setItem(lastTrendPeriodKey, selectedVal); // Save selected period
+        renderTrendChart(selectedVal);
     });
 
-    // Initial load
-    const initialPeriod = $('#trend-period-select').val();
-    if (initialPeriod) {
-        renderTrendChart(initialPeriod);
+    // Initialize Select2 for Trend Period select
+    $('#trend-period-select').select2({
+        theme: 'bootstrap4',
+        placeholder: 'Pilih Periode',
+        allowClear: false
+    });
+
+    // Restore last selected period if exists, otherwise load default
+    const cachedPeriod = localStorage.getItem(lastTrendPeriodKey);
+    if (cachedPeriod && $(`#trend-period-select option[value="${cachedPeriod}"]`).length) {
+        $('#trend-period-select').val(cachedPeriod).trigger('change');
+    } else {
+        const initialPeriod = $('#trend-period-select').val();
+        if (initialPeriod) {
+            renderTrendChart(initialPeriod);
+        }
+    }
+
+    // Restore last active tab if exists
+    const cachedTab = localStorage.getItem(lastTabKey);
+    if (cachedTab && $(`a[data-toggle="pill"][href="${cachedTab}"]`).length) {
+        $(`a[data-toggle="pill"][href="${cachedTab}"]`).tab('show');
     }
 });
 </script>

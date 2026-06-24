@@ -46,6 +46,15 @@ class Dashboard extends BaseController
                                ->getRow();
                 $totalExpenses = (int)($sumQuery->amount ?? 0);
 
+                // Cari jumlah nominal belanja yang dibayar oleh user login
+                $mySumQuery = $db->table('transactions')
+                                 ->selectSum('amount')
+                                 ->whereIn('trip_id', $tripIds)
+                                 ->where('paid_by', $userId)
+                                 ->get()
+                                 ->getRow();
+                $myExpenses = (int)($mySumQuery->amount ?? 0);
+
                 // 4. Ambil 5 transaksi terbaru
                 $recentTransactions = $transactionModel->select('transactions.*, users.username as paid_by_name, trips.name as trip_name')
                                                        ->join('users', 'users.id = transactions.paid_by')
@@ -184,6 +193,7 @@ class Dashboard extends BaseController
             'numGroups'                 => $numGroups,
             'numTrips'                  => $numTrips,
             'totalExpenses'             => $totalExpenses,
+            'myExpenses'                => $myExpenses ?? 0,
             'recentTransactions'        => $recentTransactions,
             'spendingChartData'         => $spendingChartData,
             'avgPeriodChartData'        => $avgPeriodChartData ?? [],
