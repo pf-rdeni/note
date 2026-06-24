@@ -56,12 +56,12 @@ class Dashboard extends BaseController
                                                        ->limit(5)
                                                        ->findAll();
 
-                // 5. Agregasi pengeluaran per periode untuk Chart.js
+                // 5. Agregasi pengeluaran per periode untuk Chart.js (Total)
                 $spendingQuery = $db->table('transactions')
                                     ->select('trip_periods.label as period_label, SUM(transactions.amount) as total_amount')
                                     ->join('trip_periods', 'trip_periods.id = transactions.period_id')
                                     ->whereIn('transactions.trip_id', $tripIds)
-                                    ->groupBy('transactions.period_id')
+                                    ->groupBy(['transactions.period_id', 'trip_periods.label', 'trip_periods.created_at'])
                                     ->orderBy('trip_periods.created_at', 'ASC')
                                     ->get()
                                     ->getResultArray();
@@ -72,17 +72,99 @@ class Dashboard extends BaseController
                         'amount' => (int)$row['total_amount']
                     ];
                 }
+
+                // 6. Agregasi pengeluaran rata-rata per orang per periode
+                $periodAvgQuery = $db->table('transactions')
+                                     ->select('trip_periods.label as period_label, SUM(transactions.amount) as total_amount, (SELECT COUNT(*) FROM group_members WHERE group_members.group_id = trips.group_id) as member_count')
+                                     ->join('trip_periods', 'trip_periods.id = transactions.period_id')
+                                     ->join('trips', 'trips.id = transactions.trip_id')
+                                     ->whereIn('transactions.trip_id', $tripIds)
+                                     ->groupBy(['transactions.period_id', 'trip_periods.label', 'trips.group_id', 'trip_periods.created_at'])
+                                     ->orderBy('trip_periods.created_at', 'ASC')
+                                     ->get()
+                                     ->getResultArray();
+
+                $avgPeriodChartData = [];
+                foreach ($periodAvgQuery as $row) {
+                    $memberCount = (int)($row['member_count'] ?? 1);
+                    $memberCount = $memberCount > 0 ? $memberCount : 1;
+                    $avgPeriodChartData[] = [
+                        'label'  => $row['period_label'],
+                        'amount' => (int)($row['total_amount'] / $memberCount)
+                    ];
+                }
+
+                // 7. Agregasi pengeluaran rata-rata per orang per kegiatan
+                $tripAvgQuery = $db->table('transactions')
+                                   ->select('trips.name as trip_name, SUM(transactions.amount) as total_amount, (SELECT COUNT(*) FROM group_members WHERE group_members.group_id = trips.group_id) as member_count')
+                                   ->join('trips', 'trips.id = transactions.trip_id')
+                                   ->whereIn('transactions.trip_id', $tripIds)
+                                   ->groupBy(['transactions.trip_id', 'trips.name', 'trips.group_id'])
+                                   ->get()
+                                   ->getResultArray();
+
+                $avgTripChartData = [];
+                foreach ($tripAvgQuery as $row) {
+                    $memberCount = (int)($row['member_count'] ?? 1);
+                    $memberCount = $memberCount > 0 ? $memberCount : 1;
+                    $avgTripChartData[] = [
+                        'label'  => $row['trip_name'],
+                        'amount' => (int)($row['total_amount'] / $memberCount)
+                    ];
+                }
+
+                // 7.5. Agregasi pengeluaran rata-rata per orang per kelompok (grup)
+                $groupAvgQuery = $db->table('transactions')
+                                    ->select('groups.name as group_name, SUM(transactions.amount) as total_amount, (SELECT COUNT(*) FROM group_members WHERE group_members.group_id = groups.id) as member_count')
+                                    ->join('trips', 'trips.id = transactions.trip_id')
+                                    ->join('groups', 'groups.id = trips.group_id')
+                                    ->whereIn('transactions.trip_id', $tripIds)
+                                    ->groupBy(['trips.group_id', 'groups.name', 'groups.id'])
+                                    ->get()
+                                    ->getResultArray();
+
+                $avgGroupChartData = [];
+                foreach ($groupAvgQuery as $row) {
+                    $memberCount = (int)($row['member_count'] ?? 1);
+                    $memberCount = $memberCount > 0 ? $memberCount : 1;
+                    $avgGroupChartData[] = [
+                        'label'  => $row['group_name'],
+                        'amount' => (int)($row['total_amount'] / $memberCount)
+                    ];
+                }
+
+                // 8. Agregasi total kontribusi pembayaran per anggota keluarga
+                $memberSpendingQuery = $db->table('transactions')
+                                          ->select('users.username, SUM(transactions.amount) as total_amount')
+                                          ->join('users', 'users.id = transactions.paid_by')
+                                          ->whereIn('transactions.trip_id', $tripIds)
+                                          ->groupBy(['transactions.paid_by', 'users.username'])
+                                          ->orderBy('total_amount', 'DESC')
+                                          ->get()
+                                          ->getResultArray();
+
+                $memberSpendingChartData = [];
+                foreach ($memberSpendingQuery as $row) {
+                    $memberSpendingChartData[] = [
+                        'label'  => $row['username'],
+                        'amount' => (int)$row['total_amount']
+                    ];
+                }
             }
         }
 
         $data = [
-            'pageTitle'          => 'Dashboard',
-            'user'               => user(),
-            'numGroups'          => $numGroups,
-            'numTrips'           => $numTrips,
-            'totalExpenses'      => $totalExpenses,
-            'recentTransactions' => $recentTransactions,
-            'spendingChartData'  => $spendingChartData
+            'pageTitle'               => 'Dashboard',
+            'user'                    => user(),
+            'numGroups'               => $numGroups,
+            'numTrips'                => $numTrips,
+            'totalExpenses'           => $totalExpenses,
+            'recentTransactions'      => $recentTransactions,
+            'spendingChartData'       => $spendingChartData,
+            'avgPeriodChartData'      => $avgPeriodChartData ?? [],
+            'avgTripChartData'        => $avgTripChartData ?? [],
+            'avgGroupChartData'       => $avgGroupChartData ?? [],
+            'memberSpendingChartData' => $memberSpendingChartData ?? [],
         ];
 
         return view('backend/dashboard/index', $data);

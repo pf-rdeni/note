@@ -53,7 +53,7 @@
         <div class="info-box shadow-xs hover-card">
             <span class="info-box-icon bg-warning elevation-1"><i class="fas fa-wallet text-white"></i></span>
             <div class="info-box-content">
-                <span class="info-box-text font-weight-bold text-muted text-warning">Total Belanja</span>
+                <span class="info-box-text font-weight-bold text-muted text-warning">Total Pengeluaran</span>
                 <span class="info-box-number text-lg text-dark">Rp <?= number_format($totalExpenses, 0, ',', '.') ?></span>
             </div>
         </div>
@@ -61,38 +61,126 @@
 </div>
 
 <div class="row">
-    <!-- Spend Trend Chart -->
-    <div class="col-lg-7">
-        <div class="card card-primary card-outline shadow-sm">
-            <div class="card-header border-0 py-3">
-                <h3 class="card-title font-weight-bold text-primary">
-                    <i class="fas fa-chart-bar mr-1"></i> Tren Pengeluaran per Periode
-                </h3>
+    <!-- Charts Card -->
+    <div class="col-lg-8 mb-4">
+        <div class="card card-primary card-outline card-outline-tabs shadow-sm h-100 mb-0">
+            <div class="card-header p-0 border-bottom-0">
+                <ul class="nav nav-tabs font-weight-bold" id="dashboard-tabs" role="tablist">
+                    <li class="nav-item">
+                        <a class="nav-link active" id="total-period-tab" data-toggle="pill" href="#total-period-content" role="tab" aria-controls="total-period-content" aria-selected="true">
+                            <i class="fas fa-chart-bar mr-1 text-warning"></i> Total Pengeluaran (Periode)
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" id="avg-group-tab" data-toggle="pill" href="#avg-group-content" role="tab" aria-controls="avg-group-content" aria-selected="false">
+                            <i class="fas fa-users mr-1 text-purple"></i> Rerata / Anggota (Grup)
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" id="avg-trip-tab" data-toggle="pill" href="#avg-trip-content" role="tab" aria-controls="avg-trip-content" aria-selected="false">
+                            <i class="fas fa-suitcase-rolling mr-1 text-success"></i> Rerata / Anggota (Kegiatan)
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" id="avg-period-tab" data-toggle="pill" href="#avg-period-content" role="tab" aria-controls="avg-period-content" aria-selected="false">
+                            <i class="far fa-calendar-alt mr-1 text-primary"></i> Rerata / Anggota (Periode)
+                        </a>
+                    </li>
+                </ul>
             </div>
             <div class="card-body">
-                <?php if (empty($spendingChartData)): ?>
-                    <div class="text-center py-5 text-muted">
-                        <i class="far fa-chart-bar fa-3x mb-3 text-secondary"></i>
-                        <p class="mb-0">Belum ada data transaksi periodik untuk membuat grafik belanja.</p>
+                <div class="tab-content" id="dashboard-tabsContent">
+                    <!-- Tab 1: Total Pengeluaran per Periode -->
+                    <div class="tab-pane fade show active" id="total-period-content" role="tabpanel" aria-labelledby="total-period-tab">
+                        <?php if (empty($spendingChartData)): ?>
+                            <div class="text-center py-5 text-muted">
+                                <i class="far fa-chart-bar fa-3x mb-3 text-secondary"></i>
+                                <p class="mb-0">Belum ada data transaksi periodik.</p>
+                            </div>
+                        <?php else: ?>
+                            <div class="chart-container" style="position: relative; height: 280px; width: 100%;">
+                                <canvas id="spendingChart"></canvas>
+                            </div>
+                        <?php endif; ?>
+                    </div>
+                    <!-- Tab 2: Rata-rata per Anggota per Grup -->
+                    <div class="tab-pane fade" id="avg-group-content" role="tabpanel" aria-labelledby="avg-group-tab">
+                        <?php if (empty($avgGroupChartData)): ?>
+                            <div class="text-center py-5 text-muted">
+                                <i class="far fa-chart-bar fa-3x mb-3 text-secondary"></i>
+                                <p class="mb-0">Belum ada data transaksi grup.</p>
+                            </div>
+                        <?php else: ?>
+                            <div class="chart-container" style="position: relative; height: 280px; width: 100%;">
+                                <canvas id="avgGroupChart"></canvas>
+                            </div>
+                        <?php endif; ?>
+                    </div>
+                    <!-- Tab 3: Rata-rata per Anggota per Kegiatan -->
+                    <div class="tab-pane fade" id="avg-trip-content" role="tabpanel" aria-labelledby="avg-trip-tab">
+                        <?php if (empty($avgTripChartData)): ?>
+                            <div class="text-center py-5 text-muted">
+                                <i class="far fa-chart-bar fa-3x mb-3 text-secondary"></i>
+                                <p class="mb-0">Belum ada data transaksi kegiatan.</p>
+                            </div>
+                        <?php else: ?>
+                            <div class="chart-container" style="position: relative; height: 280px; width: 100%;">
+                                <canvas id="avgTripChart"></canvas>
+                            </div>
+                        <?php endif; ?>
+                    </div>
+                    <!-- Tab 4: Rata-rata per Anggota per Periode -->
+                    <div class="tab-pane fade" id="avg-period-content" role="tabpanel" aria-labelledby="avg-period-tab">
+                        <?php if (empty($avgPeriodChartData)): ?>
+                            <div class="text-center py-5 text-muted">
+                                <i class="far fa-chart-bar fa-3x mb-3 text-secondary"></i>
+                                <p class="mb-0">Belum ada data transaksi periodik.</p>
+                            </div>
+                        <?php else: ?>
+                            <div class="chart-container" style="position: relative; height: 280px; width: 100%;">
+                                <canvas id="avgPeriodChart"></canvas>
+                            </div>
+                        <?php endif; ?>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Payer Contribution Chart -->
+    <div class="col-lg-4 mb-4">
+        <div class="card card-info card-outline shadow-sm h-100 d-flex flex-column justify-content-between mb-0">
+            <div class="card-header border-0 py-3">
+                <h3 class="card-title font-weight-bold text-info">
+                    <i class="fas fa-chart-pie mr-1"></i> Kontribusi Pembayaran
+                </h3>
+            </div>
+            <div class="card-body d-flex align-items-center justify-content-center">
+                <?php if (empty($memberSpendingChartData)): ?>
+                    <div class="text-center py-5 text-muted w-100">
+                        <i class="fas fa-chart-pie fa-3x mb-3 text-secondary"></i>
+                        <p class="mb-0">Belum ada data transaksi anggota.</p>
                     </div>
                 <?php else: ?>
-                    <div class="chart-container" style="position: relative; height: 280px; width: 100%;">
-                        <canvas id="spendingChart"></canvas>
+                    <div class="chart-container" style="position: relative; height: 260px; width: 100%;">
+                        <canvas id="memberContributionChart"></canvas>
                     </div>
                 <?php endif; ?>
             </div>
         </div>
     </div>
+</div>
 
-    <!-- Recent Transactions -->
-    <div class="col-lg-5">
-        <div class="card card-info card-outline shadow-sm">
+<div class="row">
+    <!-- Recent Transactions (Full width table) -->
+    <div class="col-lg-12">
+        <div class="card card-outline card-secondary shadow-sm">
             <div class="card-header border-0 py-3">
-                <h3 class="card-title font-weight-bold text-info">
+                <h3 class="card-title font-weight-bold text-secondary mb-0">
                     <i class="fas fa-receipt mr-1"></i> 5 Transaksi Terbaru
                 </h3>
-                <div class="card-tools">
-                    <a href="<?= base_url('backend/transactions') ?>" class="btn btn-xs btn-info font-weight-bold shadow-sm" style="border-radius: 6px; padding: 4px 8px;">
+                <div class="card-tools ml-auto">
+                    <a href="<?= base_url('backend/transactions') ?>" class="btn btn-xs btn-outline-secondary font-weight-bold shadow-sm" style="border-radius: 6px; padding: 4px 8px;">
                         Ke Transaksi <i class="fas fa-arrow-right ml-1"></i>
                     </a>
                 </div>
@@ -104,42 +192,52 @@
                         Belum ada transaksi dicatat.
                     </div>
                 <?php else: ?>
-                    <div class="list-group list-group-flush">
-                        <?php foreach ($recentTransactions as $t): ?>
-                            <div class="list-group-item py-3">
-                                <div class="d-flex w-100 justify-content-between align-items-center mb-1">
-                                    <h6 class="mb-0 font-weight-bold text-dark text-truncate" style="max-width: 65%;">
-                                        <?= esc($t['description']) ?>
-                                    </h6>
-                                    <span class="font-weight-bold text-dark">
-                                        Rp <?= number_format($t['amount'], 0, ',', '.') ?>
-                                    </span>
-                                </div>
-                                <div class="d-flex justify-content-between align-items-center text-xs text-muted">
-                                    <span>
-                                        <i class="fas fa-clipboard-list mr-1 text-xs"></i><?= esc($t['trip_name']) ?>
-                                    </span>
-                                    <span>
-                                        <?= date('d M Y', strtotime($t['date'])) ?>
-                                    </span>
-                                </div>
-                                <div class="d-flex justify-content-between align-items-center mt-2">
-                                    <span class="text-xs text-secondary">
-                                        <i class="far fa-user text-xs mr-1"></i>Payer: <strong><?= esc($t['paid_by_name']) ?></strong>
-                                    </span>
-                                    <?php if ($t['type'] === 'shared'): ?>
-                                        <span class="badge badge-success text-xs"><i class="fas fa-divide mr-1"></i> Shared</span>
-                                    <?php else: ?>
-                                        <span class="badge badge-info text-xs"><i class="fas fa-user-tag mr-1"></i> Individual</span>
-                                    <?php endif; ?>
-                                </div>
-                            </div>
-                        <?php endforeach; ?>
+                    <div class="table-responsive">
+                        <table class="table table-hover table-striped mb-0">
+                            <thead>
+                                <tr>
+                                    <th>Deskripsi</th>
+                                    <th>Kegiatan</th>
+                                    <th>Tanggal</th>
+                                    <th>Pembayar (Payer)</th>
+                                    <th>Tipe</th>
+                                    <th class="text-right">Nominal</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <?php foreach ($recentTransactions as $t): ?>
+                                    <tr>
+                                        <td class="align-middle font-weight-bold text-dark">
+                                            <?= esc($t['description']) ?>
+                                        </td>
+                                        <td class="align-middle text-sm text-secondary">
+                                            <i class="fas fa-clipboard-list mr-1"></i><?= esc($t['trip_name']) ?>
+                                        </td>
+                                        <td class="align-middle text-sm">
+                                            <?= date('d M Y', strtotime($t['date'])) ?>
+                                        </td>
+                                        <td class="align-middle text-sm">
+                                            <i class="far fa-user mr-1 text-xs"></i><strong><?= esc($t['paid_by_name']) ?></strong>
+                                        </td>
+                                        <td class="align-middle">
+                                            <?php if ($t['type'] === 'shared'): ?>
+                                                <span class="badge badge-success text-xs"><i class="fas fa-divide mr-1"></i> Shared</span>
+                                            <?php else: ?>
+                                                <span class="badge badge-info text-xs"><i class="fas fa-user-tag mr-1"></i> Individual</span>
+                                            <?php endif; ?>
+                                        </td>
+                                        <td class="align-middle text-right font-weight-bold text-dark">
+                                            Rp <?= number_format($t['amount'], 0, ',', '.') ?>
+                                        </td>
+                                    </tr>
+                                <?php endforeach; ?>
+                            </tbody>
+                        </table>
                     </div>
                 <?php endif; ?>
             </div>
             <div class="card-footer text-center bg-white border-0 py-3">
-                <a href="<?= base_url('backend/transactions') ?>" class="btn btn-sm btn-outline-info font-weight-bold">
+                <a href="<?= base_url('backend/transactions') ?>" class="btn btn-sm btn-outline-secondary font-weight-bold">
                     Lihat Semua Transaksi <i class="fas fa-arrow-right ml-1"></i>
                 </a>
             </div>
@@ -154,69 +252,282 @@
 <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 <script>
 $(document).ready(function() {
-    <?php if (!empty($spendingChartData)): ?>
-    // Data setup for Chart.js
-    const labels = <?= json_encode(array_column($spendingChartData, 'label')) ?>;
-    const dataValues = <?= json_encode(array_column($spendingChartData, 'amount')) ?>;
+    // Helper to format currency
+    const formatCurrency = (val) => 'Rp ' + new Intl.NumberFormat('id-ID').format(val);
 
-    const ctx = document.getElementById('spendingChart').getContext('2d');
-    
-    // Create soft gradient for bars
-    const gradient = ctx.createLinearGradient(0, 0, 0, 300);
-    gradient.addColorStop(0, '#007bff');
-    gradient.addColorStop(1, '#6610f2');
-
-    new Chart(ctx, {
-        type: 'bar',
-        data: {
-            labels: labels,
-            datasets: [{
-                label: 'Pengeluaran (Rp)',
-                data: dataValues,
-                backgroundColor: gradient,
-                borderColor: '#4e73df',
-                borderWidth: 1,
-                borderRadius: 5,
-                barPercentage: 0.6
-            }]
-        },
-        options: {
-            responsive: true,
-            maintainAspectRatio: false,
-            plugins: {
-                legend: {
-                    display: false
-                },
-                tooltip: {
-                    callbacks: {
-                        label: function(context) {
-                            let value = context.raw;
-                            return 'Total: Rp ' + new Intl.NumberFormat('id-ID').format(value);
-                        }
-                    }
-                }
-            },
-            scales: {
-                y: {
-                    beginAtZero: true,
-                    ticks: {
-                        callback: function(value) {
-                            return 'Rp ' + new Intl.NumberFormat('id-ID').format(value);
-                        }
-                    },
-                    grid: {
-                        drawBorder: false,
-                        color: 'rgba(0, 0, 0, 0.05)'
-                    }
-                },
-                x: {
-                    grid: {
-                        display: false
-                    }
-                }
+    // Bootstrap Tab Change handler to resize Chart.js properly
+    $('a[data-toggle="pill"]').on('shown.bs.tab', function(e) {
+        const targetId = $(e.target).attr('href');
+        const canvas = $(targetId).find('canvas')[0];
+        if (canvas) {
+            const chart = Chart.getChart(canvas);
+            if (chart) {
+                chart.resize();
+                chart.update();
             }
         }
     });
+
+    // =============================================
+    // 1. CHART RATA-RATA PER ANGGOTA (PER PERIODE)
+    // =============================================
+    <?php if (!empty($avgPeriodChartData)): ?>
+    (function() {
+        const labels = <?= json_encode(array_column($avgPeriodChartData, 'label')) ?>;
+        const dataValues = <?= json_encode(array_column($avgPeriodChartData, 'amount')) ?>;
+        const ctx = document.getElementById('avgPeriodChart').getContext('2d');
+        
+        const gradient = ctx.createLinearGradient(0, 0, 0, 300);
+        gradient.addColorStop(0, '#4e73df');
+        gradient.addColorStop(1, '#224abe');
+
+        new Chart(ctx, {
+            type: 'bar',
+            data: {
+                labels: labels,
+                datasets: [{
+                    label: 'Rerata per Orang',
+                    data: dataValues,
+                    backgroundColor: gradient,
+                    borderColor: '#4e73df',
+                    borderWidth: 1,
+                    borderRadius: 6,
+                    barPercentage: 0.55
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: {
+                    legend: { display: false },
+                    tooltip: {
+                        callbacks: {
+                            label: function(context) {
+                                return ' Rerata: ' + formatCurrency(context.raw);
+                            }
+                        }
+                    }
+                },
+                scales: {
+                    y: {
+                        beginAtZero: true,
+                        ticks: { callback: (val) => formatCurrency(val) },
+                        grid: { color: 'rgba(0, 0, 0, 0.04)', drawBorder: false }
+                    },
+                    x: { grid: { display: false } }
+                }
+            }
+        });
+    })();
+    <?php endif; ?>
+
+    // =============================================
+    // 2. CHART RATA-RATA PER ANGGOTA (PER KEGIATAN)
+    // =============================================
+    <?php if (!empty($avgTripChartData)): ?>
+    (function() {
+        const labels = <?= json_encode(array_column($avgTripChartData, 'label')) ?>;
+        const dataValues = <?= json_encode(array_column($avgTripChartData, 'amount')) ?>;
+        const ctx = document.getElementById('avgTripChart').getContext('2d');
+        
+        const gradient = ctx.createLinearGradient(0, 0, 0, 300);
+        gradient.addColorStop(0, '#1cc88a');
+        gradient.addColorStop(1, '#13855c');
+
+        new Chart(ctx, {
+            type: 'bar',
+            data: {
+                labels: labels,
+                datasets: [{
+                    label: 'Rerata per Orang',
+                    data: dataValues,
+                    backgroundColor: gradient,
+                    borderColor: '#1cc88a',
+                    borderWidth: 1,
+                    borderRadius: 6,
+                    barPercentage: 0.55
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: {
+                    legend: { display: false },
+                    tooltip: {
+                        callbacks: {
+                            label: function(context) {
+                                return ' Rerata: ' + formatCurrency(context.raw);
+                            }
+                        }
+                    }
+                },
+                scales: {
+                    y: {
+                        beginAtZero: true,
+                        ticks: { callback: (val) => formatCurrency(val) },
+                        grid: { color: 'rgba(0, 0, 0, 0.04)', drawBorder: false }
+                    },
+                    x: { grid: { display: false } }
+                }
+            }
+        });
+    })();
+    <?php endif; ?>
+
+    // =============================================
+    // 2.5. CHART RATA-RATA PER ANGGOTA (PER GRUP)
+    // =============================================
+    <?php if (!empty($avgGroupChartData)): ?>
+    (function() {
+        const labels = <?= json_encode(array_column($avgGroupChartData, 'label')) ?>;
+        const dataValues = <?= json_encode(array_column($avgGroupChartData, 'amount')) ?>;
+        const ctx = document.getElementById('avgGroupChart').getContext('2d');
+        
+        const gradient = ctx.createLinearGradient(0, 0, 0, 300);
+        gradient.addColorStop(0, '#6f42c1');
+        gradient.addColorStop(1, '#4a148c');
+
+        new Chart(ctx, {
+            type: 'bar',
+            data: {
+                labels: labels,
+                datasets: [{
+                    label: 'Rerata per Orang',
+                    data: dataValues,
+                    backgroundColor: gradient,
+                    borderColor: '#6f42c1',
+                    borderWidth: 1,
+                    borderRadius: 6,
+                    barPercentage: 0.55
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: {
+                    legend: { display: false },
+                    tooltip: {
+                        callbacks: {
+                            label: function(context) {
+                                return ' Rerata: ' + formatCurrency(context.raw);
+                            }
+                        }
+                    }
+                },
+                scales: {
+                    y: {
+                        beginAtZero: true,
+                        ticks: { callback: (val) => formatCurrency(val) },
+                        grid: { color: 'rgba(0, 0, 0, 0.04)', drawBorder: false }
+                    },
+                    x: { grid: { display: false } }
+                }
+            }
+        });
+    })();
+    <?php endif; ?>
+
+    // =============================================
+    // 3. CHART TOTAL PENGELUARAN (PER PERIODE)
+    // =============================================
+    <?php if (!empty($spendingChartData)): ?>
+    (function() {
+        const labels = <?= json_encode(array_column($spendingChartData, 'label')) ?>;
+        const dataValues = <?= json_encode(array_column($spendingChartData, 'amount')) ?>;
+        const ctx = document.getElementById('spendingChart').getContext('2d');
+        
+        const gradient = ctx.createLinearGradient(0, 0, 0, 300);
+        gradient.addColorStop(0, '#f6c23e');
+        gradient.addColorStop(1, '#dda20a');
+
+        new Chart(ctx, {
+            type: 'bar',
+            data: {
+                labels: labels,
+                datasets: [{
+                    label: 'Total Pengeluaran',
+                    data: dataValues,
+                    backgroundColor: gradient,
+                    borderColor: '#f6c23e',
+                    borderWidth: 1,
+                    borderRadius: 6,
+                    barPercentage: 0.55
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: {
+                    legend: { display: false },
+                    tooltip: {
+                        callbacks: {
+                            label: function(context) {
+                                return ' Total: ' + formatCurrency(context.raw);
+                            }
+                        }
+                    }
+                },
+                scales: {
+                    y: {
+                        beginAtZero: true,
+                        ticks: { callback: (val) => formatCurrency(val) },
+                        grid: { color: 'rgba(0, 0, 0, 0.04)', drawBorder: false }
+                    },
+                    x: { grid: { display: false } }
+                }
+            }
+        });
+    })();
+    <?php endif; ?>
+
+    // =============================================
+    // 4. CHART KONTRIBUSI PEMBAYARAN ANGGOTA
+    // =============================================
+    <?php if (!empty($memberSpendingChartData)): ?>
+    (function() {
+        const labels = <?= json_encode(array_column($memberSpendingChartData, 'label')) ?>;
+        const dataValues = <?= json_encode(array_column($memberSpendingChartData, 'amount')) ?>;
+        const ctx = document.getElementById('memberContributionChart').getContext('2d');
+
+        new Chart(ctx, {
+            type: 'doughnut',
+            data: {
+                labels: labels,
+                datasets: [{
+                    data: dataValues,
+                    backgroundColor: [
+                        '#4e73df', '#1cc88a', '#36b9cc', '#f6c23e', '#e74a3b', 
+                        '#fd7e14', '#6f42c1', '#e83e8c', '#858796'
+                    ],
+                    hoverOffset: 6,
+                    borderWidth: 2,
+                    borderColor: '#ffffff'
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: {
+                    legend: {
+                        position: 'bottom',
+                        labels: {
+                            boxWidth: 12,
+                            padding: 10,
+                            font: { size: 10, weight: 'bold' }
+                        }
+                    },
+                    tooltip: {
+                        callbacks: {
+                            label: function(context) {
+                                return ' ' + context.label + ': ' + formatCurrency(context.raw);
+                            }
+                        }
+                    }
+                },
+                cutout: '65%'
+            }
+        });
+    })();
     <?php endif; ?>
 });
 </script>
