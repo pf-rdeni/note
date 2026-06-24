@@ -131,7 +131,7 @@ class Groups extends BaseController
             return redirect()->to('backend/groups')->with('error', 'Anda tidak memiliki akses ke grup tersebut.');
         }
 
-        $group = $this->groupModel->select('groups.*, users.username as creator_name')
+        $group = $this->groupModel->select('groups.*, COALESCE(NULLIF(users.fullname, \'\'), users.username) as creator_name')
                                   ->join('users', 'users.id = groups.created_by', 'left')
                                   ->find($groupId);
         if (!$group) {
@@ -139,7 +139,7 @@ class Groups extends BaseController
         }
 
         // 2. Dapatkan seluruh anggota grup saat ini
-        $members = $this->memberModel->select('group_members.*, users.username, users.email')
+        $members = $this->memberModel->select('group_members.*, COALESCE(NULLIF(users.fullname, \'\'), users.username) as username, users.email')
                                      ->join('users', 'users.id = group_members.user_id')
                                      ->where('group_members.group_id', $groupId)
                                      ->findAll();
@@ -147,7 +147,7 @@ class Groups extends BaseController
         // 3. Cari user lain di sistem yang belum bergabung ke grup ini (untuk di-invite)
         $memberUserIds = array_column($members, 'user_id');
         
-        $allUsersQuery = $this->userModel->select('id, username, email');
+        $allUsersQuery = $this->userModel->select('id, COALESCE(NULLIF(users.fullname, \'\'), users.username) as username, email');
         if (!empty($memberUserIds)) {
             $allUsersQuery->whereNotIn('id', $memberUserIds);
         }

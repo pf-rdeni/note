@@ -56,7 +56,7 @@ class Dashboard extends BaseController
                 $myExpenses = (int)($mySumQuery->amount ?? 0);
 
                 // 4. Ambil 5 transaksi terbaru
-                $recentTransactions = $transactionModel->select('transactions.*, users.username as paid_by_name, trips.name as trip_name')
+                $recentTransactions = $transactionModel->select('transactions.*, COALESCE(NULLIF(users.fullname, \'\'), users.username) as paid_by_name, trips.name as trip_name')
                                                        ->join('users', 'users.id = transactions.paid_by')
                                                        ->join('trips', 'trips.id = transactions.trip_id')
                                                        ->whereIn('transactions.trip_id', $tripIds)
@@ -144,10 +144,10 @@ class Dashboard extends BaseController
 
                 // 8. Agregasi total kontribusi pembayaran per anggota keluarga
                 $memberSpendingQuery = $db->table('transactions')
-                                          ->select('users.username, SUM(transactions.amount) as total_amount')
+                                          ->select('COALESCE(NULLIF(users.fullname, \'\'), users.username) as username, SUM(transactions.amount) as total_amount')
                                           ->join('users', 'users.id = transactions.paid_by')
                                           ->whereIn('transactions.trip_id', $tripIds)
-                                          ->groupBy(['transactions.paid_by', 'users.username'])
+                                          ->groupBy(['transactions.paid_by', 'COALESCE(NULLIF(users.fullname, \'\'), users.username)'])
                                           ->orderBy('total_amount', 'DESC')
                                           ->get()
                                           ->getResultArray();
@@ -162,7 +162,7 @@ class Dashboard extends BaseController
 
                 // 9. Ambil semua transaksi per periode untuk tren/perbandingan item pengeluaran
                 $transactionTrendsQuery = $db->table('transactions')
-                                             ->select('transactions.id, transactions.description, transactions.amount, transactions.period_id, transactions.paid_by, users.username as paid_by_name, trip_periods.label as period_label')
+                                             ->select('transactions.id, transactions.description, transactions.amount, transactions.period_id, transactions.paid_by, COALESCE(NULLIF(users.fullname, \'\'), users.username) as paid_by_name, trip_periods.label as period_label')
                                              ->join('users', 'users.id = transactions.paid_by')
                                              ->join('trip_periods', 'trip_periods.id = transactions.period_id')
                                              ->whereIn('transactions.trip_id', $tripIds)

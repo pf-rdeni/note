@@ -144,7 +144,7 @@ class Trips extends BaseController
                                      ->findAll();
 
         // Ambil anggota grup saat ini
-        $groupMembers = $this->groupMemberModel->select('group_members.*, users.username, users.email')
+        $groupMembers = $this->groupMemberModel->select('group_members.*, COALESCE(NULLIF(users.fullname, \'\'), users.username) as username, users.email')
                                                ->join('users', 'users.id = group_members.user_id')
                                                ->where('group_members.group_id', $trip['group_id'])
                                                ->findAll();

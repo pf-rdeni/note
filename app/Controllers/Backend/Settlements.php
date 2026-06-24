@@ -87,7 +87,7 @@ class Settlements extends BaseController
                 }
 
                 // 4. Ambil riwayat transfer di periode ini
-                $settlementHistory = $this->settlementModel->select('settlements.*, sender.username as sender_name, receiver.username as receiver_name')
+                $settlementHistory = $this->settlementModel->select('settlements.*, COALESCE(NULLIF(sender.fullname, \'\'), sender.username) as sender_name, COALESCE(NULLIF(receiver.fullname, \'\'), receiver.username) as receiver_name')
                                                            ->join('users sender', 'sender.id = settlements.from_user_id')
                                                            ->join('users receiver', 'receiver.id = settlements.to_user_id')
                                                            ->where('settlements.period_id', $selectedPeriodId)

@@ -97,7 +97,7 @@ class Transactions extends BaseController
             $openPeriods = array_filter($periods, fn($p) => ($p['status'] ?? 'open') === 'open');
 
             // 4. Query transaksi
-            $transQuery = $this->transactionModel->select('transactions.*, users.username as paid_by_name, creator.username as creator_name, trip_periods.label as period_label')
+            $transQuery = $this->transactionModel->select('transactions.*, COALESCE(NULLIF(users.fullname, \'\'), users.username) as paid_by_name, COALESCE(NULLIF(creator.fullname, \'\'), creator.username) as creator_name, trip_periods.label as period_label')
                                                  ->join('users', 'users.id = transactions.paid_by')
                                                  ->join('users creator', 'creator.id = transactions.created_by')
                                                  ->join('trip_periods', 'trip_periods.id = transactions.period_id', 'left')
@@ -112,7 +112,7 @@ class Transactions extends BaseController
             // Tambahkan data detail adjustments untuk transaksi bertipe individual
             foreach ($transactions as &$t) {
                 if ($t['type'] === 'individual') {
-                    $t['adjustments'] = $this->adjustmentModel->select('transaction_adjustments.*, users.username')
+                    $t['adjustments'] = $this->adjustmentModel->select('transaction_adjustments.*, COALESCE(NULLIF(users.fullname, \'\'), users.username) as username')
                                                               ->join('users', 'users.id = transaction_adjustments.target_user_id')
                                                               ->where('transaction_adjustments.transaction_id', $t['id'])
                                                               ->findAll();
@@ -120,7 +120,7 @@ class Transactions extends BaseController
             }
 
             // 5. Ambil semua anggota grup untuk input form modal
-            $groupMembers = $this->groupMemberModel->select('group_members.*, users.username')
+            $groupMembers = $this->groupMemberModel->select('group_members.*, COALESCE(NULLIF(users.fullname, \'\'), users.username) as username')
                                                    ->join('users', 'users.id = group_members.user_id')
                                                    ->where('group_members.group_id', $selectedTrip['group_id'])
                                                    ->findAll();
@@ -528,20 +528,20 @@ class Transactions extends BaseController
         }
 
         // Query transaksi
-        $transactions = $this->transactionModel->select('transactions.*, users.username as paid_by_name, creator.username as creator_name, trip_periods.label as period_label')
+        $transactions = $this->transactionModel->select('transactions.*, COALESCE(NULLIF(users.fullname, \'\'), users.username) as paid_by_name, COALESCE(NULLIF(creator.fullname, \'\'), creator.username) as creator_name, trip_periods.label as period_label')
                                              ->join('users', 'users.id = transactions.paid_by')
                                              ->join('users creator', 'creator.id = transactions.created_by')
                                              ->join('trip_periods', 'trip_periods.id = transactions.period_id', 'left')
                                              ->where('transactions.trip_id', $selectedTripId)
                                              ->where('transactions.period_id', $selectedPeriodId)
-                                             ->orderBy('users.username', 'ASC')
+                                             ->orderBy('paid_by_name', 'ASC')
                                              ->orderBy('transactions.date', 'DESC')
                                              ->findAll();
 
         // Tambahkan data detail adjustments untuk transaksi bertipe individual
         foreach ($transactions as &$t) {
             if ($t['type'] === 'individual') {
-                $t['adjustments'] = $this->adjustmentModel->select('transaction_adjustments.*, users.username')
+                $t['adjustments'] = $this->adjustmentModel->select('transaction_adjustments.*, COALESCE(NULLIF(users.fullname, \'\'), users.username) as username')
                                                           ->join('users', 'users.id = transaction_adjustments.target_user_id')
                                                           ->where('transaction_adjustments.transaction_id', $t['id'])
                                                           ->findAll();

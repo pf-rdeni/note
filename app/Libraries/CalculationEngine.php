@@ -40,7 +40,7 @@ class CalculationEngine
         }
 
         // 2. Ambil anggota aktif untuk periode ini
-        $activeMembers = $this->activeMemberModel->select('period_active_members.*, users.username, users.email')
+        $activeMembers = $this->activeMemberModel->select('period_active_members.*, COALESCE(NULLIF(users.fullname, \'\'), users.username) as username, users.email')
                                                  ->join('users', 'users.id = period_active_members.user_id')
                                                  ->where('period_id', $periodId)
                                                  ->findAll();
@@ -48,7 +48,7 @@ class CalculationEngine
         $activeMemberIds = array_map('intval', array_column($activeMembers, 'user_id'));
 
         // 3. Ambil seluruh transaksi pada periode ini
-        $transactions = $this->transactionModel->select('transactions.*, users.username as paid_by_name')
+        $transactions = $this->transactionModel->select('transactions.*, COALESCE(NULLIF(users.fullname, \'\'), users.username) as paid_by_name')
                                                ->join('users', 'users.id = transactions.paid_by')
                                                ->where('period_id', $periodId)
                                                ->orderBy('date', 'ASC')
@@ -58,7 +58,7 @@ class CalculationEngine
         $transactionIds = array_column($transactions, 'id');
         $adjustments = [];
         if (!empty($transactionIds)) {
-            $adjustments = $this->adjustmentModel->select('transaction_adjustments.*, users.username')
+            $adjustments = $this->adjustmentModel->select('transaction_adjustments.*, COALESCE(NULLIF(users.fullname, \'\'), users.username) as username')
                                                  ->join('users', 'users.id = transaction_adjustments.target_user_id')
                                                  ->whereIn('transaction_id', $transactionIds)
                                                  ->findAll();
@@ -88,10 +88,11 @@ class CalculationEngine
         if (!empty($involvedUserIds)) {
             $usersList = $this->userModel->whereIn('id', $involvedUserIds)->findAll();
             foreach ($usersList as $u) {
-                // Myth/Auth UserModel returns array or object depending on select, in CI4 find/findAll might return objects of User class
                 $uid = is_object($u) ? $u->id : $u['id'];
                 $uname = is_object($u) ? $u->username : $u['username'];
-                $involvedUsers[(int)$uid] = $uname;
+                $fullname = is_object($u) ? ($u->fullname ?? '') : ($u['fullname'] ?? '');
+                $displayName = !empty($fullname) ? $fullname : $uname;
+                $involvedUsers[(int)$uid] = $displayName;
             }
         }
 
