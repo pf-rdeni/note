@@ -86,6 +86,11 @@
                             <i class="far fa-calendar-alt mr-1 text-primary"></i> Rerata / Anggota (Periode)
                         </a>
                     </li>
+                    <li class="nav-item">
+                        <a class="nav-link" id="trend-tab" data-toggle="pill" href="#trend-content" role="tab" aria-controls="trend-content" aria-selected="false">
+                            <i class="fas fa-chart-line mr-1 text-danger"></i> Tren Item (Periode)
+                        </a>
+                    </li>
                 </ul>
             </div>
             <div class="card-body">
@@ -140,6 +145,34 @@
                             <div class="chart-container" style="position: relative; height: 280px; width: 100%;">
                                 <canvas id="avgPeriodChart"></canvas>
                             </div>
+                        <?php endif; ?>
+                    </div>
+                    <!-- Tab 5: Tren Item per Periode -->
+                    <div class="tab-pane fade" id="trend-content" role="tabpanel" aria-labelledby="trend-tab">
+                        <div class="d-flex align-items-center mb-3">
+                            <label for="trend-period-select" class="mr-2 mb-0 font-weight-bold text-secondary" style="font-size: 0.95rem;">Pilih Periode:</label>
+                            <div style="min-width: 250px;">
+                                <select id="trend-period-select" class="form-control select2 shadow-xs font-weight-bold text-dark" style="width: 100%;">
+                                    <?php if (empty($trendPeriods)): ?>
+                                        <option value="">Belum ada periode</option>
+                                    <?php else: ?>
+                                        <?php foreach ($trendPeriods as $pid => $label): ?>
+                                            <option value="<?= $pid ?>"><?= esc($label) ?></option>
+                                        <?php endforeach; ?>
+                                    <?php endif; ?>
+                                </select>
+                            </div>
+                        </div>
+                        <?php if (empty($trendPeriods)): ?>
+                            <div class="text-center py-5 text-muted">
+                                <i class="far fa-chart-bar fa-3x mb-3 text-secondary"></i>
+                                <p class="mb-0">Belum ada data transaksi periodik.</p>
+                            </div>
+                        <?php else: ?>
+                            <div class="chart-container" style="position: relative; height: 240px; width: 100%;">
+                                <canvas id="trendItemChart"></canvas>
+                            </div>
+                            <div id="trend-legend" class="mt-3 text-center d-flex flex-wrap justify-content-center"></div>
                         <?php endif; ?>
                     </div>
                 </div>
@@ -255,15 +288,29 @@ $(document).ready(function() {
     // Helper to format currency
     const formatCurrency = (val) => 'Rp ' + new Intl.NumberFormat('id-ID').format(val);
 
+    // Initialize Select2 for Trend Period select
+    $('#trend-period-select').select2({
+        theme: 'bootstrap4',
+        placeholder: 'Pilih Periode',
+        allowClear: false
+    });
+
     // Bootstrap Tab Change handler to resize Chart.js properly
     $('a[data-toggle="pill"]').on('shown.bs.tab', function(e) {
         const targetId = $(e.target).attr('href');
-        const canvas = $(targetId).find('canvas')[0];
-        if (canvas) {
-            const chart = Chart.getChart(canvas);
-            if (chart) {
-                chart.resize();
-                chart.update();
+        if (targetId === '#trend-content') {
+            const currentPeriod = $('#trend-period-select').val();
+            if (currentPeriod) {
+                renderTrendChart(currentPeriod);
+            }
+        } else {
+            const canvas = $(targetId).find('canvas')[0];
+            if (canvas) {
+                const chart = Chart.getChart(canvas);
+                if (chart) {
+                    chart.resize();
+                    chart.update();
+                }
             }
         }
     });
@@ -529,6 +576,106 @@ $(document).ready(function() {
         });
     })();
     <?php endif; ?>
+
+    // =============================================
+    // 5. CHART TREN ITEM (PER TRANSAKSI)
+    // =============================================
+    const trendTxData = <?= json_encode($trendTransactionsByPeriod) ?>;
+    let trendChart = null;
+
+    const userColors = {};
+    const colorPalette = [
+        '#4e73df', '#1cc88a', '#36b9cc', '#f6c23e', '#e74a3b', 
+        '#fd7e14', '#6f42c1', '#e83e8c', '#858796'
+    ];
+    let colorIndex = 0;
+
+    function getPayerColor(name) {
+        if (!userColors[name]) {
+            userColors[name] = colorPalette[colorIndex % colorPalette.length];
+            colorIndex++;
+        }
+        return userColors[name];
+    }
+
+    function renderTrendChart(periodId) {
+        const txs = trendTxData[periodId] || [];
+        const labels = txs.map(t => t.description);
+        const amounts = txs.map(t => t.amount);
+        const bgColors = txs.map(t => getPayerColor(t.paid_by_name));
+
+        const canvasEl = document.getElementById('trendItemChart');
+        if (!canvasEl) return;
+        const ctx = canvasEl.getContext('2d');
+
+        if (trendChart) {
+            trendChart.destroy();
+        }
+
+        // Draw legend
+        const legendContainer = $('#trend-legend');
+        legendContainer.empty();
+        
+        // Find unique payers in these transactions
+        const uniquePayers = [...new Set(txs.map(t => t.paid_by_name))];
+        uniquePayers.forEach(payer => {
+            const color = getPayerColor(payer);
+            legendContainer.append(`
+                <span class="mr-3 mb-2 font-weight-bold" style="font-size: 0.85rem; color: #495057;">
+                    <span style="display: inline-block; width: 12px; height: 12px; background-color: ${color}; border-radius: 3px; margin-right: 5px; vertical-align: middle;"></span>
+                    ${payer}
+                </span>
+            `);
+        });
+
+        trendChart = new Chart(ctx, {
+            type: 'bar',
+            data: {
+                labels: labels,
+                datasets: [{
+                    label: 'Nominal Pengeluaran',
+                    data: amounts,
+                    backgroundColor: bgColors,
+                    borderRadius: 6,
+                    barPercentage: 0.55
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: {
+                    legend: { display: false },
+                    tooltip: {
+                        callbacks: {
+                            label: function(context) {
+                                const tx = txs[context.dataIndex];
+                                return ` ${tx.description}: ${formatCurrency(tx.amount)} (Dibayar oleh: ${tx.paid_by_name})`;
+                            }
+                        }
+                    }
+                },
+                scales: {
+                    y: {
+                        beginAtZero: true,
+                        ticks: { callback: (val) => formatCurrency(val) },
+                        grid: { color: 'rgba(0, 0, 0, 0.04)', drawBorder: false }
+                    },
+                    x: { grid: { display: false } }
+                }
+            }
+        });
+    }
+
+    // Trigger on period change
+    $('#trend-period-select').on('change', function() {
+        renderTrendChart($(this).val());
+    });
+
+    // Initial load
+    const initialPeriod = $('#trend-period-select').val();
+    if (initialPeriod) {
+        renderTrendChart(initialPeriod);
+    }
 });
 </script>
 

@@ -150,21 +150,48 @@ class Dashboard extends BaseController
                         'amount' => (int)$row['total_amount']
                     ];
                 }
+
+                // 9. Ambil semua transaksi per periode untuk tren/perbandingan item pengeluaran
+                $transactionTrendsQuery = $db->table('transactions')
+                                             ->select('transactions.id, transactions.description, transactions.amount, transactions.period_id, transactions.paid_by, users.username as paid_by_name, trip_periods.label as period_label')
+                                             ->join('users', 'users.id = transactions.paid_by')
+                                             ->join('trip_periods', 'trip_periods.id = transactions.period_id')
+                                             ->whereIn('transactions.trip_id', $tripIds)
+                                             ->orderBy('transactions.amount', 'DESC')
+                                             ->get()
+                                             ->getResultArray();
+
+                $trendPeriods = [];
+                $trendTransactionsByPeriod = [];
+                foreach ($transactionTrendsQuery as $row) {
+                    $pid = $row['period_id'];
+                    if (!isset($trendPeriods[$pid])) {
+                        $trendPeriods[$pid] = $row['period_label'];
+                    }
+                    $trendTransactionsByPeriod[$pid][] = [
+                        'description'  => $row['description'],
+                        'amount'       => (int)$row['amount'],
+                        'paid_by_name' => $row['paid_by_name'],
+                        'paid_by'      => (int)$row['paid_by']
+                    ];
+                }
             }
         }
 
         $data = [
-            'pageTitle'               => 'Dashboard',
-            'user'                    => user(),
-            'numGroups'               => $numGroups,
-            'numTrips'                => $numTrips,
-            'totalExpenses'           => $totalExpenses,
-            'recentTransactions'      => $recentTransactions,
-            'spendingChartData'       => $spendingChartData,
-            'avgPeriodChartData'      => $avgPeriodChartData ?? [],
-            'avgTripChartData'        => $avgTripChartData ?? [],
-            'avgGroupChartData'       => $avgGroupChartData ?? [],
-            'memberSpendingChartData' => $memberSpendingChartData ?? [],
+            'pageTitle'                 => 'Dashboard',
+            'user'                      => user(),
+            'numGroups'                 => $numGroups,
+            'numTrips'                  => $numTrips,
+            'totalExpenses'             => $totalExpenses,
+            'recentTransactions'        => $recentTransactions,
+            'spendingChartData'         => $spendingChartData,
+            'avgPeriodChartData'        => $avgPeriodChartData ?? [],
+            'avgTripChartData'          => $avgTripChartData ?? [],
+            'avgGroupChartData'         => $avgGroupChartData ?? [],
+            'memberSpendingChartData'   => $memberSpendingChartData ?? [],
+            'trendPeriods'              => $trendPeriods ?? [],
+            'trendTransactionsByPeriod' => $trendTransactionsByPeriod ?? [],
         ];
 
         return view('backend/dashboard/index', $data);
