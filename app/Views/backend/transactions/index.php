@@ -53,6 +53,8 @@ ob_start();
                 }
             }
             echo esc($selectedTrip['name']) . ' &middot; ' . esc($currentPeriodLabel);
+        } elseif (!empty($selectedGroup)) {
+            echo 'Grup: ' . esc($selectedGroup['name']);
         } else {
             echo 'Filter Kegiatan &amp; Periode';
         }
@@ -61,7 +63,7 @@ ob_start();
     <i class="fas fa-chevron-down ml-1 fa-xs"></i>
 </button>
 
-<div class="<?= !empty($selectedTripId) ? 'collapse' : 'collapse show' ?> d-lg-block mb-3" id="filterPanel">
+<div class="<?= (!empty($selectedTripId) || !empty($selectedGroupId)) ? 'collapse' : 'collapse show' ?> d-lg-block mb-3" id="filterPanel">
     <div class="card card-primary card-outline shadow-sm mb-0">
         <div class="card-header py-2">
             <h3 class="card-title font-weight-bold mb-0 text-sm" style="line-height: 1.8;">
@@ -92,6 +94,8 @@ ob_start();
                                 }
                             }
                         }
+                    } elseif (!empty($selectedGroup)) {
+                        $selectedLabel = 'Grup: ' . esc($selectedGroup['name']);
                     }
                     ?>
                     <button class="btn btn-outline-secondary dropdown-toggle text-left w-100 font-weight-bold d-flex justify-content-between align-items-center shadow-xs" 
@@ -121,11 +125,20 @@ ob_start();
                         <ul class="list-unstyled mb-0" id="filterDropdownTreeList">
                             <?php foreach ($filterHierarchy as $gid => $gInfo): ?>
                                 <li class="group-node mb-2" data-name="<?= esc(strtolower($gInfo['name'])) ?>">
-                                    <div class="d-flex align-items-center py-1 font-weight-bold text-dark node-header" 
-                                         style="cursor: pointer; gap: 8px; font-size: 0.95rem;">
-                                        <i class="fas fa-chevron-right text-muted node-arrow"></i>
-                                        <i class="fas fa-users text-primary"></i>
-                                        <span><?= esc($gInfo['name']) ?></span>
+                                    <div class="d-flex align-items-center py-1 font-weight-bold text-dark node-header-wrapper" 
+                                         style="cursor: pointer; justify-content: space-between; font-size: 0.95rem; gap: 8px;">
+                                        <div class="d-flex align-items-center node-header-click" style="gap: 8px;">
+                                            <i class="fas fa-chevron-right text-muted node-arrow"></i>
+                                            <i class="fas fa-users text-primary"></i>
+                                            <span><?= esc($gInfo['name']) ?></span>
+                                        </div>
+                                        <a href="<?= base_url('backend/transactions?group_id=' . $gid) ?>" 
+                                           class="btn btn-xs btn-outline-primary py-0 px-2 ml-auto select-group-node"
+                                           data-id="<?= $gid ?>"
+                                           data-label="<?= esc($gInfo['name']) ?>"
+                                           style="font-size: 0.72rem; border-radius: 4px;">
+                                            Pilih Semua
+                                        </a>
                                     </div>
                                     <ul class="list-unstyled pl-4 d-none nested-list mt-1">
                                         <?php foreach ($gInfo['trips'] as $tid => $tInfo): ?>
@@ -216,8 +229,8 @@ ob_start();
                     </div>
                 </div>
                 
-                <?php if (!empty($selectedTripId)): ?>
-                    <a href="<?= base_url('backend/transactions') ?>" class="btn btn-outline-danger btn-sm" style="border-radius: 8px;">
+                <?php if (!empty($selectedTripId) || !empty($selectedGroupId)): ?>
+                    <a href="<?= base_url('backend/transactions?reset=1') ?>" class="btn btn-outline-danger btn-sm btn-reset-filter" style="border-radius: 8px;">
                         <i class="fas fa-redo mr-1"></i> Reset Filter
                     </a>
                 <?php endif; ?>
@@ -231,7 +244,7 @@ $filterPanelHtml = ob_get_clean();
 
 <div class="row">
     <div class="col-lg-12">
-        <?php if (empty($selectedTripId)): ?>
+        <?php if (empty($selectedTripId) && empty($selectedGroupId)): ?>
             
             <!-- Tampilkan Filter Selection di Atas jika belum pilih kegiatan -->
             <?= $filterPanelHtml ?>
@@ -252,50 +265,53 @@ $filterPanelHtml = ob_get_clean();
             <!-- 1. Summary Widgets -->
             <?php if (!empty($calculationResult)): ?>
                 <?php
-                // Generate WhatsApp Markdown Summary
-                $tripName = $selectedTrip['name'] ?? '';
-                $periodLabel = $calculationResult['period']['label'] ?? '';
-                $totalBelanja = number_format($calculationResult['summary']['total_transactions'], 0, ',', '.');
+                $waSummaryText = '';
+                if (empty($calculationResult['is_all_periods'])) {
+                    // Generate WhatsApp Markdown Summary
+                    $tripName = $selectedTrip['name'] ?? '';
+                    $periodLabel = $calculationResult['period']['label'] ?? '';
+                    $totalBelanja = number_format($calculationResult['summary']['total_transactions'], 0, ',', '.');
 
-                // WhatsApp Markdown (Detailed per-participant calculation format)
-                $waSummaryText = "🟢 *REKAPITULASI PEMBAGIAN SALDO*\n";
-                $waSummaryText .= "*Agenda:* " . $tripName . "\n";
-                $waSummaryText .= "*Periode:* " . $periodLabel . "\n";
-                $waSummaryText .= "*Total Pengeluaran:* Rp " . $totalBelanja . "\n";
-                
-                $activeMemberCount = 0;
-                foreach ($calculationResult['participants'] as $p) {
-                    if ($p['is_active_member']) {
-                        $activeMemberCount++;
-                    }
-                }
-                $splitRataVal = number_format($calculationResult['summary']['split_rata'], 0, ',', '.');
-                $waSummaryText .= "*Bagi Rata/Orang:* Rp " . $splitRataVal . "\n";
-                $waSummaryText .= "----------------------------------------\n\n";
-                
-                $waSummaryText .= "*Rincian Per Anggota:*\n";
-                foreach ($calculationResult['participants'] as $p) {
-                    $bal = $p['net_balance'];
-                    $sign = $bal >= 0 ? '+' : '-';
-                    $status = $bal >= 0 ? 'Terima Saldo' : 'Bayar/Hutang';
+                    // WhatsApp Markdown (Detailed per-participant calculation format)
+                    $waSummaryText = "🟢 *REKAPITULASI PEMBAGIAN SALDO*\n";
+                    $waSummaryText .= "*Agenda:* " . $tripName . "\n";
+                    $waSummaryText .= "*Periode:* " . $periodLabel . "\n";
+                    $waSummaryText .= "*Total Pengeluaran:* Rp " . $totalBelanja . "\n";
                     
-                    $waSummaryText .= "👤 *" . $p['username'] . "*\n";
-                    $waSummaryText .= "  - Total Bayar: Rp " . number_format($p['total_paid'], 0, ',', '.') . "\n";
-                    $waSummaryText .= "  - Bagi Rata: Rp " . number_format($p['shared_share'], 0, ',', '.') . "\n";
-                    $waSummaryText .= "  - Murni Pribadi: Rp " . number_format($p['individual_charge'], 0, ',', '.') . "\n";
-                    $waSummaryText .= "  - Saldo Akhir: *" . $sign . "Rp " . number_format(abs($bal), 0, ',', '.') . "* (" . $status . ")\n\n";
-                }
-                
-                $waSummaryText .= "----------------------------------------\n";
-                $waSummaryText .= "🤝 *REKOMENDASI PELUNASAN*\n";
-                if (empty($calculationResult['settlements'])) {
-                    $waSummaryText .= "Semua saldo seimbang! Tidak ada transfer yang diperlukan.\n";
-                } else {
-                    foreach ($calculationResult['settlements'] as $s) {
-                        $waSummaryText .= "👉 *" . $s['from_username'] . "* transfer ke *" . $s['to_username'] . "* sebesar *Rp " . number_format($s['amount'], 0, ',', '.') . "*\n";
+                    $activeMemberCount = 0;
+                    foreach ($calculationResult['participants'] as $p) {
+                        if ($p['is_active_member']) {
+                            $activeMemberCount++;
+                        }
                     }
+                    $splitRataVal = number_format($calculationResult['summary']['split_rata'], 0, ',', '.');
+                    $waSummaryText .= "*Bagi Rata/Orang:* Rp " . $splitRataVal . "\n";
+                    $waSummaryText .= "----------------------------------------\n\n";
+                    
+                    $waSummaryText .= "*Rincian Per Anggota:*\n";
+                    foreach ($calculationResult['participants'] as $p) {
+                        $bal = $p['net_balance'];
+                        $sign = $bal >= 0 ? '+' : '-';
+                        $status = $bal >= 0 ? 'Terima Saldo' : 'Bayar/Hutang';
+                        
+                        $waSummaryText .= "👤 *" . $p['username'] . "*\n";
+                        $waSummaryText .= "  - Total Bayar: Rp " . number_format($p['total_paid'], 0, ',', '.') . "\n";
+                        $waSummaryText .= "  - Bagi Rata: Rp " . number_format($p['shared_share'], 0, ',', '.') . "\n";
+                        $waSummaryText .= "  - Murni Pribadi: Rp " . number_format($p['individual_charge'], 0, ',', '.') . "\n";
+                        $waSummaryText .= "  - Saldo Akhir: *" . $sign . "Rp " . number_format(abs($bal), 0, ',', '.') . "* (" . $status . ")\n\n";
+                    }
+                    
+                    $waSummaryText .= "----------------------------------------\n";
+                    $waSummaryText .= "🤝 *REKOMENDASI PELUNASAN*\n";
+                    if (empty($calculationResult['settlements'])) {
+                        $waSummaryText .= "Semua saldo seimbang! Tidak ada transfer yang diperlukan.\n";
+                    } else {
+                        foreach ($calculationResult['settlements'] as $s) {
+                            $waSummaryText .= "👉 *" . $s['from_username'] . "* transfer ke *" . $s['to_username'] . "* sebesar *Rp " . number_format($s['amount'], 0, ',', '.') . "*\n";
+                        }
+                    }
+                    $waSummaryText .= "\nDetail selengkapnya lihat di aplikasi: https://note.simpedis.com";
                 }
-                $waSummaryText .= "\nDetail selengkapnya lihat di aplikasi: https://note.simpedis.com";
                 ?>
                 <div class="row" style="gap: 0;">
                     <div class="col-6 col-md-3 mb-3 px-1 px-md-2">
@@ -332,7 +348,7 @@ $filterPanelHtml = ob_get_clean();
             <!-- 2. Filter Panel di bawah Summary Card -->
             <?= $filterPanelHtml ?>
 
-            <?php if (!empty($calculationResult)): ?>
+            <?php if (!empty($calculationResult) && empty($calculationResult['is_all_periods'])): ?>
                 <!-- Excel-style Rekap Table Card -->
                 <div class="card card-success card-outline shadow-sm">
                     <div class="card-header border-0 d-flex justify-content-between align-items-center py-3">
@@ -462,7 +478,11 @@ $filterPanelHtml = ob_get_clean();
                 <div class="card-header d-flex justify-content-between align-items-center py-3">
                     <h3 class="card-title font-weight-bold mb-0 align-middle">
                         <i class="fas fa-file-invoice-dollar text-primary mr-1"></i> 
-                        <span class="d-none d-sm-inline">Transaksi: <?= esc($selectedTrip['name']) ?></span>
+                        <?php if (!empty($selectedTrip)): ?>
+                            <span class="d-none d-sm-inline">Transaksi: <?= esc($selectedTrip['name']) ?></span>
+                        <?php elseif (!empty($selectedGroup)): ?>
+                            <span class="d-none d-sm-inline">Transaksi Grup: <?= esc($selectedGroup['name']) ?></span>
+                        <?php endif; ?>
                         <span class="d-sm-none">Transaksi</span>
                         <?php if ($selectedPeriodSettled): ?>
                             <span class="badge badge-secondary ml-2 py-1 px-2" style="font-size:0.72rem;">
@@ -471,7 +491,11 @@ $filterPanelHtml = ob_get_clean();
                         <?php endif; ?>
                     </h3>
                     <div class="card-tools ml-auto">
-                        <?php if ($selectedPeriodSettled): ?>
+                        <?php if (!empty($selectedGroupId)): ?>
+                            <span class="btn btn-secondary font-weight-bold disabled" title="Pilih Kegiatan terlebih dahulu untuk mencatat transaksi baru">
+                                <i class="fas fa-plus mr-1"></i> Catat Transaksi
+                            </span>
+                        <?php elseif ($selectedPeriodSettled): ?>
                             <span class="btn btn-secondary font-weight-bold disabled" title="Periode sudah ditutup, tidak bisa tambah transaksi baru">
                                 <i class="fas fa-lock mr-1"></i> <span class="d-none d-sm-inline">Periode </span>Terkunci
                             </span>
@@ -519,6 +543,11 @@ $filterPanelHtml = ob_get_clean();
                                                 <small class="text-muted d-block">
                                                     Dicatat oleh: <?= esc($t['creator_name']) ?> pada <?= date('d/m/Y H:i', strtotime($t['created_at'])) ?>
                                                 </small>
+                                                <?php if (!empty($selectedGroupId) && !empty($t['trip_name'])): ?>
+                                                    <small class="text-secondary d-block mt-1 font-weight-bold">
+                                                        <i class="fas fa-clipboard-list mr-1"></i>Kegiatan: <?= esc($t['trip_name']) ?>
+                                                    </small>
+                                                <?php endif; ?>
                                                 
                                                 <!-- Detail Custom Split jika tipe individual -->
                                                 <?php if ($t['type'] === 'individual' && !empty($t['adjustments'])): ?>
@@ -568,8 +597,8 @@ $filterPanelHtml = ob_get_clean();
                                                 $tPeriodId     = (int)($t['period_id'] ?? 0);
                                                 $tPeriodLocked = $tPeriodId > 0 && isset($periodStatusMap[$tPeriodId]) && $periodStatusMap[$tPeriodId] === 'settled';
                                                 ?>
-                                                <?php if ($tPeriodLocked): ?>
-                                                    <span class="badge badge-secondary px-2 py-1" title="Periode sudah terkunci — tidak bisa edit/hapus">
+                                                <?php if ($tPeriodLocked || !empty($selectedGroupId)): ?>
+                                                    <span class="badge badge-secondary px-2 py-1" title="<?= !empty($selectedGroupId) ? 'Buka detail Kegiatan terlebih dahulu untuk mengedit/menghapus transaksi' : 'Periode sudah terkunci — tidak bisa edit/hapus' ?>">
                                                         <i class="fas fa-lock mr-1"></i> Terkunci
                                                     </span>
                                                 <?php else: ?>
@@ -627,6 +656,11 @@ $filterPanelHtml = ob_get_clean();
                                                 <?= date('d M Y', strtotime($t['date'])) ?>
                                                 &bull; <?= esc($t['paid_by_name']) ?>
                                             </span>
+                                            <?php if (!empty($selectedGroupId) && !empty($t['trip_name'])): ?>
+                                                <small class="text-secondary d-block mt-1 font-weight-bold" style="font-size: 0.75rem;">
+                                                    <i class="fas fa-clipboard-list mr-1"></i><?= esc($t['trip_name']) ?>
+                                                </small>
+                                            <?php endif; ?>
                                         </div>
                                         <div class="text-right ml-2">
                                             <div class="txn-amount">Rp <?= number_format($t['amount'], 0, ',', '.') ?></div>
@@ -662,8 +696,8 @@ $filterPanelHtml = ob_get_clean();
                                                 <i class="fas fa-receipt mr-1"></i>Struk
                                             </a>
                                         <?php endif; ?>
-                                        <?php if ($tPeriodLockedM): ?>
-                                            <span class="badge badge-secondary px-2 py-1" title="Periode sudah terkunci">
+                                        <?php if ($tPeriodLockedM || !empty($selectedGroupId)): ?>
+                                            <span class="badge badge-secondary px-2 py-1" title="<?= !empty($selectedGroupId) ? 'Buka detail Kegiatan terlebih dahulu' : 'Periode sudah terkunci' ?>">
                                                 <i class="fas fa-lock mr-1"></i> Terkunci
                                             </span>
                                         <?php else: ?>
@@ -1159,7 +1193,7 @@ $(document).ready(function() {
         e.stopPropagation();
         const $header = $(this);
         const $arrow = $header.find('.node-arrow');
-        const $list = $header.closest('.trip-node').find('> .nested-list');
+        const $list = $header.closest('li').find('> .nested-list');
 
         $arrow.toggleClass('expanded');
         $list.toggleClass('d-none');
@@ -1182,18 +1216,24 @@ $(document).ready(function() {
         $('#selectedFilterLabel').text(label);
     });
 
+    $('#filterDropdownTreeList').on('click', '.select-group-node', function(e) {
+        const label = $(this).data('label');
+        $('#selectedFilterLabel').text('Grup: ' + label);
+    });
+
     $('.custom-tree-dropdown .dropdown-menu').on('click', function(e) {
         e.stopPropagation();
     });
 
-    const currentTripId = "<?= $selectedTripId ?>";
-    const currentPeriodId = "<?= $selectedPeriodId ?>";
+    const currentGroupId = "<?= $selectedGroupId ?? '' ?>";
+    const currentTripId = "<?= $selectedTripId ?? '' ?>";
+    const currentPeriodId = "<?= $selectedPeriodId ?? '' ?>";
 
     if (currentTripId) {
         const $tripNode = $('#filterDropdownTreeList').find(`.trip-node .select-trip-node[data-id="${currentTripId}"]`).closest('.trip-node');
         if ($tripNode.length) {
             $tripNode.parents('.nested-list').removeClass('d-none');
-            $tripNode.parents('li').find('> .node-header .node-arrow').addClass('expanded');
+            $tripNode.parents('li').find('> .node-header-wrapper .node-arrow').addClass('expanded');
             
             if (currentPeriodId) {
                 const $periodNode = $tripNode.find(`.period-node[data-id="${currentPeriodId}"]`);
@@ -1214,6 +1254,13 @@ $(document).ready(function() {
                 $tripNode.find('.select-trip-node').removeClass('btn-outline-primary').addClass('btn-outline-light text-white');
             }
         }
+    } else if (currentGroupId) {
+        const $groupNode = $('#filterDropdownTreeList').find(`.group-node .select-group-node[data-id="${currentGroupId}"]`).closest('.group-node');
+        if ($groupNode.length) {
+            $groupNode.find('> .node-header-wrapper').addClass('bg-primary text-white font-weight-bold rounded px-1');
+            $groupNode.find('> .node-header-wrapper .text-dark').removeClass('text-dark').addClass('text-white');
+            $groupNode.find('.select-group-node').removeClass('btn-outline-primary').addClass('btn-outline-light text-white');
+        }
     }
 
     // Custom Filter Tree Search
@@ -1232,7 +1279,7 @@ $(document).ready(function() {
                 const $tripNode = $tree.find(`.trip-node .select-trip-node[data-id="${currentTripId}"]`).closest('.trip-node');
                 if ($tripNode.length) {
                     $tripNode.parents('.nested-list').removeClass('d-none');
-                    $tripNode.parents('li').find('> .node-header .node-arrow').addClass('expanded');
+                    $tripNode.parents('li').find('> .node-header-wrapper .node-arrow').addClass('expanded');
                     if (currentPeriodId) {
                         $tripNode.find('> .nested-list').removeClass('d-none');
                         $tripNode.find('> .node-header-wrapper .node-arrow').addClass('expanded');
@@ -1244,6 +1291,11 @@ $(document).ready(function() {
                             $statusNode.find('> .node-header .node-arrow').addClass('expanded');
                         }
                     }
+                }
+            } else if (currentGroupId) {
+                const $groupNode = $tree.find(`.group-node .select-group-node[data-id="${currentGroupId}"]`).closest('.group-node');
+                if ($groupNode.length) {
+                    // Group is root level, no parents to expand
                 }
             }
             return;
@@ -2064,44 +2116,80 @@ button[aria-expanded="true"] .collapse-chevron {
     const currentUserId = <?= function_exists('user_id') ? (user_id() ?? 'null') : 'null' ?>;
     const lastTripKey = 'txn_last_trip_id_' + currentUserId;
     const lastPeriodKey = 'txn_last_period_id_' + currentUserId;
+    const lastGroupKey = 'txn_last_group_id_' + currentUserId;
+    const lastFilterTypeKey = 'txn_last_filter_type_' + currentUserId;
 
     // Data semua periode per trip dari server (PHP)
     const allPeriods = <?= $allPeriodsJson ?? '{}' ?>;
     const baseUrl    = '<?= base_url('backend/transactions') ?>';
     const activeTripId   = '<?= $selectedTripId ?? '' ?>';
     const activePeriodId = '<?= $selectedPeriodId ?? '' ?>';
+    const activeGroupId  = '<?= $selectedGroupId ?? '' ?>';
     const waSummaryText  = <?= json_encode($waSummaryText ?? '') ?>;
 
     // Cek parameter dari URL
     const urlParams = new URLSearchParams(window.location.search);
     const hasTrip = urlParams.has('trip_id');
     const hasPeriod = urlParams.has('period_id');
+    const hasGroup = urlParams.has('group_id');
 
     if (currentUserId) {
-        if (hasTrip) {
-            // Simpan pilihan filter ke localStorage saat diakses dengan parameter
+        if (hasGroup) {
+            // Simpan pilihan filter grup ke localStorage saat diakses dengan parameter group_id
+            localStorage.setItem(lastGroupKey, urlParams.get('group_id') || '');
+            localStorage.removeItem(lastTripKey);
+            localStorage.removeItem(lastPeriodKey);
+            localStorage.setItem(lastFilterTypeKey, 'group');
+        } else if (hasTrip) {
+            // Simpan pilihan filter trip ke localStorage saat diakses dengan parameter trip_id
             localStorage.setItem(lastTripKey, urlParams.get('trip_id') || '');
             localStorage.setItem(lastPeriodKey, urlParams.get('period_id') || '');
+            localStorage.removeItem(lastGroupKey);
+            localStorage.setItem(lastFilterTypeKey, 'trip');
         } else {
             // URL tidak memiliki parameter (akses langsung)
-            const savedTrip = localStorage.getItem(lastTripKey);
-            const savedPeriod = localStorage.getItem(lastPeriodKey);
-            
-            if (savedTrip) {
-                // Redirect ke URL dengan parameter dari localStorage
-                let redirectUrl = `${baseUrl}?trip_id=${savedTrip}`;
-                if (savedPeriod) {
-                    redirectUrl += `&period_id=${savedPeriod}`;
+            const lastFilterType = localStorage.getItem(lastFilterTypeKey);
+            if (lastFilterType === 'group') {
+                const savedGroup = localStorage.getItem(lastGroupKey);
+                if (savedGroup) {
+                    window.location.href = `${baseUrl}?group_id=${savedGroup}`;
+                    return;
                 }
-                window.location.href = redirectUrl;
-                return; // Batalkan eksekusi script ini
+            } else {
+                const savedTrip = localStorage.getItem(lastTripKey);
+                const savedPeriod = localStorage.getItem(lastPeriodKey);
+                if (savedTrip) {
+                    let redirectUrl = `${baseUrl}?trip_id=${savedTrip}`;
+                    if (savedPeriod) {
+                        redirectUrl += `&period_id=${savedPeriod}`;
+                    }
+                    window.location.href = redirectUrl;
+                    return;
+                }
+            }
+
+            // Jika belum ada di localStorage, simpan default group atau trip yang dimuat PHP ke localStorage
+            if (activeGroupId) {
+                localStorage.setItem(lastGroupKey, activeGroupId);
+                localStorage.setItem(lastFilterTypeKey, 'group');
             } else if (activeTripId) {
-                // Jika belum ada di localStorage, simpan default trip & period yang dimuat PHP ke localStorage
                 localStorage.setItem(lastTripKey, activeTripId);
                 localStorage.setItem(lastPeriodKey, activePeriodId);
+                localStorage.setItem(lastFilterTypeKey, 'trip');
             }
         }
     }
+
+    // Reset Filter click handler to clear localStorage
+    document.addEventListener('click', function(e) {
+        const btn = e.target.closest('.btn-reset-filter');
+        if (btn) {
+            localStorage.removeItem(lastTripKey);
+            localStorage.removeItem(lastPeriodKey);
+            localStorage.removeItem(lastGroupKey);
+            localStorage.removeItem(lastFilterTypeKey);
+        }
+    });
 
     // Tombol close filter (mobile)
     const btnClose = document.getElementById('btnCollapseFilter');

@@ -53,14 +53,35 @@ class Settlements extends BaseController
                                           ->where('group_members.user_id', $userId)
                                           ->findAll();
 
-        $selectedTripId = $this->request->getGet('trip_id');
-        if (empty($selectedTripId) && !empty($availableTrips)) {
+        $session = session();
+
+        if ($this->request->getGet('reset') !== null) {
+            $session->remove('set_last_trip_id');
+            $session->remove('set_last_period_id');
+            $session->remove('set_last_group_id');
+            return redirect()->to('backend/settlements');
+        }
+
+        $selectedTripId   = $this->request->getGet('trip_id');
+        $selectedPeriodId = $this->request->getGet('period_id');
+        $selectedGroupId  = $this->request->getGet('group_id');
+        $fromGet          = ($this->request->getGet('trip_id') !== null) || ($this->request->getGet('group_id') !== null);
+
+        // Jika tidak ada GET param, coba restore dari session
+        if (!$fromGet) {
+            $selectedTripId   = $session->get('set_last_trip_id');
+            $selectedPeriodId = $session->get('set_last_period_id');
+            $selectedGroupId  = $session->get('set_last_group_id');
+        }
+
+        // Fallback: gunakan trip pertama jika masih kosong dan tidak ada group terpilih
+        if (empty($selectedTripId) && empty($selectedGroupId) && !empty($availableTrips)) {
             $selectedTripId = $availableTrips[0]['id'];
         }
 
         $selectedTrip = null;
+        $selectedGroup = null;
         $periods = [];
-        $selectedPeriodId = $this->request->getGet('period_id');
         $calculationResult = null;
         $settlementHistory = [];
         $currentMembership = null;
@@ -94,17 +115,73 @@ class Settlements extends BaseController
                                                            ->orderBy('settlements.created_at', 'DESC')
                                                            ->findAll();
             }
+
+            $session->set('set_last_trip_id',   $selectedTripId);
+            $session->set('set_last_period_id', $selectedPeriodId ?: null);
+            $session->set('set_last_group_id',  null);
+        } else if (!empty($selectedGroupId)) {
+            // Verifikasi akses user ke group terpilih
+            $currentMembership = $this->groupMemberModel->where('group_id', $selectedGroupId)
+                                                         ->where('user_id', $userId)
+                                                         ->first();
+            if (!$currentMembership) {
+                return redirect()->to('backend/settlements')->with('error', 'Anda tidak memiliki akses ke grup ini.');
+            }
+
+            $selectedGroup = $this->groupMemberModel->select('groups.*')
+                                                   ->join('groups', 'groups.id = group_members.group_id')
+                                                   ->where('groups.id', $selectedGroupId)
+                                                   ->first();
+
+            $session->set('set_last_trip_id',   null);
+            $session->set('set_last_period_id', null);
+            $session->set('set_last_group_id',  $selectedGroupId);
         }
 
         // Kumpulkan semua periode per trip untuk rendering sisi klien (filter tanpa reload)
         $allPeriodsJson = [];
+        $filterHierarchy = [];
+
+        $allPeriods = [];
+        if (!empty($availableTrips)) {
+            $allTripIds = array_column($availableTrips, 'id');
+            $allPeriods = $this->periodModel
+                               ->select('id, label, status, trip_id')
+                               ->whereIn('trip_id', $allTripIds)
+                               ->orderBy('created_at', 'ASC')
+                               ->findAll();
+        }
+
+        $periodsByTrip = [];
+        foreach ($allPeriods as $p) {
+            $periodsByTrip[$p['trip_id']][] = $p;
+            $allPeriodsJson[$p['trip_id']][] = [
+                'id' => $p['id'],
+                'label' => $p['label'],
+                'status' => $p['status']
+            ];
+        }
+
         foreach ($availableTrips as $at) {
-            $tripPeriods = $this->periodModel
-                ->select('id, label, status')
-                ->where('trip_id', $at['id'])
-                ->orderBy('created_at', 'ASC')
-                ->findAll();
-            $allPeriodsJson[$at['id']] = $tripPeriods;
+            $groupId = (int)$at['group_id'];
+            $groupName = $at['group_name'];
+            $tripId = (int)$at['id'];
+            $tripName = $at['name'];
+
+            if (!isset($filterHierarchy[$groupId])) {
+                $filterHierarchy[$groupId] = [
+                    'name' => $groupName,
+                    'trips' => []
+                ];
+            }
+            $filterHierarchy[$groupId]['trips'][$tripId] = [
+                'name' => $tripName,
+                'periods' => $periodsByTrip[$tripId] ?? []
+            ];
+
+            if (!isset($allPeriodsJson[$tripId])) {
+                $allPeriodsJson[$tripId] = [];
+            }
         }
 
         $data = [
@@ -112,6 +189,8 @@ class Settlements extends BaseController
             'availableTrips'    => $availableTrips,
             'selectedTripId'    => $selectedTripId,
             'selectedTrip'      => $selectedTrip,
+            'selectedGroupId'   => $selectedGroupId ?? null,
+            'selectedGroup'     => $selectedGroup ?? null,
             'selectedPeriodId'  => $selectedPeriodId,
             'periods'           => $periods,
             'calculationResult' => $calculationResult,
@@ -119,6 +198,7 @@ class Settlements extends BaseController
             'currentMembership' => $currentMembership,
             'allPeriodsJson'    => json_encode($allPeriodsJson),
             'user'              => user(),
+            'filterHierarchy'   => $filterHierarchy,
         ];
 
         return view('backend/settlements/index', $data);

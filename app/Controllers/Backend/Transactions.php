@@ -59,23 +59,33 @@ class Transactions extends BaseController
         // --- Session preference: simpan/restore trip & periode terakhir ---
         $session = session();
 
+        if ($this->request->getGet('reset') !== null) {
+            $session->remove('txn_last_trip_id');
+            $session->remove('txn_last_period_id');
+            $session->remove('txn_last_group_id');
+            return redirect()->to('backend/transactions');
+        }
+
         $selectedTripId   = $this->request->getGet('trip_id');
         $selectedPeriodId = $this->request->getGet('period_id');
-        $fromGet          = $this->request->getGet('trip_id') !== null;
+        $selectedGroupId  = $this->request->getGet('group_id');
+        $fromGet          = ($this->request->getGet('trip_id') !== null) || ($this->request->getGet('group_id') !== null);
 
         // Jika tidak ada GET param, coba restore dari session
         if (!$fromGet) {
             $selectedTripId   = $session->get('txn_last_trip_id');
             $selectedPeriodId = $session->get('txn_last_period_id');
+            $selectedGroupId  = $session->get('txn_last_group_id');
         }
 
-        // Fallback: gunakan trip pertama jika masih kosong
-        if (empty($selectedTripId) && !empty($availableTrips)) {
+        // Fallback: gunakan trip pertama jika masih kosong dan tidak ada group terpilih
+        if (empty($selectedTripId) && empty($selectedGroupId) && !empty($availableTrips)) {
             $selectedTripId = $availableTrips[0]['id'];
         }
 
         $transactions      = [];
         $selectedTrip      = null;
+        $selectedGroup     = null;
         $periods           = [];
         $openPeriods       = [];
         $groupMembers      = [];
@@ -128,6 +138,51 @@ class Transactions extends BaseController
             // --- Simpan preferensi terakhir ke session ---
             $session->set('txn_last_trip_id',   $selectedTripId);
             $session->set('txn_last_period_id', $selectedPeriodId ?: null);
+            $session->set('txn_last_group_id',  null);
+        } else if (!empty($selectedGroupId)) {
+            // Verifikasi akses user ke group terpilih
+            $currentMembership = $this->groupMemberModel->where('group_id', $selectedGroupId)
+                                                         ->where('user_id', $userId)
+                                                         ->first();
+            if (!$currentMembership) {
+                return redirect()->to('backend/transactions')->with('error', 'Anda tidak memiliki akses ke grup ini.');
+            }
+
+            $selectedGroup = $this->groupMemberModel->select('groups.*')
+                                                   ->join('groups', 'groups.id = group_members.group_id')
+                                                   ->where('groups.id', $selectedGroupId)
+                                                   ->first();
+
+            $tripsInGroup = $this->tripModel->where('group_id', $selectedGroupId)->findAll();
+            $tripIds = array_column($tripsInGroup, 'id');
+
+            if (!empty($tripIds)) {
+                $transQuery = $this->transactionModel->select('transactions.*, COALESCE(NULLIF(users.fullname, \'\'), users.username) as paid_by_name, COALESCE(NULLIF(creator.fullname, \'\'), creator.username) as creator_name, trip_periods.label as period_label, trips.name as trip_name')
+                                                     ->join('users', 'users.id = transactions.paid_by')
+                                                     ->join('users creator', 'creator.id = transactions.created_by')
+                                                     ->join('trip_periods', 'trip_periods.id = transactions.period_id', 'left')
+                                                     ->join('trips', 'trips.id = transactions.trip_id')
+                                                     ->whereIn('transactions.trip_id', $tripIds);
+                $transactions = $transQuery->orderBy('transactions.date', 'DESC')->findAll();
+
+                foreach ($transactions as &$t) {
+                    if ($t['type'] === 'individual') {
+                        $t['adjustments'] = $this->adjustmentModel->select('transaction_adjustments.*, COALESCE(NULLIF(users.fullname, \'\'), users.username) as username')
+                                                                  ->join('users', 'users.id = transaction_adjustments.target_user_id')
+                                                                  ->where('transaction_adjustments.transaction_id', $t['id'])
+                                                                  ->findAll();
+                    }
+                }
+            }
+
+            $groupMembers = $this->groupMemberModel->select('group_members.*, COALESCE(NULLIF(users.fullname, \'\'), users.username) as username')
+                                                   ->join('users', 'users.id = group_members.user_id')
+                                                   ->where('group_members.group_id', $selectedGroupId)
+                                                   ->findAll();
+
+            $session->set('txn_last_trip_id',   null);
+            $session->set('txn_last_period_id', null);
+            $session->set('txn_last_group_id',  $selectedGroupId);
         }
 
         $calculationResult = null;
@@ -138,6 +193,32 @@ class Transactions extends BaseController
             } catch (\Exception $e) {
                 // Biarkan null jika gagal
             }
+        } else if (!empty($selectedTripId) || !empty($selectedGroupId)) {
+            // Hitung agregasi summary untuk seluruh periode (Pilih Semua) di bawah kegiatan atau grup terpilih
+            $totalTransactions = 0;
+            $totalShared = 0;
+            $totalIndividual = 0;
+            foreach ($transactions as $t) {
+                $amt = (int)$t['amount'];
+                $totalTransactions += $amt;
+                if ($t['type'] === 'shared') {
+                    $totalShared += $amt;
+                } else {
+                    $totalIndividual += $amt;
+                }
+            }
+            $numMembers = count($groupMembers);
+            $splitRata = $numMembers > 0 ? (int)round($totalShared / $numMembers) : 0;
+
+            $calculationResult = [
+                'is_all_periods' => true,
+                'summary' => [
+                    'total_transactions' => $totalTransactions,
+                    'total_shared'       => $totalShared,
+                    'total_individual'   => $totalIndividual,
+                    'split_rata'         => $splitRata,
+                ]
+            ];
         }
 
         // Kumpulkan semua periode per trip untuk rendering sisi klien (filter tanpa reload)
@@ -191,6 +272,8 @@ class Transactions extends BaseController
             'availableTrips'    => $availableTrips,
             'selectedTripId'    => $selectedTripId,
             'selectedTrip'      => $selectedTrip,
+            'selectedGroupId'   => $selectedGroupId ?? null,
+            'selectedGroup'     => $selectedGroup ?? null,
             'selectedPeriodId'  => $selectedPeriodId,
             'periods'           => $periods,
             'openPeriods'       => $openPeriods ?? [],
