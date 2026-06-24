@@ -150,6 +150,25 @@
     </div>
 </div>
 
+<?php if (!empty($trips)): ?>
+<div class="row mb-4 animate-fade-in">
+    <div class="col-12">
+        <div class="card shadow-sm" style="border-radius: 12px; overflow: hidden; border: none;">
+            <div class="card-body p-3">
+                <div class="input-group mb-0">
+                    <div class="input-group-prepend">
+                        <span class="input-group-text bg-white border-right-0" style="border-radius: 8px 0 0 8px; border-color: #ced4da;">
+                            <i class="fas fa-search text-muted"></i>
+                        </span>
+                    </div>
+                    <input type="text" id="searchTripInput" class="form-control border-left-0" placeholder="Cari kegiatan berdasarkan nama kegiatan, catatan, atau nama kelompok..." style="border-radius: 0 8px 8px 0; height: calc(2.25rem + 10px); border-color: #ced4da;">
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+<?php endif; ?>
+
 <?php if (empty($trips)): ?>
     <div class="row">
         <div class="col-12">
@@ -194,6 +213,19 @@
         $colorIndex++;
     }
     ?>
+
+    <!-- No Results Alert -->
+    <div class="row" id="noTripResultsRow" style="display: none; margin-bottom: 24px;">
+        <div class="col-12">
+            <div class="card card-outline card-warning text-center py-5 shadow-sm mb-0" style="border-radius: 12px;">
+                <div class="card-body">
+                    <i class="fas fa-search fa-3x text-warning mb-3"></i>
+                    <h4>Tidak Ada Hasil</h4>
+                    <p class="text-muted">Tidak ditemukan kegiatan yang cocok dengan kata kunci pencarian Anda.</p>
+                </div>
+            </div>
+        </div>
+    </div>
 
     <?php foreach ($groupedTrips as $gName => $tripList): ?>
         <div class="card group-card">
@@ -258,4 +290,61 @@
     <?php endforeach; ?>
 <?php endif; ?>
 
+<?= $this->endSection() ?>
+
+<?= $this->section('scripts') ?>
+<script>
+$(document).ready(function() {
+    $('#searchTripInput').on('keyup input', function() {
+        const query = $(this).val().toLowerCase().trim();
+        
+        if (query === '') {
+            $('.group-card').show();
+            $('.trip-card').closest('.col-12').show();
+            $('#noTripResultsRow').hide();
+            return;
+        }
+
+        let anyVisibleTrip = false;
+
+        $('.group-card').each(function() {
+            let groupHasVisibleTrip = false;
+            const groupCard = $(this);
+            const groupName = groupCard.find('.group-card-header').text().toLowerCase();
+
+            groupCard.find('.trip-card').each(function() {
+                const tripCard = $(this);
+                const tripTitle = tripCard.find('.trip-title').text().toLowerCase();
+                const tripNotes = tripCard.find('.trip-notes').text().toLowerCase();
+                const tripGroup = tripCard.find('.trip-group-badge').text().toLowerCase();
+
+                if (tripTitle.includes(query) || tripNotes.includes(query) || tripGroup.includes(query) || groupName.includes(query)) {
+                    tripCard.closest('.col-12').show();
+                    groupHasVisibleTrip = true;
+                    anyVisibleTrip = true;
+                } else {
+                    tripCard.closest('.col-12').hide();
+                }
+            });
+
+            if (groupHasVisibleTrip) {
+                groupCard.show();
+                const collapseDiv = groupCard.find('.collapse');
+                if (!collapseDiv.hasClass('show')) {
+                    collapseDiv.collapse('show');
+                    groupCard.find('.group-card-header').removeClass('collapsed').attr('aria-expanded', 'true');
+                }
+            } else {
+                groupCard.hide();
+            }
+        });
+
+        if (anyVisibleTrip) {
+            $('#noTripResultsRow').hide();
+        } else {
+            $('#noTripResultsRow').show();
+        }
+    });
+});
+</script>
 <?= $this->endSection() ?>

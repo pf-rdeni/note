@@ -193,131 +193,302 @@
                 </div>
             </div>
         <?php else: ?>
-            <div class="accordion" id="periodsAccordion">
-                <?php foreach ($periods as $index => $p): ?>
-                    <?php 
-                    $isActiveList  = $activeMembersPerPeriod[$p['id']] ?? [];
-                    $isActiveCount = count($isActiveList);
-                    $isOpen        = ($index === 0) ? 'show' : '';
-                    $isCollapsed   = ($index === 0) ? '' : 'collapsed';
-                    $periodStatus  = $p['status'] ?? 'open';
-                    $isSettled     = ($periodStatus === 'settled');
-                    ?>
-                    <div class="card card-outline card-info mb-3">
-                        <div class="card-header d-flex justify-content-between align-items-center py-3" 
-                             style="cursor: pointer;" 
-                             data-toggle="collapse" 
-                             data-target="#collapse-<?= $p['id'] ?>" 
-                             aria-expanded="<?= ($index === 0) ? 'true' : 'false' ?>">
-                            <div class="d-flex align-items-center">
-                                <?php if ($isSettled): ?>
-                                    <i class="fas fa-lock text-secondary fa-lg mr-3"></i>
-                                <?php else: ?>
-                                    <i class="fas fa-calendar-check text-info fa-lg mr-3"></i>
-                                <?php endif; ?>
-                                <div>
-                                    <h5 class="m-0 font-weight-bold <?= $isSettled ? 'text-muted' : '' ?>"><?= esc($p['label']) ?></h5>
-                                    <small class="text-muted">
-                                        <?= $p['start_date'] ? date('d M', strtotime($p['start_date'])) : '' ?>
-                                        <?= $p['end_date'] ? ' s/d ' . date('d M Y', strtotime($p['end_date'])) : '' ?>
-                                    </small>
-                                </div>
-                            </div>
-                            <div class="ml-auto d-flex align-items-center" style="gap: 10px;">
-                                <?php if ($isSettled): ?>
-                                    <span class="badge badge-secondary py-2 px-3 elevation-1">
-                                        <i class="fas fa-lock mr-1"></i> Settled
-                                    </span>
-                                <?php else: ?>
-                                    <span class="badge badge-success py-2 px-3 elevation-1">
-                                        <i class="fas fa-unlock-alt mr-1"></i> Open
-                                    </span>
-                                <?php endif; ?>
-                                <span class="badge badge-info py-2 px-3 elevation-1">
-                                    <i class="fas fa-users mr-1"></i> <?= $isActiveCount ?> Anggota Aktif
-                                </span>
-                                <i class="fas fa-chevron-down text-muted accordion-arrow"></i>
-                            </div>
+            <?php
+            $openPeriods = [];
+            $settledPeriods = [];
+            foreach ($periods as $p) {
+                if (($p['status'] ?? 'open') === 'settled') {
+                    $settledPeriods[] = $p;
+                } else {
+                    $openPeriods[] = $p;
+                }
+            }
+            ?>
+            <!-- Search Bar -->
+            <div class="card shadow-sm mb-3" style="border-radius: 12px; overflow: hidden; border: none;">
+                <div class="card-body p-3">
+                    <div class="input-group mb-0">
+                        <div class="input-group-prepend">
+                            <span class="input-group-text bg-white border-right-0" style="border-radius: 8px 0 0 8px; border-color: #ced4da;">
+                                <i class="fas fa-search text-muted"></i>
+                            </span>
                         </div>
+                        <input type="text" id="searchPeriodInput" class="form-control border-left-0" placeholder="Cari periode berdasarkan label atau tanggal..." style="border-radius: 0 8px 8px 0; height: calc(2.25rem + 10px); border-color: #ced4da;">
+                    </div>
+                </div>
+            </div>
 
-                        <div id="collapse-<?= $p['id'] ?>" class="collapse <?= $isOpen ?>" data-parent="#periodsAccordion">
-                            <div class="card-body">
-                                <h6><strong>Status Keaktifan Anggota:</strong></h6>
-                                <p class="text-muted small">Anggota yang dicentang adalah pembagi biaya transaksi bertipe **Shared (dibagi rata)** pada periode ini.</p>
-                                
-                                <form action="<?= base_url('backend/trips/save-active-members/' . $p['id']) ?>" method="post">
-                                    <?= csrf_field() ?>
-                                    <div class="row mt-3">
-                                        <?php foreach ($groupMembers as $gm): ?>
-                                            <?php 
-                                            $isMemberActive = in_array((int)$gm['user_id'], $isActiveList); 
-                                            $isAdmin = ($currentMembership['role'] === 'admin');
-                                            ?>
-                                            <div class="col-sm-6 col-md-4 mb-2">
-                                                <div class="icheck-primary">
-                                                    <input type="checkbox" 
-                                                           id="active-<?= $p['id'] ?>-<?= $gm['user_id'] ?>" 
-                                                           name="active_users[]" 
-                                                           value="<?= $gm['user_id'] ?>" 
-                                                           <?= $isMemberActive ? 'checked' : '' ?>
-                                                           <?= !$isAdmin ? 'disabled' : '' ?>>
-                                                    <label for="active-<?= $p['id'] ?>-<?= $gm['user_id'] ?>" 
-                                                           class="font-weight-normal <?= !$isMemberActive ? 'text-muted' : '' ?>"
-                                                           style="user-select: none;">
-                                                        <?= esc($gm['username']) ?>
-                                                    </label>
-                                                </div>
-                                            </div>
-                                        <?php endforeach; ?>
-                                    </div>
-                                    
-                                    <?php if ($currentMembership['role'] === 'admin'): ?>
-                                        <div class="mt-4 pt-3 border-top">
-                                            <div class="d-flex justify-content-between align-items-center flex-wrap" style="gap: 8px;">
-                                                <div class="d-flex flex-wrap" style="gap: 6px;">
-                                                    <button type="button" 
-                                                            class="btn btn-outline-warning btn-sm btn-edit-period mr-1" 
-                                                            data-id="<?= $p['id'] ?>" 
-                                                            data-label="<?= esc($p['label']) ?>" 
-                                                            data-start="<?= $p['start_date'] ?>" 
-                                                            data-end="<?= $p['end_date'] ?>">
-                                                        <i class="fas fa-edit mr-1"></i> Edit
-                                                    </button>
-                                                    <button type="button" 
-                                                            class="btn btn-outline-danger btn-sm btn-delete-period" 
-                                                            data-id="<?= $p['id'] ?>" 
-                                                            data-label="<?= esc($p['label']) ?>">
-                                                        <i class="fas fa-trash-alt mr-1"></i> Hapus
-                                                    </button>
-                                                    <?php if ($isSettled): ?>
-                                                        <button type="button" 
-                                                                class="btn btn-outline-success btn-sm btn-toggle-period-status"
-                                                                data-id="<?= $p['id'] ?>"
-                                                                data-label="<?= esc($p['label']) ?>"
-                                                                data-status="settled">
-                                                            <i class="fas fa-unlock-alt mr-1"></i> Buka Kembali
-                                                        </button>
-                                                    <?php else: ?>
-                                                        <button type="button" 
-                                                                class="btn btn-outline-secondary btn-sm btn-toggle-period-status"
-                                                                data-id="<?= $p['id'] ?>"
-                                                                data-label="<?= esc($p['label']) ?>"
-                                                                data-status="open">
-                                                            <i class="fas fa-lock mr-1"></i> Tutup Buku
-                                                        </button>
-                                                    <?php endif; ?>
-                                                </div>
-                                                <button type="submit" class="btn btn-primary btn-sm" <?= $isSettled ? 'disabled title="Periode sudah ditutup"' : '' ?>>
-                                                    <i class="fas fa-save mr-1"></i> Simpan Keaktifan
-                                                </button>
+            <!-- No Results Alert -->
+            <div class="card card-outline card-warning text-center py-5 shadow-sm mb-3" id="noPeriodResultsRow" style="display: none; border-radius: 12px;">
+                <div class="card-body">
+                    <i class="fas fa-search fa-3x text-warning mb-3"></i>
+                    <h4>Tidak Ada Hasil</h4>
+                    <p class="text-muted">Tidak ditemukan periode yang cocok dengan kata kunci pencarian Anda.</p>
+                </div>
+            </div>
+
+            <!-- Open Periods Card (Default Collapsed) -->
+            <div class="card card-success card-outline collapsed-card mb-3" id="card-periods-open">
+                <div class="card-header">
+                    <h3 class="card-title font-weight-bold" style="float: none; margin-bottom: 0;">
+                        <i class="fas fa-unlock-alt text-success mr-2"></i> Periode Terbuka (Open)
+                    </h3>
+                    <div class="card-tools" style="float: right;">
+                        <span class="badge badge-success mr-2"><?= count($openPeriods) ?> Periode</span>
+                        <button type="button" class="btn btn-tool" data-card-widget="collapse" data-expand-icon="fa-eye" data-collapse-icon="fa-eye-slash">
+                            <i class="fas fa-eye"></i>
+                        </button>
+                    </div>
+                </div>
+                <div class="card-body" style="display: none;">
+                    <?php if (empty($openPeriods)): ?>
+                        <div class="text-center py-4 text-muted">
+                            <i class="fas fa-folder-open fa-2x mb-2 text-gray-300"></i>
+                            <p class="mb-0 small">Tidak ada periode terbuka</p>
+                        </div>
+                    <?php else: ?>
+                        <div class="accordion" id="accordionOpen">
+                            <?php foreach ($openPeriods as $p): ?>
+                                <?php 
+                                $isActiveList  = $activeMembersPerPeriod[$p['id']] ?? [];
+                                $isActiveCount = count($isActiveList);
+                                $startDateFormatted = $p['start_date'] ? date('d M Y', strtotime($p['start_date'])) : '';
+                                $endDateFormatted = $p['end_date'] ? date('d M Y', strtotime($p['end_date'])) : '';
+                                $dateSearchText = strtolower($startDateFormatted . ' ' . $endDateFormatted);
+                                ?>
+                                <div class="card card-outline card-info mb-3 period-item"
+                                     data-label="<?= esc(strtolower($p['label'])) ?>"
+                                     data-date="<?= esc($dateSearchText) ?>"
+                                     data-id="<?= $p['id'] ?>">
+                                    <div class="card-header d-flex justify-content-between align-items-center py-3" 
+                                         style="cursor: pointer;" 
+                                         data-toggle="collapse" 
+                                         data-target="#collapse-<?= $p['id'] ?>" 
+                                         aria-expanded="false">
+                                        <div class="d-flex align-items-center">
+                                            <i class="fas fa-calendar-check text-info fa-lg mr-3"></i>
+                                            <div>
+                                                <h5 class="m-0 font-weight-bold"><?= esc($p['label']) ?></h5>
+                                                <small class="text-muted">
+                                                    <?= $p['start_date'] ? date('d M', strtotime($p['start_date'])) : '' ?>
+                                                    <?= $p['end_date'] ? ' s/d ' . date('d M Y', strtotime($p['end_date'])) : '' ?>
+                                                </small>
                                             </div>
                                         </div>
-                                    <?php endif; ?>
-                                </form>
-                            </div>
+                                        <div class="ml-auto d-flex align-items-center" style="gap: 10px;">
+                                            <span class="badge badge-success py-2 px-3 elevation-1">
+                                                <i class="fas fa-unlock-alt mr-1"></i> Open
+                                            </span>
+                                            <span class="badge badge-info py-2 px-3 elevation-1">
+                                                <i class="fas fa-users mr-1"></i> <?= $isActiveCount ?> Anggota Aktif
+                                            </span>
+                                            <i class="fas fa-chevron-down text-muted accordion-arrow"></i>
+                                        </div>
+                                    </div>
+
+                                    <div id="collapse-<?= $p['id'] ?>" class="collapse" data-parent="#accordionOpen">
+                                        <div class="card-body">
+                                            <h6><strong>Status Keaktifan Anggota:</strong></h6>
+                                            <p class="text-muted small">Anggota yang dicentang adalah pembagi biaya transaksi bertipe **Shared (dibagi rata)** pada periode ini.</p>
+                                            
+                                            <form action="<?= base_url('backend/trips/save-active-members/' . $p['id']) ?>" method="post">
+                                                <?= csrf_field() ?>
+                                                <div class="row mt-3">
+                                                    <?php foreach ($groupMembers as $gm): ?>
+                                                        <?php 
+                                                        $isMemberActive = in_array((int)$gm['user_id'], $isActiveList); 
+                                                        $isAdmin = ($currentMembership['role'] === 'admin');
+                                                        ?>
+                                                        <div class="col-sm-6 col-md-4 mb-2">
+                                                            <div class="icheck-primary">
+                                                                <input type="checkbox" 
+                                                                       id="active-<?= $p['id'] ?>-<?= $gm['user_id'] ?>" 
+                                                                       name="active_users[]" 
+                                                                       value="<?= $gm['user_id'] ?>" 
+                                                                       <?= $isMemberActive ? 'checked' : '' ?>
+                                                                       <?= !$isAdmin ? 'disabled' : '' ?>>
+                                                                <label for="active-<?= $p['id'] ?>-<?= $gm['user_id'] ?>" 
+                                                                       class="font-weight-normal <?= !$isMemberActive ? 'text-muted' : '' ?>"
+                                                                       style="user-select: none;">
+                                                                    <?= esc($gm['username']) ?>
+                                                                </label>
+                                                            </div>
+                                                        </div>
+                                                    <?php endforeach; ?>
+                                                </div>
+                                                
+                                                <?php if ($currentMembership['role'] === 'admin'): ?>
+                                                    <div class="mt-4 pt-3 border-top">
+                                                        <div class="d-flex justify-content-between align-items-center flex-wrap" style="gap: 8px;">
+                                                            <div class="d-flex flex-wrap" style="gap: 6px;">
+                                                                <button type="button" 
+                                                                        class="btn btn-outline-warning btn-sm btn-edit-period mr-1" 
+                                                                        data-id="<?= $p['id'] ?>" 
+                                                                        data-label="<?= esc($p['label']) ?>" 
+                                                                        data-start="<?= $p['start_date'] ?>" 
+                                                                        data-end="<?= $p['end_date'] ?>">
+                                                                    <i class="fas fa-edit mr-1"></i> Edit
+                                                                </button>
+                                                                <button type="button" 
+                                                                        class="btn btn-outline-danger btn-sm btn-delete-period" 
+                                                                        data-id="<?= $p['id'] ?>" 
+                                                                        data-label="<?= esc($p['label']) ?>">
+                                                                    <i class="fas fa-trash-alt mr-1"></i> Hapus
+                                                                </button>
+                                                                <button type="button" 
+                                                                        class="btn btn-outline-secondary btn-sm btn-toggle-period-status"
+                                                                        data-id="<?= $p['id'] ?>"
+                                                                        data-label="<?= esc($p['label']) ?>"
+                                                                        data-status="open">
+                                                                    <i class="fas fa-lock mr-1"></i> Tutup Buku
+                                                                </button>
+                                                            </div>
+                                                            <button type="submit" class="btn btn-primary btn-sm">
+                                                                <i class="fas fa-save mr-1"></i> Simpan Keaktifan
+                                                            </button>
+                                                        </div>
+                                                    </div>
+                                                <?php endif; ?>
+                                            </form>
+                                        </div>
+                                    </div>
+                                </div>
+                            <?php endforeach; ?>
                         </div>
+                    <?php endif; ?>
+                </div>
+            </div>
+
+            <!-- Settled Periods Card (Default Collapsed) -->
+            <div class="card card-secondary card-outline collapsed-card mb-3" id="card-periods-settled">
+                <div class="card-header">
+                    <h3 class="card-title font-weight-bold text-muted" style="float: none; margin-bottom: 0;">
+                        <i class="fas fa-lock text-secondary mr-2"></i> Periode Ditutup (Settled)
+                    </h3>
+                    <div class="card-tools" style="float: right;">
+                        <span class="badge badge-secondary mr-2"><?= count($settledPeriods) ?> Periode</span>
+                        <button type="button" class="btn btn-tool" data-card-widget="collapse" data-expand-icon="fa-eye" data-collapse-icon="fa-eye-slash">
+                            <i class="fas fa-eye"></i>
+                        </button>
                     </div>
-                <?php endforeach; ?>
+                </div>
+                <div class="card-body" style="display: none;">
+                    <?php if (empty($settledPeriods)): ?>
+                        <div class="text-center py-4 text-muted">
+                            <i class="fas fa-folder fa-2x mb-2 text-gray-300"></i>
+                            <p class="mb-0 small">Tidak ada periode ditutup</p>
+                        </div>
+                    <?php else: ?>
+                        <div class="accordion" id="accordionSettled">
+                            <?php foreach ($settledPeriods as $p): ?>
+                                <?php 
+                                $isActiveList  = $activeMembersPerPeriod[$p['id']] ?? [];
+                                $isActiveCount = count($isActiveList);
+                                $startDateFormatted = $p['start_date'] ? date('d M Y', strtotime($p['start_date'])) : '';
+                                $endDateFormatted = $p['end_date'] ? date('d M Y', strtotime($p['end_date'])) : '';
+                                $dateSearchText = strtolower($startDateFormatted . ' ' . $endDateFormatted);
+                                ?>
+                                <div class="card card-outline card-info mb-3 period-item"
+                                     data-label="<?= esc(strtolower($p['label'])) ?>"
+                                     data-date="<?= esc($dateSearchText) ?>"
+                                     data-id="<?= $p['id'] ?>">
+                                    <div class="card-header d-flex justify-content-between align-items-center py-3" 
+                                         style="cursor: pointer;" 
+                                         data-toggle="collapse" 
+                                         data-target="#collapse-<?= $p['id'] ?>" 
+                                         aria-expanded="false">
+                                        <div class="d-flex align-items-center">
+                                            <i class="fas fa-lock text-secondary fa-lg mr-3"></i>
+                                            <div>
+                                                <h5 class="m-0 font-weight-bold text-muted"><?= esc($p['label']) ?></h5>
+                                                <small class="text-muted">
+                                                    <?= $p['start_date'] ? date('d M', strtotime($p['start_date'])) : '' ?>
+                                                    <?= $p['end_date'] ? ' s/d ' . date('d M Y', strtotime($p['end_date'])) : '' ?>
+                                                </small>
+                                            </div>
+                                        </div>
+                                        <div class="ml-auto d-flex align-items-center" style="gap: 10px;">
+                                            <span class="badge badge-secondary py-2 px-3 elevation-1">
+                                                <i class="fas fa-lock mr-1"></i> Settled
+                                            </span>
+                                            <span class="badge badge-info py-2 px-3 elevation-1">
+                                                <i class="fas fa-users mr-1"></i> <?= $isActiveCount ?> Anggota Aktif
+                                            </span>
+                                            <i class="fas fa-chevron-down text-muted accordion-arrow"></i>
+                                        </div>
+                                    </div>
+
+                                    <div id="collapse-<?= $p['id'] ?>" class="collapse" data-parent="#accordionSettled">
+                                        <div class="card-body">
+                                            <h6><strong>Status Keaktifan Anggota:</strong></h6>
+                                            <p class="text-muted small">Anggota yang dicentang adalah pembagi biaya transaksi bertipe **Shared (dibagi rata)** pada periode ini.</p>
+                                            
+                                            <form action="<?= base_url('backend/trips/save-active-members/' . $p['id']) ?>" method="post">
+                                                <?= csrf_field() ?>
+                                                <div class="row mt-3">
+                                                    <?php foreach ($groupMembers as $gm): ?>
+                                                        <?php 
+                                                        $isMemberActive = in_array((int)$gm['user_id'], $isActiveList); 
+                                                        $isAdmin = ($currentMembership['role'] === 'admin');
+                                                        ?>
+                                                        <div class="col-sm-6 col-md-4 mb-2">
+                                                            <div class="icheck-primary">
+                                                                <input type="checkbox" 
+                                                                       id="active-<?= $p['id'] ?>-<?= $gm['user_id'] ?>" 
+                                                                       name="active_users[]" 
+                                                                       value="<?= $gm['user_id'] ?>" 
+                                                                       <?= $isMemberActive ? 'checked' : '' ?>
+                                                                       disabled>
+                                                                <label for="active-<?= $p['id'] ?>-<?= $gm['user_id'] ?>" 
+                                                                       class="font-weight-normal <?= !$isMemberActive ? 'text-muted' : '' ?>"
+                                                                       style="user-select: none;">
+                                                                    <?= esc($gm['username']) ?>
+                                                                </label>
+                                                            </div>
+                                                        </div>
+                                                    <?php endforeach; ?>
+                                                </div>
+                                                
+                                                <?php if ($currentMembership['role'] === 'admin'): ?>
+                                                    <div class="mt-4 pt-3 border-top">
+                                                        <div class="d-flex justify-content-between align-items-center flex-wrap" style="gap: 8px;">
+                                                            <div class="d-flex flex-wrap" style="gap: 6px;">
+                                                                <button type="button" 
+                                                                        class="btn btn-outline-warning btn-sm btn-edit-period mr-1" 
+                                                                        data-id="<?= $p['id'] ?>" 
+                                                                        data-label="<?= esc($p['label']) ?>" 
+                                                                        data-start="<?= $p['start_date'] ?>" 
+                                                                        data-end="<?= $p['end_date'] ?>">
+                                                                    <i class="fas fa-edit mr-1"></i> Edit
+                                                                </button>
+                                                                <button type="button" 
+                                                                        class="btn btn-outline-danger btn-sm btn-delete-period" 
+                                                                        data-id="<?= $p['id'] ?>" 
+                                                                        data-label="<?= esc($p['label']) ?>">
+                                                                    <i class="fas fa-trash-alt mr-1"></i> Hapus
+                                                                </button>
+                                                                <button type="button" 
+                                                                        class="btn btn-outline-success btn-sm btn-toggle-period-status"
+                                                                        data-id="<?= $p['id'] ?>"
+                                                                        data-label="<?= esc($p['label']) ?>"
+                                                                        data-status="settled">
+                                                                    <i class="fas fa-unlock-alt mr-1"></i> Buka Kembali
+                                                                </button>
+                                                            </div>
+                                                            <button type="submit" class="btn btn-primary btn-sm" disabled title="Periode sudah ditutup">
+                                                                <i class="fas fa-save mr-1"></i> Simpan Keaktifan
+                                                            </button>
+                                                        </div>
+                                                    </div>
+                                                <?php endif; ?>
+                                            </form>
+                                        </div>
+                                    </div>
+                                </div>
+                            <?php endforeach; ?>
+                        </div>
+                    <?php endif; ?>
+                </div>
             </div>
         <?php endif; ?>
     </div>
@@ -595,11 +766,78 @@ $(document).ready(function() {
     });
 
     // Toggle cards by clicking anywhere on their headers
-    $('#card-detail-kegiatan .card-header, #card-tambah-periode .card-header').css('cursor', 'pointer').on('click', function(e) {
+    $('#card-detail-kegiatan .card-header, #card-tambah-periode .card-header, #card-periods-open .card-header, #card-periods-settled .card-header').css('cursor', 'pointer').on('click', function(e) {
         if ($(e.target).closest('[data-card-widget="collapse"]').length > 0) {
             return;
         }
         $(this).find('[data-card-widget="collapse"]').trigger('click');
+    });
+
+    // Search periods filter logic
+    $('#searchPeriodInput').on('keyup input', function() {
+        const query = $(this).val().toLowerCase().trim();
+        
+        if (query === '') {
+            // Reset state
+            $('.period-item').show();
+            $('#card-periods-open, #card-periods-settled').show();
+            $('#noPeriodResultsRow').hide();
+            
+            // Collapse all period accordions
+            $('.period-item .collapse').collapse('hide');
+            
+            // Collapse parent group cards
+            ['#card-periods-open', '#card-periods-settled'].forEach(function(selector) {
+                const $card = $(selector);
+                if ($card.length && !$card.hasClass('collapsed-card')) {
+                    $card.find('[data-card-widget="collapse"]').trigger('click');
+                }
+            });
+            return;
+        }
+
+        let anyMatch = false;
+
+        ['#card-periods-open', '#card-periods-settled'].forEach(function(selector) {
+            const $card = $(selector);
+            if (!$card.length) return;
+
+            let groupHasMatch = false;
+
+            $card.find('.period-item').each(function() {
+                const $item = $(this);
+                const label = $item.data('label') || '';
+                const date = $item.data('date') || '';
+                const periodId = $item.data('id');
+
+                if (label.includes(query) || date.includes(query)) {
+                    $item.show();
+                    groupHasMatch = true;
+                    anyMatch = true;
+                    
+                    // Auto expand the specific period accordion panel
+                    $('#collapse-' + periodId).collapse('show');
+                } else {
+                    $item.hide();
+                    $('#collapse-' + periodId).collapse('hide');
+                }
+            });
+
+            if (groupHasMatch) {
+                $card.show();
+                if ($card.hasClass('collapsed-card')) {
+                    $card.find('[data-card-widget="collapse"]').trigger('click');
+                }
+            } else {
+                $card.hide();
+            }
+        });
+
+        if (anyMatch) {
+            $('#noPeriodResultsRow').hide();
+        } else {
+            $('#noPeriodResultsRow').show();
+        }
     });
 });
 </script>
