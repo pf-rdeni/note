@@ -534,6 +534,7 @@ class Transactions extends BaseController
                                              ->join('trip_periods', 'trip_periods.id = transactions.period_id', 'left')
                                              ->where('transactions.trip_id', $selectedTripId)
                                              ->where('transactions.period_id', $selectedPeriodId)
+                                             ->orderBy('users.username', 'ASC')
                                              ->orderBy('transactions.date', 'DESC')
                                              ->findAll();
 

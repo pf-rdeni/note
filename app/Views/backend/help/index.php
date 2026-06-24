@@ -1,4 +1,7 @@
-<?= $this->extend('backend/template/template') ?>
+<?php 
+$layoutTemplate = logged_in() ? 'backend/template/template' : 'public/help_layout';
+?>
+<?= $this->extend($layoutTemplate) ?>
 <?= $this->section('content') ?>
 
 <!-- Help Page Header -->

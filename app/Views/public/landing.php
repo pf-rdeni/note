@@ -303,6 +303,14 @@
             <a href="<?= base_url() ?>" class="brand-logo">
                 <i class="fas fa-wallet mr-2"></i><span>Split Bill</span>
             </a>
+            <div>
+                <a href="<?= base_url('help') ?>" class="btn btn-outline-primary btn-sm rounded-pill font-weight-bold px-3 mr-2" style="border-width: 2px;">
+                    <i class="fas fa-book-reader mr-1"></i> Panduan
+                </a>
+                <a href="<?= base_url('login') ?>" class="btn btn-primary btn-sm rounded-pill font-weight-bold px-3" style="box-shadow: 0 3px 8px rgba(79, 70, 229, 0.2);">
+                    <i class="fas fa-sign-in-alt mr-1"></i> Masuk
+                </a>
+            </div>
         </div>
     </header>
 
@@ -373,7 +381,13 @@
 
     <!-- Footer -->
     <footer>
-        <p class="footer-text">&copy; <?= date('Y') ?> Split Bill Keluarga. Developed by Deni Rusandi.</p>
+        <p class="footer-text">
+            &copy; <?= date('Y') ?> Split Bill Keluarga. Developed by Deni Rusandi.
+            <span class="mx-2">|</span>
+            <a href="<?= base_url('help') ?>" class="text-primary font-weight-bold text-decoration-none">
+                <i class="fas fa-book-reader mr-1"></i> Panduan Penggunaan
+            </a>
+        </p>
     </footer>
 
 </body>

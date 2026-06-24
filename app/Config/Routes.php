@@ -8,6 +8,7 @@ use CodeIgniter\Router\RouteCollection;
 // PUBLIC ROUTES (Frontend)
 // =====================================================================
 $routes->get('/', 'Home::index');
+$routes->get('help', '\App\Controllers\Backend\Help::index');
 
 // Redirect /login to backend if already logged in (or let Myth/Auth handle it)
 // Myth/Auth automatically handles /login, /register, /logout, /forgot, /reset-password
