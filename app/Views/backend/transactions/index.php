@@ -80,7 +80,6 @@ ob_start();
 
         <div class="card-body p-3">
             <div class="d-flex align-items-center flex-wrap" style="gap: 12px;">
-                <label class="mb-0 font-weight-bold text-secondary" style="font-size: 0.95rem;">Filter Kegiatan &amp; Periode:</label>
                 <div class="dropdown custom-tree-dropdown flex-fill" style="position: relative; max-width: 500px;">
                     <?php 
                     $selectedLabel = 'Pilih Kegiatan atau Periode...';
@@ -228,12 +227,6 @@ ob_start();
                         </div>
                     </div>
                 </div>
-                
-                <?php if (!empty($selectedTripId) || !empty($selectedGroupId)): ?>
-                    <a href="<?= base_url('backend/transactions?reset=1') ?>" class="btn btn-outline-danger btn-sm btn-reset-filter" style="border-radius: 8px;">
-                        <i class="fas fa-redo mr-1"></i> Reset Filter
-                    </a>
-                <?php endif; ?>
             </div>
         </div>
     </div>
