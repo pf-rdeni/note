@@ -70,6 +70,9 @@ $routes->group('backend', ['filter' => 'login', 'namespace' => 'App\Controllers\
         $routes->get('approve/(:num)', 'Settlements::approve/$1');
     });
 
+    // Panduan & Bantuan
+    $routes->get('help', 'Help::index');
+
     // Profil Akun
     $routes->get('profil', 'Profil::index');
     $routes->post('profil/update', 'Profil::update');

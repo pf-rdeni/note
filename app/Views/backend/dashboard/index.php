@@ -75,7 +75,7 @@
     <div class="col-lg-8 mb-4">
         <div class="card card-primary card-outline card-outline-tabs shadow-sm h-100 mb-0">
             <div class="card-header p-0 border-bottom-0">
-                <ul class="nav nav-tabs font-weight-bold" id="dashboard-tabs" role="tablist">
+                <ul class="nav nav-tabs nav-justified font-weight-bold" id="dashboard-tabs" role="tablist">
                     <li class="nav-item">
                         <a class="nav-link active" id="total-period-tab" data-toggle="pill" href="#total-period-content" role="tab" aria-controls="total-period-content" aria-selected="true">
                             <i class="fas fa-chart-bar mr-1 text-warning"></i> Total Pengeluaran (Periode)
@@ -752,6 +752,21 @@ $(document).ready(function() {
     display: inline-block;
     animation: wave 1.5s infinite ease-in-out;
     transform-origin: bottom right;
+}
+
+/* Responsive justified tabs for mobile */
+@media (max-width: 767.98px) {
+    #dashboard-tabs .nav-link {
+        padding: 8px 2px !important;
+        font-size: 0.7rem;
+        text-align: center;
+    }
+    #dashboard-tabs .nav-link i {
+        display: block;
+        margin-bottom: 4px;
+        font-size: 0.95rem;
+        margin-right: 0 !important;
+    }
 }
 </style>
 <?= $this->endSection() ?>

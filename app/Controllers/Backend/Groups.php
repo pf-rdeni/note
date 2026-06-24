@@ -49,6 +49,15 @@ class Groups extends BaseController
                                    ->where('group_members.user_id', $userId)
                                    ->findAll();
 
+        // Ambil anggota untuk setiap grup
+        foreach ($groups as &$group) {
+            $group['members'] = $this->memberModel->select('group_members.*, users.username, users.fullname')
+                                                 ->join('users', 'users.id = group_members.user_id')
+                                                 ->where('group_members.group_id', $group['id'])
+                                                 ->findAll();
+        }
+        unset($group);
+
         $data = [
             'pageTitle' => 'Groups Saya',
             'groups'    => $groups,

@@ -48,6 +48,23 @@
                     </div>
                     <div class="card-footer p-0">
                         <ul class="nav flex-column">
+                            <?php if (!empty($g['members'])): ?>
+                                <li class="nav-item px-3 py-3 border-bottom">
+                                    <span class="text-muted small font-weight-bold d-block mb-2">
+                                        <i class="fas fa-users mr-1"></i> Anggota (<?= count($g['members']) ?>)
+                                    </span>
+                                    <div class="d-flex flex-wrap" style="gap: 6px;">
+                                        <?php foreach ($g['members'] as $m): ?>
+                                            <?php 
+                                            $nameToShow = !empty($m['fullname']) ? $m['fullname'] : $m['username'];
+                                            ?>
+                                            <span class="badge border py-1 px-2 font-weight-normal text-primary" style="font-size: 0.8rem; border-radius: 12px; background-color: #e8f0fe; border-color: #d2e3fc !important;" title="<?= esc($m['username']) ?>">
+                                                <i class="far fa-user mr-1 text-primary"></i><?= esc($nameToShow) ?>
+                                            </span>
+                                        <?php endforeach; ?>
+                                    </div>
+                                </li>
+                            <?php endif; ?>
                             <li class="nav-item">
                                 <a href="<?= base_url('backend/groups/detail/' . $g['id']) ?>" class="nav-link text-center text-primary font-weight-bold py-3">
                                     Kelola & Lihat Detail <i class="fas fa-arrow-circle-right ml-1"></i>

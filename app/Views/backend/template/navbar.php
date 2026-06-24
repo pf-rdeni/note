@@ -23,7 +23,7 @@
         
         <!-- Help -->
         <li class="nav-item">
-            <a class="nav-link" href="#" data-toggle="modal" data-target="#helpModal" title="Bantuan">
+            <a class="nav-link" href="<?= base_url('backend/help') ?>" title="Panduan & Bantuan">
                 <i class="fas fa-question-circle"></i>
             </a>
         </li>
@@ -46,40 +46,3 @@
         </li>
     </ul>
 </nav>
-
-<!-- Modal Help -->
-<div class="modal fade" id="helpModal" tabindex="-1" role="dialog" aria-labelledby="helpModalLabel" aria-hidden="true">
-    <div class="modal-dialog" role="document">
-        <div class="modal-content">
-            <div class="modal-header">
-                <h5 class="modal-title" id="helpModalLabel">
-                    <i class="fas fa-question-circle text-info mr-2"></i>
-                    Bantuan
-                </h5>
-                <button type="button" class="close" data-dismiss="modal" aria-label="Close">
-                    <span aria-hidden="true">&times;</span>
-                </button>
-            </div>
-            <div class="modal-body">
-                <h6><strong>Aplikasi Split Bill Keluarga</strong></h6>
-                <p>Mengelola pembagian pengeluaran bersama (Shared) dan penyesuaian saldo pribadi secara real-time dan transparan.</p>
-                <hr>
-                <p><strong>Fitur Utama:</strong></p>
-                <ul>
-                    <li><i class="fas fa-tachometer-alt text-primary mr-2"></i> Dashboard - Ringkasan saldo dan pengeluaran</li>
-                    <li><i class="fas fa-users text-success mr-2"></i> Group & Anggota - Kelola anggota kelompok</li>
-                    <li><i class="fas fa-clipboard-list text-warning mr-2"></i> Kegiatan & Periode - Kelola kegiatan dan bulanan</li>
-                    <li><i class="fas fa-file-invoice-dollar text-info mr-2"></i> Transaksi - Catat pengeluaran shared / individual</li>
-                    <li><i class="fas fa-hand-holding-usd text-danger mr-2"></i> Settlement - Rekomendasi pelunasan transfer</li>
-                </ul>
-                <hr>
-                <p class="text-muted small">
-                    Versi 1.0.0 | &copy; <?= date('Y') ?> Split Bill Keluarga
-                </p>
-            </div>
-            <div class="modal-footer">
-                <button type="button" class="btn btn-secondary" data-dismiss="modal">Tutup</button>
-            </div>
-        </div>
-    </div>
-</div>

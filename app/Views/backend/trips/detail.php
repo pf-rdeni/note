@@ -16,38 +16,63 @@
             </div>
         <?php endif; ?>
 
-        <div class="card card-primary card-outline">
+        <?php if ($currentMembership['role'] === 'admin'): ?>
+            <form action="<?= base_url('backend/trips/update/' . $trip['id']) ?>" method="post">
+                <?= csrf_field() ?>
+        <?php endif; ?>
+
+        <div id="card-detail-kegiatan" class="card card-primary card-outline collapsed-card">
+            <div class="card-header">
+                <h3 class="card-title font-weight-bold" style="float: none; margin-bottom: 0;">
+                    <i class="fas fa-clipboard-list mr-1"></i> Detail Kegiatan
+                </h3>
+                <div class="card-tools" style="float: right;">
+                    <button type="button" class="btn btn-tool" data-card-widget="collapse" data-expand-icon="fa-eye" data-collapse-icon="fa-eye-slash">
+                        <i class="fas fa-eye"></i>
+                    </button>
+                </div>
+                <div class="text-muted mt-1" style="clear: both; font-size: 0.85rem;">
+                    <span class="mr-2"><i class="fas fa-users mr-1"></i> Kelompok: <strong><?= esc($group['name']) ?></strong></span>
+                    <?php if ($trip['start_date']): ?>
+                        <span>| <i class="far fa-calendar-alt ml-1 mr-1"></i> 
+                            <?= date('d M Y', strtotime($trip['start_date'])) ?>
+                            <?php if ($trip['end_date']): ?>
+                                s/d <?= date('d M Y', strtotime($trip['end_date'])) ?>
+                            <?php endif; ?>
+                        </span>
+                    <?php endif; ?>
+                </div>
+            </div>
             <?php if ($currentMembership['role'] === 'admin'): ?>
-                <form action="<?= base_url('backend/trips/update/' . $trip['id']) ?>" method="post">
-                    <?= csrf_field() ?>
-                    <div class="card-body">
-                        <div class="text-center">
-                            <i class="fas fa-clipboard-list fa-3x text-primary mb-3"></i>
-                        </div>
-                        <h3 class="profile-username text-center font-weight-bold mb-3"><?= esc($trip['name']) ?></h3>
-                        <p class="text-muted text-center mb-4">Kelompok: <?= esc($group['name']) ?></p>
-
-                        <div class="form-group">
-                            <label for="trip_name">Nama Kegiatan</label>
-                            <input type="text" name="name" id="trip_name" class="form-control" value="<?= old('name', esc($trip['name'])) ?>" required placeholder="Masukkan nama kegiatan">
-                        </div>
-                        
-                        <div class="form-group">
-                            <label for="trip_start_date">Tanggal Mulai</label>
-                            <input type="date" name="start_date" id="trip_start_date" class="form-control" value="<?= old('start_date', $trip['start_date']) ?>">
-                        </div>
-
-                        <div class="form-group">
-                            <label for="trip_end_date">Tanggal Selesai</label>
-                            <input type="date" name="end_date" id="trip_end_date" class="form-control" value="<?= old('end_date', $trip['end_date']) ?>">
-                        </div>
-
-                        <div class="form-group">
-                            <label for="trip_notes">Catatan / Keterangan</label>
-                            <textarea name="notes" id="trip_notes" class="form-control" rows="3" placeholder="Tambahkan catatan kegiatan..."><?= old('notes', esc($trip['notes'])) ?></textarea>
-                        </div>
+                <div class="card-body">
+                    <div class="text-center">
+                        <i class="fas fa-clipboard-list fa-3x text-primary mb-3"></i>
                     </div>
-                    <div class="card-footer d-flex" style="gap: 10px;">
+                    <h3 class="profile-username text-center font-weight-bold mb-3"><?= esc($trip['name']) ?></h3>
+                    <p class="text-muted text-center mb-4">Kelompok: <?= esc($group['name']) ?></p>
+
+                    <div class="form-group">
+                        <label for="trip_name">Nama Kegiatan</label>
+                        <input type="text" name="name" id="trip_name" class="form-control" value="<?= old('name', esc($trip['name'])) ?>" required placeholder="Masukkan nama kegiatan">
+                    </div>
+                    
+                    <div class="form-group">
+                        <label for="trip_start_date">Tanggal Mulai</label>
+                        <input type="date" name="start_date" id="trip_start_date" class="form-control" value="<?= old('start_date', $trip['start_date']) ?>">
+                    </div>
+
+                    <div class="form-group">
+                        <label for="trip_end_date">Tanggal Selesai</label>
+                        <input type="date" name="end_date" id="trip_end_date" class="form-control" value="<?= old('end_date', $trip['end_date']) ?>">
+                    </div>
+
+                    <div class="form-group">
+                        <label for="trip_notes">Catatan / Keterangan</label>
+                        <textarea name="notes" id="trip_notes" class="form-control" rows="3" placeholder="Tambahkan catatan kegiatan..."><?= old('notes', esc($trip['notes'])) ?></textarea>
+                    </div>
+                </div>
+                <div class="card-footer">
+                    <div class="d-flex" style="gap: 10px;">
                         <button type="submit" class="btn btn-primary flex-fill">
                             <i class="fas fa-save mr-1"></i> Simpan
                         </button>
@@ -55,7 +80,7 @@
                             <i class="fas fa-trash-alt mr-1"></i> Hapus
                         </button>
                     </div>
-                </form>
+                </div>
             <?php else: ?>
                 <div class="card-body box-profile">
                     <div class="text-center">
@@ -88,6 +113,10 @@
         </div>
 
         <?php if ($currentMembership['role'] === 'admin'): ?>
+            </form>
+        <?php endif; ?>
+
+        <?php if ($currentMembership['role'] === 'admin'): ?>
             <form id="delete-trip-form" action="<?= base_url('backend/trips/delete/' . $trip['id']) ?>" method="post" style="display:none;">
                 <?= csrf_field() ?>
             </form>
@@ -95,12 +124,22 @@
 
         <!-- Add Period Card (Admin Only) -->
         <?php if ($currentMembership['role'] === 'admin'): ?>
-            <div class="card card-success">
-                <div class="card-header">
-                    <h3 class="card-title font-weight-bold"><i class="fas fa-calendar-plus mr-1"></i> Tambah Periode Baru</h3>
-                </div>
-                <form action="<?= base_url('backend/trips/add-period/' . $trip['id']) ?>" method="post">
-                    <?= csrf_field() ?>
+            <form action="<?= base_url('backend/trips/add-period/' . $trip['id']) ?>" method="post">
+                <?= csrf_field() ?>
+                <div id="card-tambah-periode" class="card card-success card-outline collapsed-card">
+                    <div class="card-header">
+                        <h3 class="card-title font-weight-bold" style="float: none; margin-bottom: 0;">
+                            <i class="fas fa-calendar-plus mr-1"></i> Tambah Periode Baru
+                        </h3>
+                        <div class="card-tools" style="float: right;">
+                            <button type="button" class="btn btn-tool" data-card-widget="collapse" data-expand-icon="fa-eye" data-collapse-icon="fa-eye-slash">
+                                <i class="fas fa-eye"></i>
+                            </button>
+                        </div>
+                        <div class="text-muted mt-1" style="clear: both; font-size: 0.85rem;">
+                            <span><i class="fas fa-info-circle mr-1"></i> Buat sub-periode baru untuk pencatatan transaksi</span>
+                        </div>
+                    </div>
                     <div class="card-body">
                         <div class="form-group">
                             <label for="label">Label Periode</label>
@@ -119,9 +158,26 @@
                     <div class="card-footer">
                         <button type="submit" class="btn btn-success btn-block">Tambah Periode</button>
                     </div>
-                </form>
-            </div>
+                </div>
+            </form>
         <?php endif; ?>
+
+        <script>
+            if (window.innerWidth >= 992) {
+                var cards = ['#card-detail-kegiatan', '#card-tambah-periode'];
+                cards.forEach(function(selector) {
+                    var card = document.querySelector(selector);
+                    if (card) {
+                        card.classList.remove('collapsed-card');
+                        var icon = card.querySelector('[data-card-widget="collapse"] i');
+                        if (icon) {
+                            icon.classList.remove('fa-eye');
+                            icon.classList.add('fa-eye-slash');
+                        }
+                    }
+                });
+            }
+        </script>
     </div>
 
     <!-- Periods & Active Members Panel -->
@@ -536,6 +592,14 @@ $(document).ready(function() {
                 $('#toggle-period-status-form').submit();
             }
         });
+    });
+
+    // Toggle cards by clicking anywhere on their headers
+    $('#card-detail-kegiatan .card-header, #card-tambah-periode .card-header').css('cursor', 'pointer').on('click', function(e) {
+        if ($(e.target).closest('[data-card-widget="collapse"]').length > 0) {
+            return;
+        }
+        $(this).find('[data-card-widget="collapse"]').trigger('click');
     });
 });
 </script>
