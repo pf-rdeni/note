@@ -94,6 +94,14 @@
                     </a>
                 </li>
 
+                <!-- Installments / Cicilan -->
+                <li class="nav-item">
+                    <a href="<?= base_url('backend/installments') ?>" class="nav-link <?= strpos(uri_string(), 'backend/installments') !== false ? 'active' : '' ?>">
+                        <i class="nav-icon fas fa-credit-card"></i>
+                        <p>Cicilan</p>
+                    </a>
+                </li>
+
                 <!-- Settlements -->
                 <li class="nav-item">
                     <a href="<?= base_url('backend/settlements') ?>" class="nav-link <?= strpos(uri_string(), 'backend/settlements') !== false ? 'active' : '' ?>">

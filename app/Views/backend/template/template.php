@@ -57,6 +57,11 @@ $bodyClass = 'hold-transition sidebar-mini layout-fixed';
                     <i class="fas fa-file-invoice-dollar"></i>
                     <span>Transaksi</span>
                 </a>
+                <a href="<?= base_url('backend/installments') ?>" 
+                   class="nav-item-btn <?= strpos(uri_string(), 'backend/installments') !== false ? 'active' : '' ?>">
+                    <i class="fas fa-credit-card"></i>
+                    <span>Cicilan</span>
+                </a>
                 <a href="<?= base_url('backend/settlements') ?>" 
                    class="nav-item-btn <?= strpos(uri_string(), 'backend/settlements') !== false ? 'active' : '' ?>">
                     <i class="fas fa-hand-holding-usd"></i>

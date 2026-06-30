@@ -71,6 +71,18 @@ $routes->group('backend', ['filter' => 'login', 'namespace' => 'App\Controllers\
         $routes->get('approve/(:num)', 'Settlements::approve/$1');
     });
 
+    // Cicilan (Installments)
+    $routes->group('installments', static function($routes) {
+        $routes->get('/', 'Installments::index');
+        $routes->get('simulate', 'Installments::simulate');
+        $routes->get('get/(:num)', 'Installments::get/$1');
+        $routes->post('store', 'Installments::store');
+        $routes->post('update/(:num)', 'Installments::update/$1');
+        $routes->post('delete/(:num)', 'Installments::delete/$1');
+        $routes->post('pay-group', 'Installments::payGroup');
+        $routes->post('mark-self-paid', 'Installments::markSelfPaid');
+    });
+
     // Panduan & Bantuan
     $routes->get('help', 'Help::index');
 
