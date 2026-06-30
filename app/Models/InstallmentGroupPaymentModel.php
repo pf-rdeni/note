@@ -83,4 +83,24 @@ class InstallmentGroupPaymentModel extends Model
             ->orderBy('installment_group_payments.due_month', 'DESC')
             ->findAll();
     }
+
+    /**
+     * Ambil riwayat pembayaran per trip di seluruh trip yang ditentukan
+     */
+    public function getHistoryAllTrips(array $tripIds, int $userId): array
+    {
+        if (empty($tripIds)) return [];
+        return $this->select('installment_group_payments.*,
+                COALESCE(NULLIF(lender.fullname, \'\'), lender.username) as lender_name,
+                COALESCE(NULLIF(borrower.fullname, \'\'), borrower.username) as borrower_name')
+            ->join('users lender', 'lender.id = installment_group_payments.lender_user_id', 'left')
+            ->join('users borrower', 'borrower.id = installment_group_payments.borrower_user_id')
+            ->whereIn('installment_group_payments.trip_id', $tripIds)
+            ->groupStart()
+                ->where('installment_group_payments.borrower_user_id', $userId)
+                ->orWhere('installment_group_payments.lender_user_id', $userId)
+            ->groupEnd()
+            ->orderBy('installment_group_payments.due_month', 'DESC')
+            ->findAll();
+    }
 }

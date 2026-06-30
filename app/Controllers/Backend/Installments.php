@@ -188,16 +188,63 @@ class Installments extends BaseController
             $session->set('inst_last_trip_id', $selectedTripId);
         }
 
+        // Ambil data untuk Ringkasan Tagihan Bulanan (dari semua trip yang bisa diakses)
+        $allTripIds = array_column($availableTrips, 'id');
+        $allInstallmentsForSummary = [];
+        $summaryMonthColumns = [];
+        $allGroupPaymentMap = [];
+
+        if (!empty($allTripIds)) {
+            $allInstallmentsForSummary = $this->installmentModel->getVisibleByUserAllTrips($userId, $allTripIds);
+            $allInstallmentIds = array_column($allInstallmentsForSummary, 'id');
+            $allPaymentsForSummary = [];
+            if (!empty($allInstallmentIds)) {
+                $allPaymentsForSummary = $this->paymentModel
+                    ->whereIn('installment_id', $allInstallmentIds)
+                    ->orderBy('due_date', 'ASC')
+                    ->findAll();
+            }
+
+            // Map payments by installment_id + due_date
+            $summaryPaymentMap = [];
+            foreach ($allPaymentsForSummary as $p) {
+                $summaryPaymentMap[$p['installment_id']][$p['due_date']] = $p;
+            }
+
+            // Kumpulkan bulan unik untuk summary
+            $summaryMonthSet = [];
+            foreach ($allPaymentsForSummary as $p) {
+                $summaryMonthSet[$p['due_date']] = $p['due_date'];
+            }
+            ksort($summaryMonthSet);
+            $summaryMonthColumns = array_values($summaryMonthSet);
+
+            // Tempelkan payments ke installments
+            foreach ($allInstallmentsForSummary as &$inst) {
+                $inst['payments'] = $summaryPaymentMap[$inst['id']] ?? [];
+            }
+
+            // Ambil seluruh riwayat group payments
+            $allGroupPayments = $this->groupPaymentModel->getHistoryAllTrips($allTripIds, $userId);
+            foreach ($allGroupPayments as $gp) {
+                $gpKey = $gp['trip_id'] . '|' . ($gp['lender_user_id'] ?? 'null') . '|' . $gp['borrower_user_id'] . '|' . $gp['source_type'] . '|' . date('Y-m-01', strtotime($gp['due_month']));
+                $allGroupPaymentMap[$gpKey] = $gp;
+            }
+        }
+
         return view('backend/installments/index', [
-            'pageTitle'        => 'Cicilan',
-            'availableTrips'   => $availableTrips,
-            'selectedTripId'   => $selectedTripId,
-            'selectedTrip'     => $selectedTrip,
-            'groupedData'      => $groupedData,
-            'monthColumns'     => $monthColumns,
-            'groupMembers'     => $groupMembers,
-            'currentMembership'=> $currentMembership,
-            'user'             => user(),
+            'pageTitle'                 => 'Cicilan',
+            'availableTrips'            => $availableTrips,
+            'selectedTripId'            => $selectedTripId,
+            'selectedTrip'              => $selectedTrip,
+            'groupedData'               => $groupedData,
+            'monthColumns'              => $monthColumns,
+            'groupMembers'              => $groupMembers,
+            'currentMembership'         => $currentMembership,
+            'user'                      => user(),
+            'allInstallmentsForSummary' => $allInstallmentsForSummary,
+            'summaryMonthColumns'       => $summaryMonthColumns,
+            'allGroupPaymentMap'        => $allGroupPaymentMap,
         ]);
     }
 
@@ -291,6 +338,8 @@ class Installments extends BaseController
             'installment_months' => 'required|numeric|greater_than[0]',
             'start_date'         => 'required|valid_date[Y-m]',
             'note'               => 'permit_empty|max_length[500]',
+            'split_type'         => 'permit_empty|in_list[equal,individual]',
+            'borrowers'          => 'permit_empty',
         ];
 
         if (!$this->validate($rules)) {
@@ -303,6 +352,8 @@ class Installments extends BaseController
         $months      = (int)$this->request->getPost('installment_months');
         $startDate   = $this->request->getPost('start_date');
         $lenderId    = $sourceType === 'member_loan' ? (int)$this->request->getPost('lender_user_id') : null;
+        $borrowers   = $this->request->getPost('borrowers');
+        $splitType   = $this->request->getPost('split_type') ?: 'equal';
 
         // Validasi akses trip
         $membership = $this->checkTripAccess($tripId);
@@ -326,37 +377,96 @@ class Installments extends BaseController
             return redirect()->back()->withInput()->with('error', 'Nominal cicilan tidak valid.');
         }
 
-        // Validasi khusus: member_loan harus ada lender
-        if ($sourceType === 'member_loan' && empty($lenderId)) {
-            return redirect()->back()->withInput()->with('error', 'Pilih anggota pemberi pinjaman.');
+        // Validasi khusus: member_loan harus ada lender dan minimal satu borrower
+        if ($sourceType === 'member_loan') {
+            if (empty($lenderId)) {
+                return redirect()->back()->withInput()->with('error', 'Pilih anggota pemberi pinjaman.');
+            }
+            if (empty($borrowers) || !is_array($borrowers)) {
+                return redirect()->back()->withInput()->with('error', 'Pilih minimal satu peminjam.');
+            }
         }
 
         // Simpan ke DB dalam transaksi
         $db = \Config\Database::connect();
         $db->transStart();
 
-        $installmentId = $this->installmentModel->insert([
-            'trip_id'            => $tripId,
-            'description'        => $this->request->getPost('description'),
-            'source_type'        => $sourceType,
-            'lender_user_id'     => $lenderId,
-            'borrower_user_id'   => user_id(),
-            'total_amount'       => $totalAmount,
-            'start_date'         => date('Y-m-01', strtotime($startDate)),
-            'installment_months' => $months,
-            'monthly_amount'     => $monthlyAmount,
-            'note'               => $this->request->getPost('note') ?: null,
-            'status'             => 'active',
-            'created_by'         => user_id(),
-        ]);
+        if ($sourceType === 'member_loan') {
+            $divisor = count($borrowers);
+            if ($divisor <= 0) $divisor = 1;
 
-        // Generate jadwal pembayaran otomatis
-        $this->paymentModel->generateSchedule(
-            $installmentId,
-            date('Y-m-01', strtotime($startDate)),
-            $months,
-            $monthlyAmount
-        );
+            $createdCount = 0;
+            foreach ($borrowers as $borrowerId) {
+                $borrowerId = (int)$borrowerId;
+
+                // Skip jika peminjam sama dengan pemberi pinjaman
+                if ($borrowerId === $lenderId) {
+                    continue;
+                }
+
+                $individualTotal   = $totalAmount;
+                $individualMonthly = $monthlyAmount;
+
+                if ($splitType === 'equal') {
+                    $individualTotal   = (int)round($totalAmount / $divisor);
+                    $individualMonthly = (int)round($monthlyAmount / $divisor);
+                }
+
+                $installmentId = $this->installmentModel->insert([
+                    'trip_id'            => $tripId,
+                    'description'        => $this->request->getPost('description'),
+                    'source_type'        => $sourceType,
+                    'lender_user_id'     => $lenderId,
+                    'borrower_user_id'   => $borrowerId,
+                    'total_amount'       => $individualTotal,
+                    'start_date'         => date('Y-m-01', strtotime($startDate)),
+                    'installment_months' => $months,
+                    'monthly_amount'     => $individualMonthly,
+                    'note'               => $this->request->getPost('note') ?: null,
+                    'status'             => 'active',
+                    'created_by'         => user_id(),
+                ]);
+
+                // Generate jadwal pembayaran otomatis
+                $this->paymentModel->generateSchedule(
+                    $installmentId,
+                    date('Y-m-01', strtotime($startDate)),
+                    $months,
+                    $individualMonthly
+                );
+
+                $createdCount++;
+            }
+
+            if ($createdCount === 0) {
+                $db->transRollback();
+                return redirect()->back()->withInput()->with('error', 'Semua peminjam yang dipilih dilewati karena peminjam sama dengan pemberi pinjaman.');
+            }
+        } else {
+            // Untuk Kartu Kredit Pribadi, borrower adalah diri sendiri (creator)
+            $installmentId = $this->installmentModel->insert([
+                'trip_id'            => $tripId,
+                'description'        => $this->request->getPost('description'),
+                'source_type'        => $sourceType,
+                'lender_user_id'     => null,
+                'borrower_user_id'   => user_id(),
+                'total_amount'       => $totalAmount,
+                'start_date'         => date('Y-m-01', strtotime($startDate)),
+                'installment_months' => $months,
+                'monthly_amount'     => $monthlyAmount,
+                'note'               => $this->request->getPost('note') ?: null,
+                'status'             => 'active',
+                'created_by'         => user_id(),
+            ]);
+
+            // Generate jadwal pembayaran otomatis
+            $this->paymentModel->generateSchedule(
+                $installmentId,
+                date('Y-m-01', strtotime($startDate)),
+                $months,
+                $monthlyAmount
+            );
+        }
 
         $db->transComplete();
 
@@ -432,21 +542,82 @@ class Installments extends BaseController
             return redirect()->back()->with('error', 'Hanya peminjam atau admin yang dapat menghapus cicilan ini.');
         }
 
-        // Cek apakah sudah ada yang dibayar
-        $paidCount = $this->paymentModel
-            ->where('installment_id', $id)
-            ->where('status', 'paid')
-            ->countAllResults();
+        $db = \Config\Database::connect();
+        $db->transStart();
 
-        if ($paidCount > 0) {
-            return redirect()->back()->with('error', 'Cicilan tidak dapat dihapus karena sudah ada pembayaran yang tercatat.');
+        // Get all payments for this installment
+        $payments = $this->paymentModel->where('installment_id', $id)->findAll();
+
+        foreach ($payments as $payment) {
+            if ($payment['status'] === 'paid') {
+                // Find matching group payment
+                $dueMonth = date('Y-m-01', strtotime($payment['due_date']));
+                $gpQuery = $this->groupPaymentModel
+                    ->where('trip_id', $installment['trip_id'])
+                    ->where('borrower_user_id', $installment['borrower_user_id'])
+                    ->where('source_type', $installment['source_type'])
+                    ->where('due_month', $dueMonth);
+                
+                if ($installment['source_type'] === 'member_loan') {
+                    $gpQuery->where('lender_user_id', $installment['lender_user_id']);
+                } else {
+                    $gpQuery->where('lender_user_id IS NULL');
+                }
+                
+                $gp = $gpQuery->first();
+
+                if ($gp) {
+                    // Check if there are other paid payments in the same group payment
+                    $otherPaidQuery = $this->paymentModel
+                        ->join('installments', 'installments.id = installment_payments.installment_id')
+                        ->where('installment_payments.installment_id !=', $id)
+                        ->where('installments.trip_id', $installment['trip_id'])
+                        ->where('installments.borrower_user_id', $installment['borrower_user_id'])
+                        ->where('installments.source_type', $installment['source_type'])
+                        ->where('installment_payments.due_date', $payment['due_date'])
+                        ->where('installment_payments.status', 'paid');
+                    
+                    if ($installment['source_type'] === 'member_loan') {
+                        $otherPaidQuery->where('installments.lender_user_id', $installment['lender_user_id']);
+                    } else {
+                        $otherPaidQuery->where('installments.lender_user_id IS NULL');
+                    }
+
+                    $otherPaidCount = $otherPaidQuery->countAllResults();
+
+                    if ($otherPaidCount === 0) {
+                        // Delete group payment & delete image file
+                        if (!empty($gp['proof_image'])) {
+                            $filePath = FCPATH . $gp['proof_image'];
+                            if (file_exists($filePath) && is_file($filePath)) {
+                                @unlink($filePath);
+                            }
+                        }
+                        $this->groupPaymentModel->delete($gp['id']);
+                    } else {
+                        // Subtract amount from group payment totals
+                        $newTotal = max(0, (int)$gp['total_due'] - (int)$payment['due_amount']);
+                        $this->groupPaymentModel->update($gp['id'], [
+                            'total_due' => $newTotal,
+                            'total_paid' => $newTotal
+                        ]);
+                    }
+                }
+            }
         }
 
-        // Hapus jadwal dulu lalu installment (cascade akan handle ini, tapi eksplisit lebih aman)
+        // Delete payment records first
         $this->paymentModel->where('installment_id', $id)->delete();
+        // Delete installment
         $this->installmentModel->delete($id);
 
-        return redirect()->to('backend/installments?trip_id=' . $installment['trip_id'])->with('success', 'Cicilan berhasil dihapus.');
+        $db->transComplete();
+
+        if ($db->transStatus() === false) {
+            return redirect()->back()->with('error', 'Gagal menghapus cicilan.');
+        }
+
+        return redirect()->to('backend/installments?trip_id=' . $installment['trip_id'])->with('success', 'Cicilan dan seluruh data/bukti pembayaran terkait berhasil dihapus.');
     }
 
     // ----------------------------------------------------------------

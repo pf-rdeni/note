@@ -72,4 +72,27 @@ class InstallmentModel extends Model
             ->orderBy('installments.start_date', 'ASC')
             ->findAll();
     }
+
+    /**
+     * Ambil installments yang bisa dilihat oleh user di seluruh trip yang ditentukan
+     */
+    public function getVisibleByUserAllTrips(int $userId, array $tripIds): array
+    {
+        if (empty($tripIds)) return [];
+
+        return $this->select('installments.*, 
+                COALESCE(NULLIF(lender.fullname, \'\'), lender.username) as lender_name,
+                COALESCE(NULLIF(borrower.fullname, \'\'), borrower.username) as borrower_name,
+                trips.name as trip_name')
+            ->join('users lender', 'lender.id = installments.lender_user_id', 'left')
+            ->join('users borrower', 'borrower.id = installments.borrower_user_id')
+            ->join('trips', 'trips.id = installments.trip_id')
+            ->whereIn('installments.trip_id', $tripIds)
+            ->groupStart()
+                ->where('installments.borrower_user_id', $userId)
+                ->orWhere('installments.lender_user_id', $userId)
+            ->groupEnd()
+            ->orderBy('installments.start_date', 'ASC')
+            ->findAll();
+    }
 }
