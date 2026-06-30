@@ -9,11 +9,12 @@
         <p class="text-muted small mb-0">Kelola cicilan pinjaman anggota &amp; kartu kredit pribadi</p>
     </div>
     <div class="col-sm-6 text-right">
-        <?php if (!empty($selectedTripId)) : ?>
-            <button type="button" class="btn btn-primary btn-sm" id="btnTambahCicilan" data-toggle="modal" data-target="#modalTambahCicilan">
-                <i class="fas fa-plus mr-1"></i> Tambah Cicilan
-            </button>
-        <?php endif; ?>
+        <?php 
+        $btnStyle = empty($selectedTripId) ? 'display: none;' : '';
+        ?>
+        <button type="button" class="btn btn-primary btn-sm" id="btnTambahCicilan" data-toggle="modal" data-target="#modalTambahCicilan" style="<?= $btnStyle ?>">
+            <i class="fas fa-plus mr-1"></i> Tambah Cicilan
+        </button>
     </div>
 </div>
 
@@ -119,7 +120,7 @@ if (!empty($allInstallmentsForSummary)) {
                         'trip_name'    => $group['trip_name'],
                         'source_type'  => $group['source_type'],
                         'lender_id'    => $group['lender_user_id'],
-                        'lender_name'  => $isLoan ? ($group['lender_name'] ?? 'Anggota') : 'Kartu Kredit Pribadi',
+                        'lender_name'  => $isLoan ? ($group['lender_name'] ?? 'Anggota') : 'Pinjaman Pribadi',
                         'borrower_id'  => $group['borrower_user_id'],
                         'amount'       => $groupAmount,
                         'is_paid'      => $groupPaid,
@@ -517,7 +518,7 @@ if (!empty($allInstallmentsForSummary)) {
                             ?>
                                 <tr class="projection-row" 
                                     data-trip="<?= esc($inst['trip_name']) ?>"
-                                    data-lender="<?= $isLoan ? esc($inst['lender_name']) : 'Kartu Kredit Pribadi' ?>"
+                                    data-lender="<?= $isLoan ? esc($inst['lender_name']) : 'Pinjaman Pribadi' ?>"
                                     data-status-row="<?= $inst['status'] ?>"
                                     data-total-amount="<?= $inst['total_amount'] ?>">
                                     <td><strong><?= esc($inst['description']) ?></strong></td>
@@ -525,14 +526,14 @@ if (!empty($allInstallmentsForSummary)) {
                                         <?php if ($isLoan) : ?>
                                             <span class="badge badge-primary"><i class="fas fa-users mr-1"></i>Pinjaman Anggota</span>
                                         <?php else : ?>
-                                            <span class="badge badge-success"><i class="fas fa-credit-card mr-1"></i>Kartu Kredit</span>
+                                            <span class="badge badge-success"><i class="fas fa-user mr-1"></i>Pinjaman Pribadi</span>
                                         <?php endif; ?>
                                     </td>
                                     <td>
                                         <?php if ($isLoan) : ?>
                                             <span class="text-primary"><?= esc($inst['lender_name']) ?></span>
                                         <?php else : ?>
-                                            <span class="text-success">Kartu Kredit Pribadi</span>
+                                            <span class="text-success">Pinjaman Pribadi</span>
                                         <?php endif; ?>
                                     </td>
                                     <td><span class="text-muted"><?= esc($inst['trip_name']) ?></span></td>
@@ -606,7 +607,7 @@ if (!empty($allInstallmentsForSummary)) {
                                             $payment = $inst['payments'][$col] ?? null;
                                             if ($payment && $payment['status'] !== 'paid') {
                                                 $isLoan = ($inst['source_type'] === 'member_loan');
-                                                $lenderNameVal = $isLoan ? ($inst['lender_name'] ?? 'Anggota') : 'Kartu Kredit';
+                                                $lenderNameVal = $isLoan ? ($inst['lender_name'] ?? 'Anggota') : 'Pinjaman Pribadi';
                                                 $groupKey = $inst['source_type'] . '|' . ($inst['lender_user_id'] ?? 'null') . '|' . $inst['trip_id'];
                                                 
                                                 if (!isset($unpaidPayments[$groupKey])) {
@@ -628,7 +629,7 @@ if (!empty($allInstallmentsForSummary)) {
                                         foreach ($unpaidPayments as $up) {
                                             $btnClass = $up['source_type'] === 'member_loan' ? 'btn-primary' : 'btn-success';
                                             $btnIcon = $up['source_type'] === 'member_loan' ? 'fa-paper-plane' : 'fa-check';
-                                            $btnText = $up['source_type'] === 'member_loan' ? 'Bayar ' . esc($up['lender_name']) : 'Bayar CC';
+                                            $btnText = $up['source_type'] === 'member_loan' ? 'Bayar ' . esc($up['lender_name']) : 'Bayar Pribadi';
                                             ?>
                                             <div class="unpaid-btn-wrapper mb-1" 
                                                  data-trip="<?= esc($up['trip_name']) ?>" 
@@ -711,7 +712,7 @@ if (!empty($allInstallmentsForSummary)) {
                                 <input type="radio" id="src_cc" name="source_type" value="credit_card"
                                     class="custom-control-input">
                                 <label class="custom-control-label" for="src_cc">
-                                    <i class="fas fa-credit-card mr-1 text-success"></i> Kartu Kredit Pribadi
+                                    <i class="fas fa-user mr-1 text-success"></i> Pinjaman Pribadi
                                 </label>
                             </div>
                         </div>
@@ -981,7 +982,7 @@ if (!empty($allInstallmentsForSummary)) {
                 <input type="hidden" name="due_month" id="paycc_due_month" value="">
 
                 <div class="modal-header bg-success text-white">
-                    <h5 class="modal-title"><i class="fas fa-credit-card mr-2"></i>Bayar Tagihan CC</h5>
+                    <h5 class="modal-title"><i class="fas fa-user mr-2"></i>Bayar Tagihan Pribadi</h5>
                     <button type="button" class="close text-white" data-dismiss="modal"><span>&times;</span></button>
                 </div>
 
@@ -989,7 +990,7 @@ if (!empty($allInstallmentsForSummary)) {
                     <div class="alert alert-light border mb-3">
                         <div class="d-flex justify-content-between align-items-center">
                             <div>
-                                <div class="text-muted small">Kartu Kredit Pribadi</div>
+                                <div class="text-muted small">Pinjaman Pribadi</div>
                                 <strong>Tagihan Bulan <span id="payCCMonth">—</span></strong>
                             </div>
                             <div class="text-right">
@@ -1000,7 +1001,7 @@ if (!empty($allInstallmentsForSummary)) {
                         <hr class="my-2">
                         <small class="text-muted">
                             <i class="fas fa-info-circle mr-1"></i>
-                            Tidak ada transfer ke pihak lain. Ini mencatat bukti bahwa tagihan kartu kredit sudah dibayar.
+                            Tidak ada transfer ke pihak lain. Ini mencatat bukti bahwa tagihan pribadi / lainnya sudah dibayar.
                         </small>
                     </div>
 
@@ -1010,10 +1011,10 @@ if (!empty($allInstallmentsForSummary)) {
                         <input type="date" name="paid_at" id="paycc_paid_at" class="form-control" required>
                     </div>
 
-                    <!-- Bukti Bayar CC (WAJIB) -->
+                    <!-- Bukti Bayar Pribadi (WAJIB) -->
                     <div class="form-group">
                         <label for="paycc_proof">
-                            <i class="fas fa-paperclip mr-1"></i> Bukti Pembayaran CC
+                            <i class="fas fa-paperclip mr-1"></i> Bukti Pembayaran
                             <span class="text-danger">*</span>
                             <span class="badge badge-danger ml-1" style="font-size:0.7rem;">Wajib</span>
                         </label>
@@ -1024,7 +1025,7 @@ if (!empty($allInstallmentsForSummary)) {
                         </div>
                         <small class="form-text text-muted">
                             <i class="fas fa-lightbulb mr-1 text-warning"></i>
-                            Contoh: screenshot app bank, foto tagihan kartu kredit
+                            Contoh: screenshot app bank, foto struk transfer / nota
                         </small>
                         <img id="previewProofCC" src="#" alt="Preview" class="img-thumbnail mt-2"
                             style="max-height:150px; display:none;">
