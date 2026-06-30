@@ -499,23 +499,85 @@ class Installments extends BaseController
             ->where('status', 'paid')
             ->countAllResults();
 
-        if ($paidCount > 0) {
-            return redirect()->back()->with('error', 'Cicilan tidak dapat diedit karena sudah ada pembayaran yang tercatat.');
-        }
-
         $rules = [
             'description' => 'required|min_length[3]|max_length[255]',
             'note'        => 'permit_empty|max_length[500]',
         ];
 
+        if ($paidCount === 0) {
+            // Edit seluruh field
+            $rules['source_type']        = 'required|in_list[member_loan,credit_card]';
+            $rules['lender_user_id']     = 'permit_empty|numeric';
+            $rules['calc_mode']          = 'required|in_list[total_months,monthly_duration]';
+            $rules['total_amount']       = 'permit_empty|numeric';
+            $rules['monthly_amount']     = 'permit_empty|numeric';
+            $rules['installment_months'] = 'required|numeric|greater_than[0]';
+            $rules['start_date']         = 'required|valid_date[Y-m]';
+        }
+
         if (!$this->validate($rules)) {
             return redirect()->back()->withInput()->with('errors', $this->validator->getErrors());
         }
 
-        $this->installmentModel->update($id, [
-            'description' => $this->request->getPost('description'),
-            'note'        => $this->request->getPost('note') ?: null,
-        ]);
+        $db = \Config\Database::connect();
+        $db->transStart();
+
+        if ($paidCount > 0) {
+            // Hanya update deskripsi dan catatan
+            $this->installmentModel->update($id, [
+                'description' => $this->request->getPost('description'),
+                'note'        => $this->request->getPost('note') ?: null,
+            ]);
+        } else {
+            // Update seluruh field & regenerasi jadwal
+            $sourceType  = $this->request->getPost('source_type');
+            $calcMode    = $this->request->getPost('calc_mode');
+            $months      = (int)$this->request->getPost('installment_months');
+            $startDate   = $this->request->getPost('start_date');
+            $lenderId    = $sourceType === 'member_loan' ? (int)$this->request->getPost('lender_user_id') : null;
+
+            $totalAmount   = 0;
+            $monthlyAmount = 0;
+
+            if ($calcMode === 'total_months') {
+                $totalAmount   = (int)$this->request->getPost('total_amount');
+                $monthlyAmount = (int)round($totalAmount / $months);
+            } else {
+                $monthlyAmount = (int)$this->request->getPost('monthly_amount');
+                $totalAmount   = $monthlyAmount * $months;
+            }
+
+            if ($totalAmount <= 0 || $monthlyAmount <= 0) {
+                $db->transRollback();
+                return redirect()->back()->withInput()->with('error', 'Nominal cicilan tidak valid.');
+            }
+
+            $this->installmentModel->update($id, [
+                'description'        => $this->request->getPost('description'),
+                'source_type'        => $sourceType,
+                'lender_user_id'     => $lenderId,
+                'total_amount'       => $totalAmount,
+                'start_date'         => date('Y-m-01', strtotime($startDate)),
+                'installment_months' => $months,
+                'monthly_amount'     => $monthlyAmount,
+                'note'               => $this->request->getPost('note') ?: null,
+            ]);
+
+            // Hapus jadwal lama & generate jadwal baru
+            $this->paymentModel->where('installment_id', $id)->delete();
+            $this->paymentModel->generateSchedule(
+                $id,
+                date('Y-m-01', strtotime($startDate)),
+                $months,
+                $monthlyAmount
+            );
+        }
+
+        $db->transComplete();
+
+        if ($db->transStatus() === false) {
+            return redirect()->back()->withInput()->with('error', 'Gagal memperbarui cicilan.');
+        }
 
         return redirect()->to('backend/installments?trip_id=' . $installment['trip_id'])->with('success', 'Cicilan berhasil diperbarui.');
     }

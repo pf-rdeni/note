@@ -568,13 +568,37 @@ if (!empty($allInstallmentsForSummary)) {
                                     <?php endforeach; ?>
                                     <td class="text-center">
                                         <?php if ($inst['status'] !== 'completed') : ?>
-                                            <button type="button" class="btn btn-xs btn-outline-danger btn-delete-inst"
-                                                data-id="<?= $inst['id'] ?>"
-                                                data-desc="<?= esc($inst['description']) ?>"
-                                                data-trip="<?= $inst['trip_id'] ?>"
-                                                title="Hapus">
-                                                <i class="fas fa-trash"></i>
-                                            </button>
+                                            <?php
+                                            $paidCountForEdit = 0;
+                                            foreach ($inst['payments'] as $p) {
+                                                if ($p['status'] === 'paid') {
+                                                    $paidCountForEdit++;
+                                                }
+                                            }
+                                            ?>
+                                            <div class="d-flex justify-content-center">
+                                                <button type="button" class="btn btn-xs btn-outline-primary btn-edit-inst mr-1"
+                                                    data-id="<?= $inst['id'] ?>"
+                                                    data-desc="<?= esc($inst['description']) ?>"
+                                                    data-source="<?= $inst['source_type'] ?>"
+                                                    data-lender="<?= $inst['lender_user_id'] ?? '' ?>"
+                                                    data-total="<?= $inst['total_amount'] ?>"
+                                                    data-monthly="<?= $inst['monthly_amount'] ?>"
+                                                    data-months="<?= $inst['installment_months'] ?>"
+                                                    data-start="<?= date('Y-m', strtotime($inst['start_date'])) ?>"
+                                                    data-note="<?= esc($inst['note'] ?? '') ?>"
+                                                    data-paid-count="<?= $paidCountForEdit ?>"
+                                                    title="Edit">
+                                                    <i class="fas fa-edit"></i>
+                                                </button>
+                                                <button type="button" class="btn btn-xs btn-outline-danger btn-delete-inst"
+                                                    data-id="<?= $inst['id'] ?>"
+                                                    data-desc="<?= esc($inst['description']) ?>"
+                                                    data-trip="<?= $inst['trip_id'] ?>"
+                                                    title="Hapus">
+                                                    <i class="fas fa-trash"></i>
+                                                </button>
+                                            </div>
                                         <?php endif; ?>
                                     </td>
                                 </tr>
@@ -889,6 +913,130 @@ if (!empty($allInstallmentsForSummary)) {
     </div>
 </div>
 
+<!-- ===================== MODAL: Edit Cicilan ===================== -->
+<div class="modal fade" id="modalEditCicilan" tabindex="-1" role="dialog">
+    <div class="modal-dialog modal-lg" role="document">
+        <div class="modal-content">
+            <form method="POST" action="" id="formEditCicilan">
+                <?= csrf_field() ?>
+                <div class="modal-header bg-primary text-white">
+                    <h5 class="modal-title"><i class="fas fa-edit mr-2"></i>Edit Cicilan</h5>
+                    <button type="button" class="close text-white" data-dismiss="modal"><span>&times;</span></button>
+                </div>
+
+                <div class="modal-body">
+                    <!-- Warning Alert if paid months exist -->
+                    <div class="alert alert-warning" id="editPaidWarning" style="display:none;">
+                        <i class="fas fa-exclamation-triangle mr-2"></i>
+                        Beberapa bulan sudah dibayar. Anda hanya diperbolehkan mengubah <strong>Nama / Keterangan</strong> dan <strong>Catatan</strong> untuk menjaga konsistensi keuangan.
+                    </div>
+
+                    <!-- Nama/Deskripsi -->
+                    <div class="form-group">
+                        <label for="edit_inst_description">Nama / Keterangan Cicilan <span class="text-danger">*</span></label>
+                        <input type="text" name="description" id="edit_inst_description" class="form-control" required>
+                    </div>
+
+                    <div id="editStructuralFields">
+                        <!-- Sumber Cicilan -->
+                        <div class="form-group">
+                            <label>Sumber Cicilan <span class="text-danger">*</span></label>
+                            <div class="d-flex">
+                                <div class="custom-control custom-radio mr-4">
+                                    <input type="radio" id="edit_src_loan" name="source_type" value="member_loan" class="custom-control-input" required>
+                                    <label class="custom-control-label" for="edit_src_loan">
+                                        <i class="fas fa-users mr-1 text-primary"></i> Pinjaman Anggota
+                                    </label>
+                                </div>
+                                <div class="custom-control custom-radio">
+                                    <input type="radio" id="edit_src_cc" name="source_type" value="credit_card" class="custom-control-input">
+                                    <label class="custom-control-label" for="edit_src_cc">
+                                        <i class="fas fa-user mr-1 text-success"></i> Pinjaman Pribadi
+                                    </label>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Dropdown Lender -->
+                        <div class="form-group" id="editLenderWrapper" style="display:none;">
+                            <label for="edit_inst_lender">Pemberi Pinjaman <span class="text-danger">*</span></label>
+                            <select name="lender_user_id" id="edit_inst_lender" class="form-control">
+                                <option value="">-- Pilih Anggota --</option>
+                                <?php foreach ($groupMembers as $m) : ?>
+                                    <option value="<?= $m['user_id'] ?>">
+                                        <?= esc($m['username']) ?> <?= (int)$m['user_id'] === (int)user_id() ? '(Saya)' : '' ?>
+                                    </option>
+                                <?php endforeach; ?>
+                            </select>
+                        </div>
+
+                        <!-- Cara Input -->
+                        <div class="form-group">
+                            <label>Cara Input Nilai <span class="text-danger">*</span></label>
+                            <div class="d-flex">
+                                <div class="custom-control custom-radio mr-4">
+                                    <input type="radio" id="edit_mode_total" name="calc_mode" value="total_months" class="custom-control-input" checked required>
+                                    <label class="custom-control-label" for="edit_mode_total">Nominal Total</label>
+                                </div>
+                                <div class="custom-control custom-radio">
+                                    <input type="radio" id="edit_mode_monthly" name="calc_mode" value="monthly_duration" class="custom-control-input">
+                                    <label class="custom-control-label" for="edit_mode_monthly">Nominal Bulanan</label>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="row">
+                            <!-- Nominal Total -->
+                            <div class="col-md-6 form-group" id="editInputTotalWrapper">
+                                <label for="edit_inst_total">Jumlah Total Pinjaman <span class="text-danger">*</span></label>
+                                <div class="input-group">
+                                    <div class="input-group-prepend"><span class="input-group-text">Rp</span></div>
+                                    <input type="number" name="total_amount" id="edit_inst_total" class="form-control" placeholder="0" required>
+                                </div>
+                            </div>
+
+                            <!-- Nominal Bulanan -->
+                            <div class="col-md-6 form-group" id="editInputMonthlyWrapper" style="display:none;">
+                                <label for="edit_inst_monthly">Jumlah Cicilan / Bulan <span class="text-danger">*</span></label>
+                                <div class="input-group">
+                                    <div class="input-group-prepend"><span class="input-group-text">Rp</span></div>
+                                    <input type="number" name="monthly_amount" id="edit_inst_monthly" class="form-control" placeholder="0">
+                                </div>
+                            </div>
+
+                            <!-- Durasi -->
+                            <div class="col-md-6 form-group">
+                                <label for="edit_inst_months">Tenor / Durasi (Bulan) <span class="text-danger">*</span></label>
+                                <div class="input-group">
+                                    <input type="number" name="installment_months" id="edit_inst_months" class="form-control" min="1" placeholder="Misal: 6" required>
+                                    <div class="input-group-append"><span class="input-group-text">Bulan</span></div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Mulai Bulan -->
+                        <div class="form-group">
+                            <label for="edit_inst_start">Mulai Bulan <span class="text-danger">*</span></label>
+                            <input type="month" name="start_date" id="edit_inst_start" class="form-control" required>
+                        </div>
+                    </div>
+
+                    <!-- Catatan -->
+                    <div class="form-group">
+                        <label for="edit_inst_note">Catatan (opsional)</label>
+                        <textarea name="note" id="edit_inst_note" class="form-control" rows="2" placeholder="Detail belanja atau info tambahan..."></textarea>
+                    </div>
+                </div>
+
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-dismiss="modal">Batal</button>
+                    <button type="submit" class="btn btn-primary"><i class="fas fa-save mr-1"></i> Simpan Perubahan</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
 <!-- ===================== MODAL: Bayar Cicilan (Loan ke Anggota) ===================== -->
 <div class="modal fade" id="modalBayarLoan" tabindex="-1" role="dialog">
     <div class="modal-dialog" role="document">
@@ -1118,7 +1266,7 @@ $(function () {
     }
 
     // ---- Source type toggle ----
-    $('input[name="source_type"]').on('change', function () {
+    $('#modalTambahCicilan input[name="source_type"]').on('change', function () {
         if ($(this).val() === 'member_loan') {
             $('#lenderWrapper').show();
             $('#borrowerWrapper').show();
@@ -1146,7 +1294,7 @@ $(function () {
     });
 
     // ---- Calc mode toggle ----
-    $('input[name="calc_mode"]').on('change', function () {
+    $('#modalTambahCicilan input[name="calc_mode"]').on('change', function () {
         if ($(this).val() === 'total_months') {
             $('#inputTotalWrapper').show();
             $('#inputMonthlyWrapper').hide();
@@ -1168,17 +1316,17 @@ $(function () {
         simTimer = setTimeout(doSimulate, 500);
     }
 
-    $('#inst_total, #inst_monthly, #inst_months, #inst_start, .borrower-cb, input[name="split_type"]').on('input change', runSimulate);
+    $('#modalTambahCicilan #inst_total, #modalTambahCicilan #inst_monthly, #modalTambahCicilan #inst_months, #modalTambahCicilan #inst_start, #modalTambahCicilan .borrower-cb, #modalTambahCicilan input[name="split_type"]').on('input change', runSimulate);
 
     function doSimulate() {
-        var mode    = $('input[name="calc_mode"]:checked').val();
+        var mode    = $('#modalTambahCicilan input[name="calc_mode"]:checked').val();
         var months  = parseInt($('#inst_months').val()) || 0;
         var startRaw = $('#inst_start').val();
         var total   = parseInt($('#inst_total').val()) || 0;
         var monthly = parseInt($('#inst_monthly').val()) || 0;
 
-        var sourceType = $('input[name="source_type"]:checked').val();
-        var splitType = $('input[name="split_type"]:checked').val();
+        var sourceType = $('#modalTambahCicilan input[name="source_type"]:checked').val();
+        var splitType = $('#modalTambahCicilan input[name="split_type"]:checked').val();
         var checkedBorrowers = $('.borrower-cb:checked').length || 1;
 
         if (sourceType === 'member_loan' && splitType === 'equal') {
@@ -1286,6 +1434,119 @@ $(function () {
             $('#modalBayarCC').modal('show');
         }
     });
+
+    // ---- Edit Cicilan ----
+    $(document).on('click', '.btn-edit-inst', function () {
+        var id        = $(this).data('id');
+        var desc      = $(this).data('desc');
+        var source    = $(this).data('source');
+        var lender    = $(this).data('lender');
+        var total     = $(this).data('total');
+        var monthly   = $(this).data('monthly');
+        var months    = $(this).data('months');
+        var start     = $(this).data('start');
+        var note      = $(this).data('note');
+        var paidCount = parseInt($(this).data('paid-count')) || 0;
+
+        // Set action form
+        $('#formEditCicilan').attr('action', '<?= base_url('backend/installments/update/') ?>' + id);
+
+        // Populate values
+        $('#edit_inst_description').val(desc);
+        $('#edit_inst_note').val(note);
+
+        if (paidCount > 0) {
+            // Sembunyikan field struktural jika ada yang terbayar
+            $('#editStructuralFields').hide();
+            $('#editPaidWarning').show();
+            // Nonaktifkan input agar tidak di-validate HTML5
+            $('#editStructuralFields').find('input, select').prop('disabled', true);
+        } else {
+            // Tampilkan field struktural & aktifkan kembali
+            $('#editStructuralFields').show();
+            $('#editPaidWarning').hide();
+            $('#editStructuralFields').find('input, select').prop('disabled', false);
+
+            // Set values untuk field struktural
+            if (source === 'member_loan') {
+                $('#edit_src_loan').prop('checked', true);
+                $('#editLenderWrapper').show();
+                $('#edit_inst_lender').val(lender).prop('required', true);
+            } else {
+                $('#edit_src_cc').prop('checked', true);
+                $('#editLenderWrapper').hide();
+                $('#edit_inst_lender').val('').prop('required', false);
+            }
+
+            // Set nominal & durasi
+            $('#edit_inst_total').val(total);
+            $('#edit_inst_monthly').val(monthly);
+            $('#edit_inst_months').val(months);
+            $('#edit_inst_start').val(start);
+
+            // Default ke nominal total
+            $('#edit_mode_total').prop('checked', true);
+            $('#editInputTotalWrapper').show();
+            $('#editInputMonthlyWrapper').hide();
+            $('#edit_inst_total').prop('required', true);
+            $('#edit_inst_monthly').prop('required', false);
+        }
+
+        $('#modalEditCicilan').modal('show');
+    });
+
+    // Toggle Sumber di Edit Modal
+    $('#modalEditCicilan input[name="source_type"]').on('change', function () {
+        if ($(this).val() === 'member_loan') {
+            $('#editLenderWrapper').show();
+            $('#edit_inst_lender').prop('required', true);
+        } else {
+            $('#editLenderWrapper').hide();
+            $('#edit_inst_lender').prop('required', false).val('');
+        }
+    });
+
+    // Toggle Cara Input di Edit Modal
+    $('#modalEditCicilan input[name="calc_mode"]').on('change', function () {
+        if ($(this).val() === 'total_months') {
+            $('#editInputTotalWrapper').show();
+            $('#editInputMonthlyWrapper').hide();
+            $('#edit_inst_total').prop('required', true);
+            $('#edit_inst_monthly').prop('required', false).val('');
+        } else {
+            $('#editInputTotalWrapper').hide();
+            $('#editInputMonthlyWrapper').show();
+            $('#edit_inst_monthly').prop('required', true);
+            $('#edit_inst_total').prop('required', false).val('');
+        }
+        runEditSimulate();
+    });
+
+    // Auto-Simulasi di Edit Modal
+    var editSimTimer;
+    function runEditSimulate() {
+        clearTimeout(editSimTimer);
+        editSimTimer = setTimeout(doEditSimulate, 300);
+    }
+
+    $('#modalEditCicilan #edit_inst_total, #modalEditCicilan #edit_inst_monthly, #modalEditCicilan #edit_inst_months').on('input change', runEditSimulate);
+
+    function doEditSimulate() {
+        var mode    = $('#modalEditCicilan input[name="calc_mode"]:checked').val();
+        var months  = parseInt($('#edit_inst_months').val()) || 0;
+        var total   = parseInt($('#edit_inst_total').val()) || 0;
+        var monthly = parseInt($('#edit_inst_monthly').val()) || 0;
+
+        if (months > 0) {
+            if (mode === 'total_months') {
+                monthly = Math.round(total / months);
+                $('#edit_inst_monthly').val(monthly);
+            } else {
+                total = monthly * months;
+                $('#edit_inst_total').val(total);
+            }
+        }
+    }
 
     // ---- Hapus Cicilan ----
     $(document).on('click', '.btn-delete-inst', function () {
