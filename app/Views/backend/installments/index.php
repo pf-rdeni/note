@@ -152,12 +152,25 @@ if (!empty($allInstallmentsForSummary)) {
     }
 
     // Calculate dashboard statistics
-    $statTotalLoan = 0;
+    $statTotalLoanInitial = 0;
+    $statTotalLoanRemaining = 0;
     $statActiveCount = 0;
     if (!empty($allInstallmentsForSummary)) {
         foreach ($allInstallmentsForSummary as $inst) {
             if ($inst['status'] === 'active') {
-                $statTotalLoan += (int)$inst['total_amount'];
+                $statTotalLoanInitial += (int)$inst['total_amount'];
+                
+                $remaining = 0;
+                if (!empty($inst['payments'])) {
+                    foreach ($inst['payments'] as $p) {
+                        if ($p['status'] !== 'paid') {
+                            $remaining += (int)$p['due_amount'];
+                        }
+                    }
+                } else {
+                    $remaining = (int)$inst['total_amount'];
+                }
+                $statTotalLoanRemaining += $remaining;
                 $statActiveCount++;
             }
         }
@@ -201,17 +214,18 @@ if (!empty($allInstallmentsForSummary)) {
     }
 
     // Role-based dynamic labels
-    $labelTotalActive = ($role === 'borrower') ? 'TOTAL PINJAMAN AKTIF' : 'TOTAL PIUTANG AKTIF';
-    $labelThisMonth   = ($role === 'borrower') ? 'TAGIHAN BULAN INI' : 'TAGIHAN MASUK BULAN INI';
-    $labelNextMonth   = ($role === 'borrower') ? 'PROYEKSI BULAN DEPAN' : 'PROYEKSI MASUK BULAN DEPAN';
-    $descActiveCount  = ($role === 'borrower') ? 'cicilan berjalan' : 'piutang berjalan';
-    $descUnfinished   = ($role === 'borrower') ? 'Harus dilunasi berkala' : 'Akan diterima berkala';
+    $labelTotalActive  = ($role === 'borrower') ? 'SISA PINJAMAN AKTIF' : 'SISA PIUTANG AKTIF';
+    $labelTotalInitial = ($role === 'borrower') ? 'Awal' : 'Awal';
+    $labelThisMonth    = ($role === 'borrower') ? 'TAGIHAN BULAN INI' : 'TAGIHAN MASUK BULAN INI';
+    $labelNextMonth    = ($role === 'borrower') ? 'PROYEKSI BULAN DEPAN' : 'PROYEKSI MASUK BULAN DEPAN';
+    $descActiveCount   = ($role === 'borrower') ? 'cicilan berjalan' : 'piutang berjalan';
+    $descUnfinished    = ($role === 'borrower') ? 'Harus dilunasi berkala' : 'Akan diterima berkala';
     ?>
 
     <?php if (!empty($allInstallmentsForSummary)) : ?>
         <!-- Summary Cards Dashboard -->
         <div class="row mb-4">
-            <!-- Card 1: Total Pinjaman (Blue) -->
+            <!-- Card 1: Sisa Pinjaman (Blue) -->
             <div class="col-xl-3 col-md-6 mb-3 mb-xl-0">
                 <div class="card bg-primary text-white border-0 shadow-sm position-relative overflow-hidden" style="border-radius: 12px;">
                     <div class="card-body p-3">
@@ -219,15 +233,16 @@ if (!empty($allInstallmentsForSummary)) {
                             <div>
                                 <p class="text-uppercase text-white-50 font-weight-bold mb-1" style="font-size: 0.72rem; letter-spacing: 1px;"><?= $labelTotalActive ?></p>
                                 <h4 class="mb-0 font-weight-bold" style="font-size: 1.35rem;">
-                                    Rp <?= number_format($statTotalLoan, 0, ',', '.') ?>
+                                    Rp <?= number_format($statTotalLoanRemaining, 0, ',', '.') ?>
                                 </h4>
                             </div>
                             <div class="bg-white-10 p-2 rounded-circle" style="background: rgba(255,255,255,0.15);">
                                 <i class="fas fa-wallet fa-lg"></i>
                             </div>
                         </div>
-                        <div class="mt-2 text-white-50 small">
-                            <i class="fas fa-info-circle mr-1"></i>Dari <?= $statActiveCount ?> <?= $descActiveCount ?>
+                        <div class="mt-2 text-white-50 small d-flex justify-content-between align-items-center">
+                            <span><i class="fas fa-info-circle mr-1"></i><?= $labelTotalInitial ?>: Rp <?= number_format($statTotalLoanInitial, 0, ',', '.') ?></span>
+                            <span class="badge badge-light text-primary font-weight-bold" style="font-size: 0.65rem; padding: 2px 6px;"><?= $statActiveCount ?> Aktif</span>
                         </div>
                     </div>
                 </div>
