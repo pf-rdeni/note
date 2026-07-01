@@ -8,6 +8,8 @@ use App\Models\GroupMemberModel;
 use App\Models\TripModel;
 use App\Models\PeriodModel;
 use App\Models\TransactionModel;
+use App\Models\InstallmentModel;
+use App\Models\InstallmentPaymentModel;
 
 class Dashboard extends BaseController
 {
@@ -266,6 +268,150 @@ class Dashboard extends BaseController
             }
         }
 
+        // --- 4. Hitung Statistik & Proyeksi Cicilan (Global) ---
+        $installmentModel = new InstallmentModel();
+        $paymentModel     = new InstallmentPaymentModel();
+        $userIdInt        = (int)$userId;
+
+        $userInstallments = $installmentModel->select('installments.*, 
+                COALESCE(NULLIF(lender.fullname, \'\'), lender.username) as lender_name,
+                COALESCE(NULLIF(borrower.fullname, \'\'), borrower.username) as borrower_name,
+                trips.name as trip_name')
+            ->join('users lender', 'lender.id = installments.lender_user_id', 'left')
+            ->join('users borrower', 'borrower.id = installments.borrower_user_id')
+            ->join('trips', 'trips.id = installments.trip_id')
+            ->groupStart()
+                ->where('installments.borrower_user_id', $userIdInt)
+                ->orWhere('installments.lender_user_id', $userIdInt)
+            ->groupEnd()
+            ->findAll();
+
+        $userInstallmentIds = array_column($userInstallments, 'id');
+        $userPayments = [];
+        if (!empty($userInstallmentIds)) {
+            $userPayments = $paymentModel->whereIn('installment_id', $userInstallmentIds)
+                ->orderBy('due_date', 'ASC')
+                ->findAll();
+        }
+
+        $paymentsByInstallment = [];
+        foreach ($userPayments as $p) {
+            $paymentsByInstallment[$p['installment_id']][] = $p;
+        }
+
+        $currentMonth = date('Y-m-01');
+        $next6Months = [];
+        $monthKeys = [];
+        for ($i = 0; $i < 6; $i++) {
+            $mKey = date('Y-m-01', strtotime("+$i month"));
+            $mLabel = date('M Y', strtotime("+$i month"));
+            $monthKeys[] = $mKey;
+            $next6Months[$mKey] = [
+                'label'    => $mLabel,
+                'due_pay'  => 0, // Tagihan saya (Hutang)
+                'due_rcv'  => 0  // Piutang saya (Dana Masuk)
+            ];
+        }
+
+        $dashboardSisaPinjaman = 0;
+        $dashboardSisaPiutang = 0;
+        $dashboardTagihanBulanIni = 0;
+        $dashboardPiutangBulanIni = 0;
+
+        $borrowerInstallmentTrends = [];
+        $lenderInstallmentTrends = [];
+
+        // Colors palette for chart datasets
+        $colorPalette = [
+            'rgba(0, 123, 255, 0.75)',  // Blue
+            'rgba(40, 167, 69, 0.75)',   // Green
+            'rgba(253, 126, 20, 0.75)',  // Orange
+            'rgba(23, 162, 184, 0.75)',  // Teal
+            'rgba(111, 66, 193, 0.75)',  // Purple
+            'rgba(220, 53, 69, 0.75)',   // Red
+            'rgba(255, 193, 7, 0.75)',   // Yellow
+            'rgba(74, 85, 104, 0.75)',   // Gray
+            'rgba(236, 72, 153, 0.75)',  // Pink
+            'rgba(20, 184, 166, 0.75)'   // Cyan
+        ];
+
+        $cIndexB = 0;
+        $cIndexL = 0;
+
+        foreach ($userInstallments as $inst) {
+            $instId = $inst['id'];
+            $isBorrower = ((int)$inst['borrower_user_id'] === $userIdInt);
+            $isLender   = ((int)$inst['lender_user_id'] === $userIdInt);
+            
+            $instPayments = $paymentsByInstallment[$instId] ?? [];
+            
+            $monthlyValues = array_fill_keys($monthKeys, 0);
+            $hasUnpaidPayments = false;
+
+            foreach ($instPayments as $p) {
+                $dueAmt = (int)$p['due_amount'];
+                if ($p['status'] !== 'paid') {
+                    if ($isBorrower) {
+                        $dashboardSisaPinjaman += $dueAmt;
+                        if ($p['due_date'] === $currentMonth) {
+                            $dashboardTagihanBulanIni += $dueAmt;
+                        }
+                    }
+                    if ($isLender) {
+                        $dashboardSisaPiutang += $dueAmt;
+                        if ($p['due_date'] === $currentMonth) {
+                            $dashboardPiutangBulanIni += $dueAmt;
+                        }
+                    }
+
+                    // Add to trends monthly values
+                    if (isset($monthlyValues[$p['due_date']])) {
+                        $monthlyValues[$p['due_date']] = $dueAmt;
+                        $hasUnpaidPayments = true;
+                    }
+                }
+
+                // Monthly projection chart data (next 6 months)
+                if (isset($next6Months[$p['due_date']])) {
+                    if ($p['status'] !== 'paid') {
+                        if ($isBorrower) {
+                            $next6Months[$p['due_date']]['due_pay'] += $dueAmt;
+                        }
+                        if ($isLender) {
+                            $next6Months[$p['due_date']]['due_rcv'] += $dueAmt;
+                        }
+                    }
+                }
+            }
+
+            // Generate trends dataset
+            if ($hasUnpaidPayments) {
+                if ($isBorrower) {
+                    $color = $colorPalette[$cIndexB % count($colorPalette)];
+                    $borrowerInstallmentTrends[] = [
+                        'label'           => $inst['description'],
+                        'data'            => array_values($monthlyValues),
+                        'backgroundColor' => $color,
+                        'borderColor'     => $color,
+                        'borderWidth'     => 1
+                    ];
+                    $cIndexB++;
+                }
+                if ($isLender) {
+                    $color = $colorPalette[$cIndexL % count($colorPalette)];
+                    $counterpart = $inst['borrower_name'] ?? 'Anggota';
+                    $lenderInstallmentTrends[] = [
+                        'label'           => $inst['description'] . ' (' . $counterpart . ')',
+                        'data'            => array_values($monthlyValues),
+                        'backgroundColor' => $color,
+                        'borderColor'     => $color,
+                        'borderWidth'     => 1
+                    ];
+                    $cIndexL++;
+                }
+            }
+        }
+
         $data = [
             'pageTitle'                 => 'Dashboard',
             'user'                      => user(),
@@ -282,6 +428,18 @@ class Dashboard extends BaseController
             'trendPeriods'              => $trendPeriods ?? [],
             'trendTransactionsByPeriod' => $trendTransactionsByPeriod ?? [],
             'trendHierarchy'            => $trendHierarchy ?? [],
+            'installmentStats'          => [
+                'sisa_pinjaman'     => $dashboardSisaPinjaman,
+                'sisa_piutang'      => $dashboardSisaPiutang,
+                'tagihan_bulan_ini' => $dashboardTagihanBulanIni,
+                'piutang_bulan_ini' => $dashboardPiutangBulanIni,
+                'chart_labels'      => array_column($next6Months, 'label'),
+                'chart_pay'         => array_column($next6Months, 'due_pay'),
+                'chart_rcv'         => array_column($next6Months, 'due_rcv'),
+                'borrower_trends'   => $borrowerInstallmentTrends,
+                'lender_trends'     => $lenderInstallmentTrends,
+                'has_installments'  => !empty($userInstallments)
+            ]
         ];
 
         return view('backend/dashboard/index', $data);

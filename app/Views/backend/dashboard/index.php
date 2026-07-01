@@ -299,6 +299,132 @@
     </div>
 </div>
 
+<?php if ($installmentStats['has_installments']) : ?>
+    <!-- Overview Cicilan & Tagihan Dashboard Row -->
+    <div class="row">
+        <!-- 1. Card Rincian Status (Left) -->
+        <div class="col-lg-8 mb-4">
+            <div class="card card-primary card-outline card-outline-tabs shadow-sm h-100 mb-0" style="border-radius: 12px; overflow: visible;">
+                <div class="card-header p-0 border-bottom-0">
+                    <ul class="nav nav-tabs nav-justified font-weight-bold" id="installment-tabs" role="tablist">
+                        <li class="nav-item">
+                            <a class="nav-link active" id="inst-overview-tab" data-toggle="pill" href="#inst-overview-content" role="tab" aria-controls="inst-overview-content" aria-selected="true">
+                                <i class="fas fa-hand-holding-usd mr-1 text-primary"></i> Ringkasan Saldo
+                            </a>
+                        </li>
+                        <li class="nav-item">
+                            <a class="nav-link" id="inst-borrower-tab" data-toggle="pill" href="#inst-borrower-content" role="tab" aria-controls="inst-borrower-content" aria-selected="false">
+                                <i class="fas fa-file-invoice-dollar mr-1 text-danger"></i> Tren Pinjaman Saya
+                            </a>
+                        </li>
+                        <li class="nav-item">
+                            <a class="nav-link" id="inst-lender-tab" data-toggle="pill" href="#inst-lender-content" role="tab" aria-controls="inst-lender-content" aria-selected="false">
+                                <i class="fas fa-coins mr-1 text-success"></i> Tren Piutang Saya
+                            </a>
+                        </li>
+                    </ul>
+                </div>
+                <div class="card-body">
+                    <div class="tab-content" id="installment-tabsContent">
+                        <!-- Tab 1: Ringkasan Saldo -->
+                        <div class="tab-pane fade show active" id="inst-overview-content" role="tabpanel" aria-labelledby="inst-overview-tab">
+                            <div class="row">
+                                <!-- Stat 1: Total Sisa Pinjaman -->
+                                <div class="col-md-6 mb-3">
+                                    <div class="p-3 bg-light rounded" style="border-left: 4px solid #007bff; border-radius: 8px;">
+                                        <span class="text-uppercase text-muted font-weight-bold small d-block mb-1" style="letter-spacing: 0.5px; font-size: 0.72rem;">Sisa Pinjaman (Hutang Saya)</span>
+                                        <h4 class="mb-0 font-weight-bold text-primary" style="font-size: 1.35rem;">
+                                            Rp <?= number_format($installmentStats['sisa_pinjaman'], 0, ',', '.') ?>
+                                        </h4>
+                                        <div class="mt-2 text-muted small">
+                                            Tagihan bulan ini: <strong class="text-danger">Rp <?= number_format($installmentStats['tagihan_bulan_ini'], 0, ',', '.') ?></strong>
+                                        </div>
+                                    </div>
+                                </div>
+                                
+                                <!-- Stat 2: Total Sisa Piutang -->
+                                <div class="col-md-6 mb-3">
+                                    <div class="p-3 bg-light rounded" style="border-left: 4px solid #28a745; border-radius: 8px;">
+                                        <span class="text-uppercase text-muted font-weight-bold small d-block mb-1" style="letter-spacing: 0.5px; font-size: 0.72rem;">Sisa Piutang (Dana Masuk)</span>
+                                        <h4 class="mb-0 font-weight-bold text-success" style="font-size: 1.35rem;">
+                                            Rp <?= number_format($installmentStats['sisa_piutang'], 0, ',', '.') ?>
+                                        </h4>
+                                        <div class="mt-2 text-muted small">
+                                            Piutang bulan ini: <strong class="text-success">Rp <?= number_format($installmentStats['piutang_bulan_ini'], 0, ',', '.') ?></strong>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div class="mt-3 d-flex justify-content-between align-items-center flex-wrap" style="gap: 8px;">
+                                <span class="small text-muted">
+                                    <i class="fas fa-info-circle mr-1 text-info"></i>
+                                    Lihat tab di atas untuk melihat detail per item bulanan.
+                                </span>
+                                <a href="<?= base_url('backend/installments') ?>" class="btn btn-xs btn-outline-primary font-weight-bold shadow-sm" style="border-radius: 6px; padding: 4px 8px;">
+                                    Kelola Rincian Cicilan <i class="fas fa-arrow-right ml-1"></i>
+                                </a>
+                            </div>
+                        </div>
+
+                        <!-- Tab 2: Tren Pinjaman Saya -->
+                        <div class="tab-pane fade" id="inst-borrower-content" role="tabpanel" aria-labelledby="inst-borrower-tab">
+                            <div class="mb-2 text-muted small">
+                                <i class="fas fa-info-circle text-primary mr-1"></i>
+                                Menampilkan proyeksi tagihan bulanan Anda berdasarkan rincian item barang.
+                            </div>
+                            <?php if (empty($installmentStats['borrower_trends'])): ?>
+                                <div class="text-center py-4 text-muted">
+                                    <i class="fas fa-file-invoice-dollar fa-2x mb-2 text-secondary"></i>
+                                    <p class="mb-0 small">Anda tidak memiliki tagihan aktif 6 bulan ke depan.</p>
+                                </div>
+                            <?php else: ?>
+                                <div class="chart-container" style="position: relative; height: 180px; width: 100%;">
+                                    <canvas id="borrowerTrendsChart"></canvas>
+                                </div>
+                            <?php endif; ?>
+                        </div>
+
+                        <!-- Tab 3: Tren Piutang Saya -->
+                        <div class="tab-pane fade" id="inst-lender-content" role="tabpanel" aria-labelledby="inst-lender-tab">
+                            <div class="mb-2 text-muted small">
+                                <i class="fas fa-info-circle text-success mr-1"></i>
+                                Menampilkan proyeksi piutang dana masuk dari anggota lain berdasarkan rincian item barang.
+                            </div>
+                            <?php if (empty($installmentStats['lender_trends'])): ?>
+                                <div class="text-center py-4 text-muted">
+                                    <i class="fas fa-coins fa-2x mb-2 text-secondary"></i>
+                                    <p class="mb-0 small">Anda tidak memiliki piutang aktif 6 bulan ke depan.</p>
+                                </div>
+                            <?php else: ?>
+                                <div class="chart-container" style="position: relative; height: 180px; width: 100%;">
+                                    <canvas id="lenderTrendsChart"></canvas>
+                                </div>
+                            <?php endif; ?>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- 2. Card Grafik Proyeksi (Right) -->
+        <div class="col-lg-4 mb-4">
+            <div class="card card-outline card-success shadow-sm h-100 mb-0" style="border-radius: 12px;">
+                <div class="card-header py-3">
+                    <h3 class="card-title font-weight-bold text-success mb-0" style="font-size: 1rem;">
+                        <i class="fas fa-chart-line mr-2"></i>Proyeksi Arus Kas (6 Bln)
+                    </h3>
+                </div>
+                <div class="card-body d-flex flex-column align-items-center justify-content-center">
+                    <div class="chart-container" style="position: relative; height: 180px; width: 100%;">
+                        <canvas id="installmentProjectionChart"></canvas>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+<?php endif; ?>
+
 <div class="row">
     <!-- Recent Transactions (Full width table) -->
     <div class="col-lg-12">
@@ -898,6 +1024,181 @@ $(document).ready(function() {
     if (cachedTab && $(`a[data-toggle="pill"][href="${cachedTab}"]`).length) {
         $(`a[data-toggle="pill"][href="${cachedTab}"]`).tab('show');
     }
+
+    // ---- Installment Projection Chart ----
+    <?php if ($installmentStats['has_installments']) : ?>
+    const projCtx = document.getElementById('installmentProjectionChart');
+    if (projCtx) {
+        new Chart(projCtx.getContext('2d'), {
+            type: 'line',
+            data: {
+                labels: <?= json_encode($installmentStats['chart_labels']) ?>,
+                datasets: [
+                    {
+                        label: 'Tagihan Saya',
+                        data: <?= json_encode($installmentStats['chart_pay']) ?>,
+                        borderColor: '#007bff',
+                        backgroundColor: 'rgba(0, 123, 255, 0.05)',
+                        borderWidth: 2.5,
+                        tension: 0.3,
+                        pointBackgroundColor: '#007bff',
+                        fill: true
+                    },
+                    {
+                        label: 'Piutang Masuk',
+                        data: <?= json_encode($installmentStats['chart_rcv']) ?>,
+                        borderColor: '#28a745',
+                        backgroundColor: 'rgba(40, 167, 69, 0.05)',
+                        borderWidth: 2.5,
+                        tension: 0.3,
+                        pointBackgroundColor: '#28a745',
+                        fill: true
+                    }
+                ]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: {
+                    legend: {
+                        display: true,
+                        position: 'top',
+                        labels: {
+                            boxWidth: 8,
+                            font: { size: 9, weight: 'bold' },
+                            padding: 8
+                        }
+                    },
+                    tooltip: {
+                        callbacks: {
+                            label: function(context) {
+                                return ` ${context.dataset.label}: ${formatCurrency(context.raw)}`;
+                            }
+                        }
+                    }
+                },
+                scales: {
+                    y: {
+                        beginAtZero: true,
+                        ticks: {
+                            callback: (val) => formatCurrency(val),
+                            font: { size: 8 }
+                        },
+                        grid: { color: 'rgba(0, 0, 0, 0.03)', drawBorder: false }
+                    },
+                    x: {
+                        ticks: { font: { size: 8 } },
+                        grid: { display: false }
+                    }
+                }
+            }
+        });
+    }
+
+    // ---- Stacked Bar Trends Charts ----
+    const bTrendsCtx = document.getElementById('borrowerTrendsChart');
+    if (bTrendsCtx) {
+        new Chart(bTrendsCtx.getContext('2d'), {
+            type: 'bar',
+            data: {
+                labels: <?= json_encode($installmentStats['chart_labels']) ?>,
+                datasets: <?= json_encode($installmentStats['borrower_trends']) ?>
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: {
+                    legend: {
+                        display: true,
+                        position: 'top',
+                        labels: {
+                            boxWidth: 8,
+                            font: { size: 8.5 },
+                            padding: 6
+                        }
+                    },
+                    tooltip: {
+                        callbacks: {
+                            label: function(context) {
+                                return ` ${context.dataset.label}: ${formatCurrency(context.raw)}`;
+                            }
+                        }
+                    }
+                },
+                scales: {
+                    y: {
+                        stacked: true,
+                        beginAtZero: true,
+                        ticks: {
+                            callback: (val) => formatCurrency(val),
+                            font: { size: 8 }
+                        },
+                        grid: { color: 'rgba(0, 0, 0, 0.03)', drawBorder: false }
+                    },
+                    x: {
+                        stacked: true,
+                        ticks: { font: { size: 8 } },
+                        grid: { display: false }
+                    }
+                }
+            }
+        });
+    }
+
+    const lTrendsCtx = document.getElementById('lenderTrendsChart');
+    if (lTrendsCtx) {
+        new Chart(lTrendsCtx.getContext('2d'), {
+            type: 'bar',
+            data: {
+                labels: <?= json_encode($installmentStats['chart_labels']) ?>,
+                datasets: <?= json_encode($installmentStats['lender_trends']) ?>
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: {
+                    legend: {
+                        display: true,
+                        position: 'top',
+                        labels: {
+                            boxWidth: 8,
+                            font: { size: 8.5 },
+                            padding: 6
+                        }
+                    },
+                    tooltip: {
+                        callbacks: {
+                            label: function(context) {
+                                return ` ${context.dataset.label}: ${formatCurrency(context.raw)}`;
+                            }
+                        }
+                    }
+                },
+                scales: {
+                    y: {
+                        stacked: true,
+                        beginAtZero: true,
+                        ticks: {
+                            callback: (val) => formatCurrency(val),
+                            font: { size: 8 }
+                        },
+                        grid: { color: 'rgba(0, 0, 0, 0.03)', drawBorder: false }
+                    },
+                    x: {
+                        stacked: true,
+                        ticks: { font: { size: 8 } },
+                        grid: { display: false }
+                    }
+                }
+            }
+        });
+    }
+
+    // Force dispatch window resize to recalculate canvas sizes inside bootstrap tabs
+    $('a[data-toggle="pill"]').on('shown.bs.tab', function () {
+        window.dispatchEvent(new Event('resize'));
+    });
+    <?php endif; ?>
 });
 </script>
 
