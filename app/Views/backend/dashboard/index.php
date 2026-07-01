@@ -336,8 +336,21 @@
                                         <h4 class="mb-0 font-weight-bold text-primary" style="font-size: 1.35rem;">
                                             Rp <?= number_format($installmentStats['sisa_pinjaman'], 0, ',', '.') ?>
                                         </h4>
-                                        <div class="mt-2 text-muted small">
-                                            Tagihan bulan ini: <strong class="text-danger">Rp <?= number_format($installmentStats['tagihan_bulan_ini'], 0, ',', '.') ?></strong>
+                                        <div class="mt-2 text-muted small d-flex justify-content-between flex-wrap" style="gap: 8px;">
+                                            <span>Bulan Ini: 
+                                                <?php if ($installmentStats['tagihan_bulan_ini'] > 0) : ?>
+                                                    <strong class="text-danger">Rp <?= number_format($installmentStats['tagihan_bulan_ini'], 0, ',', '.') ?></strong>
+                                                <?php else : ?>
+                                                    <strong class="text-success"><i class="fas fa-check-circle mr-1"></i>Lunas</strong>
+                                                <?php endif; ?>
+                                            </span>
+                                            <span>Bulan Depan: 
+                                                <?php if ($installmentStats['tagihan_bulan_depan'] > 0) : ?>
+                                                    <strong class="text-secondary">Rp <?= number_format($installmentStats['tagihan_bulan_depan'], 0, ',', '.') ?></strong>
+                                                <?php else : ?>
+                                                    <strong class="text-success"><i class="fas fa-check-circle mr-1"></i>Lunas</strong>
+                                                <?php endif; ?>
+                                            </span>
                                         </div>
                                     </div>
                                 </div>
@@ -349,8 +362,21 @@
                                         <h4 class="mb-0 font-weight-bold text-success" style="font-size: 1.35rem;">
                                             Rp <?= number_format($installmentStats['sisa_piutang'], 0, ',', '.') ?>
                                         </h4>
-                                        <div class="mt-2 text-muted small">
-                                            Piutang bulan ini: <strong class="text-success">Rp <?= number_format($installmentStats['piutang_bulan_ini'], 0, ',', '.') ?></strong>
+                                        <div class="mt-2 text-muted small d-flex justify-content-between flex-wrap" style="gap: 8px;">
+                                            <span>Bulan Ini: 
+                                                <?php if ($installmentStats['piutang_bulan_ini'] > 0) : ?>
+                                                    <strong class="text-success">Rp <?= number_format($installmentStats['piutang_bulan_ini'], 0, ',', '.') ?></strong>
+                                                <?php else : ?>
+                                                    <strong class="text-success"><i class="fas fa-check-circle mr-1"></i>Lunas</strong>
+                                                <?php endif; ?>
+                                            </span>
+                                            <span>Bulan Depan: 
+                                                <?php if ($installmentStats['piutang_bulan_depan'] > 0) : ?>
+                                                    <strong class="text-secondary">Rp <?= number_format($installmentStats['piutang_bulan_depan'], 0, ',', '.') ?></strong>
+                                                <?php else : ?>
+                                                    <strong class="text-success"><i class="fas fa-check-circle mr-1"></i>Lunas</strong>
+                                                <?php endif; ?>
+                                            </span>
                                         </div>
                                     </div>
                                 </div>

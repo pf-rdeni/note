@@ -300,6 +300,7 @@ class Dashboard extends BaseController
         }
 
         $currentMonth = date('Y-m-01');
+        $nextMonth    = date('Y-m-01', strtotime('+1 month'));
         $next6Months = [];
         $monthKeys = [];
         for ($i = 0; $i < 6; $i++) {
@@ -317,6 +318,8 @@ class Dashboard extends BaseController
         $dashboardSisaPiutang = 0;
         $dashboardTagihanBulanIni = 0;
         $dashboardPiutangBulanIni = 0;
+        $dashboardTagihanBulanDepan = 0;
+        $dashboardPiutangBulanDepan = 0;
 
         $borrowerInstallmentTrends = [];
         $lenderInstallmentTrends = [];
@@ -356,11 +359,17 @@ class Dashboard extends BaseController
                         if ($p['due_date'] === $currentMonth) {
                             $dashboardTagihanBulanIni += $dueAmt;
                         }
+                        if ($p['due_date'] === $nextMonth) {
+                            $dashboardTagihanBulanDepan += $dueAmt;
+                        }
                     }
                     if ($isLender) {
                         $dashboardSisaPiutang += $dueAmt;
                         if ($p['due_date'] === $currentMonth) {
                             $dashboardPiutangBulanIni += $dueAmt;
+                        }
+                        if ($p['due_date'] === $nextMonth) {
+                            $dashboardPiutangBulanDepan += $dueAmt;
                         }
                     }
 
@@ -429,16 +438,18 @@ class Dashboard extends BaseController
             'trendTransactionsByPeriod' => $trendTransactionsByPeriod ?? [],
             'trendHierarchy'            => $trendHierarchy ?? [],
             'installmentStats'          => [
-                'sisa_pinjaman'     => $dashboardSisaPinjaman,
-                'sisa_piutang'      => $dashboardSisaPiutang,
-                'tagihan_bulan_ini' => $dashboardTagihanBulanIni,
-                'piutang_bulan_ini' => $dashboardPiutangBulanIni,
-                'chart_labels'      => array_column($next6Months, 'label'),
-                'chart_pay'         => array_column($next6Months, 'due_pay'),
-                'chart_rcv'         => array_column($next6Months, 'due_rcv'),
-                'borrower_trends'   => $borrowerInstallmentTrends,
-                'lender_trends'     => $lenderInstallmentTrends,
-                'has_installments'  => !empty($userInstallments)
+                'sisa_pinjaman'              => $dashboardSisaPinjaman,
+                'sisa_piutang'               => $dashboardSisaPiutang,
+                'tagihan_bulan_ini'          => $dashboardTagihanBulanIni,
+                'piutang_bulan_ini'          => $dashboardPiutangBulanIni,
+                'tagihan_bulan_depan'        => $dashboardTagihanBulanDepan,
+                'piutang_bulan_depan'        => $dashboardPiutangBulanDepan,
+                'chart_labels'               => array_column($next6Months, 'label'),
+                'chart_pay'                  => array_column($next6Months, 'due_pay'),
+                'chart_rcv'                  => array_column($next6Months, 'due_rcv'),
+                'borrower_trends'            => $borrowerInstallmentTrends,
+                'lender_trends'              => $lenderInstallmentTrends,
+                'has_installments'           => !empty($userInstallments)
             ]
         ];
 
