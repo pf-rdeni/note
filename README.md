@@ -1,69 +1,89 @@
-# CodeIgniter 4 Application Starter
+# Split Bill Keluarga & Catatan Keuangan Kegiatan
 
-## What is CodeIgniter?
+Aplikasi berbasis web untuk mencatat pengeluaran bersama keluarga, membagi beban tagihan (*split bill*), dan melacak cicilan/hutang secara transparan dan teratur. Dibuat menggunakan **CodeIgniter 4**, **Bootstrap 4**, dan **Chart.js**.
 
-CodeIgniter is a PHP full-stack web framework that is light, fast, flexible and secure.
-More information can be found at the [official site](https://codeigniter.com).
+---
 
-This repository holds a composer-installable app starter.
-It has been built from the
-[development repository](https://github.com/codeigniter4/CodeIgniter4).
+## 🌟 Fitur Utama
+1. **Manajemen Grup & Kegiatan (*Groups & Trips*)**
+   - Mengelompokkan anggota keluarga dalam grup.
+   - Membuat kegiatan/trip perjalanan (misal: *Ngopi*, *Libur Sekolah*, *Belanja Bulanan*).
+2. **Pencatatan Transaksi & Pembagian Beban (*Split Bill*)**
+   - Mencatat pengeluaran per kegiatan.
+   - Pilihan pembagian rata (*shared*) ke seluruh anggota yang ikut atau nominal khusus (*individual*).
+3. **Fitur Cicilan & Manajemen Tagihan [NEW]**
+   - **Dua Tipe Sumber**: Pinjaman Anggota (antar anggota grup) dan Pinjaman Pribadi (bersumber dari eksternal/bank/kartu kredit).
+   - **Pembagian Nominal Fleksibel**: Bagi rata (*equal split*) atau nominal sama per orang (*fixed amount*).
+   - **Penanganan Bagian Mandiri (Self-Portion)**: Jika pembuat cicilan membagi tagihan ke dirinya sendiri, sistem otomatis memisahkan bagian dirinya menjadi **Pinjaman Pribadi** (hutang eksternal bank) sedangkan bagian anggota lain dicatat sebagai **Pinjaman Anggota** (piutang Indra ke anggota tersebut).
+   - **Role Toggle Switcher (Tampilan Peran)**: Kemudahan beralih tampilan antara **Sebagai Peminjam** (daftar kewajiban bayar Anda) dan **Sebagai Pemberi Pinjaman** (daftar piutang masuk Anda) dengan visualisasi dasbor kartu statistik yang adaptif.
+   - **Filter Cerdas & Sinkron**: Dropdown filter kegiatan utama dan tabel proyeksi bulanan disinkronkan secara *client-side* menggunakan JQuery, dengan penyimpanan preferensi saringan filter terakhir pada `localStorage`.
+   - **Edit & Rekalkulasi Otomatis**: Jika cicilan belum memiliki riwayat bayar, nilai nominal, bulan mulai, dan durasi dapat diubah bebas dan sistem akan menghitung ulang jadwal. Jika sudah ada angsuran terbayar, perubahan dibatasi pada catatan untuk melindungi integritas saldo historis.
+4. **Dasbor Analisis Interaktif & Grafik Proyeksi**
+   - Dasbor statistik global sisa pinjaman & piutang aktif, lengkap dengan rincian kewajiban bulan ini dan proyeksi bulan berikutnya (otomatis menampilkan status **Lunas** berwarna hijau jika bernilai Rp 0).
+   - **Proyeksi Arus Kas 6 Bulan**: Grafik garis proyeksi arus kas masa depan (Tagihan Keluar vs Piutang Masuk).
+   - **Tren Cicilan Per Item**: Grafik batang bertumpuk (*stacked bar chart*) interaktif untuk melihat rincian alokasi nominal cicilan Anda berdasarkan deskripsi item bulan demi bulan.
 
-More information about the plans for version 4 can be found in [CodeIgniter 4](https://forum.codeigniter.com/forumdisplay.php?fid=28) on the forums.
+---
 
-You can read the [user guide](https://codeigniter.com/user_guide/)
-corresponding to the latest version of the framework.
+## 🗄️ Skema Database & Migrasi
+Fitur cicilan didukung oleh tiga tabel utama:
+1. **`installments`**: Menyimpan data induk cicilan (Nama, Tipe Sumber, Total Nominal, Peminjam, Pemberi Pinjaman, Kegiatan, Durasi, dsb).
+2. **`installment_payments`**: Menyimpan jadwal pembayaran/angsuran per bulan (Tanggal Jatuh Tempo, Jumlah Angsuran, Status Bayar).
+3. **`installment_group_payments`**: Menyimpan histori transaksi pelunasan bersama (menghubungkan pembayaran beberapa item sekaligus dalam satu kali transfer/aksi bayar bulanan).
 
-## Installation & updates
+Untuk membuat skema tabel secara otomatis, jalankan migrasi spark:
+```bash
+php spark migrate
+```
 
-`composer create-project codeigniter4/appstarter` then `composer update` whenever
-there is a new release of the framework.
+---
 
-When updating, check the release notes to see if there are any changes you might need to apply
-to your `app` folder. The affected files can be copied or merged from
-`vendor/codeigniter4/framework/app`.
+## ⚙️ Persyaratan Sistem
+- PHP v8.2 atau lebih tinggi
+- MySQL / MariaDB v5.7 atau lebih tinggi
+- Extension PHP yang wajib diaktifkan: `intl`, `mbstring`, `curl`, `mysqli`
 
-## Setup
+---
 
-Copy `env` to `.env` and tailor for your app, specifically the baseURL
-and any database settings.
+## 🚀 Langkah Instalasi & Setup
 
-## Important Change with index.php
+1. **Clone & Persiapan File**
+   Buka folder project di web server lokal (seperti Laragon atau XAMPP).
+   
+2. **Atur Environment Variables (`.env`)**
+   Salin file `env` menjadi `.env` di root direktori:
+   ```bash
+   cp env .env
+   ```
+   Buka `.env` dan atur konfigurasi database serta baseURL Anda:
+   ```env
+   database.default.hostname = localhost
+   database.default.database = note
+   database.default.username = root
+   database.default.password = 
+   database.default.DBDriver = MySQLi
+   
+   app.baseURL = 'http://localhost/note/public/'
+   app.forceGlobalSecureRequests = false
+   ```
 
-`index.php` is no longer in the root of the project! It has been moved inside the *public* folder,
-for better security and separation of components.
+3. **Jalankan Instalasi Dependency**
+   ```bash
+   composer install
+   ```
 
-This means that you should configure your web server to "point" to your project's *public* folder, and
-not to the project root. A better practice would be to configure a virtual host to point there. A poor practice would be to point your web server to the project root and expect to enter *public/...*, as the rest of your logic and the
-framework are exposed.
+4. **Jalankan Database Migrations**
+   ```bash
+   php spark migrate
+   ```
 
-**Please** read the user guide for a better explanation of how CI4 works!
+5. **Akses Aplikasi**
+   Arahkan virtual host server lokal Anda ke direktori `/public` dari project ini (misal: `http://localhost/note/public/`). Login menggunakan akun anggota yang terdaftar di database.
 
-## Repository Management
+---
 
-We use GitHub issues, in our main repository, to track **BUGS** and to track approved **DEVELOPMENT** work packages.
-We use our [forum](http://forum.codeigniter.com) to provide SUPPORT and to discuss
-FEATURE REQUESTS.
-
-This repository is a "distribution" one, built by our release preparation script.
-Problems with it can be raised on our forum, or as issues in the main repository.
-
-## Server Requirements
-
-PHP version 8.2 or higher is required, with the following extensions installed:
-
-- [intl](http://php.net/manual/en/intl.requirements.php)
-- [mbstring](http://php.net/manual/en/mbstring.installation.php)
-
-> [!WARNING]
-> - The end of life date for PHP 7.4 was November 28, 2022.
-> - The end of life date for PHP 8.0 was November 26, 2023.
-> - The end of life date for PHP 8.1 was December 31, 2025.
-> - If you are still using below PHP 8.2, you should upgrade immediately.
-> - The end of life date for PHP 8.2 will be December 31, 2026.
-
-Additionally, make sure that the following extensions are enabled in your PHP:
-
-- json (enabled by default - don't turn it off)
-- [mysqlnd](http://php.net/manual/en/mysqlnd.install.php) if you plan to use MySQL
-- [libcurl](http://php.net/manual/en/curl.requirements.php) if you plan to use the HTTP\CURLRequest library
+## 📅 Pengaturan Zona Waktu
+Aplikasi disetel menggunakan Zona Waktu Indonesia Barat (**WIB**) dengan wilayah `'Asia/Jakarta'`. Seluruh pencatatan transaksi, tanggal pembuatan data, dan pelunasan angsuran mengacu pada tanggal lokal Indonesia secara akurat. Pengaturan ini dapat disesuaikan pada berkas [App.php](app/Config/App.php):
+```php
+public string $appTimezone = 'Asia/Jakarta';
+```

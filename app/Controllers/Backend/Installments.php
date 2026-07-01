@@ -939,4 +939,706 @@ class Installments extends BaseController
 
         return redirect()->to('backend/installments?trip_id=' . $tripId)->with('success', 'Tagihan CC bulan ' . date('M Y', strtotime($dueMonth)) . ' berhasil dicatat sebagai lunas.');
     }
+
+    public function downloadPdf($monthCol)
+    {
+        $userId = user_id();
+        $role = $this->request->getGet('role') ?? 'borrower';
+        $tripId = $this->request->getGet('trip_id');
+
+        if (empty($tripId)) {
+            return $this->response->setBody("Error: Trip ID tidak boleh kosong.")->setStatusCode(400);
+        }
+
+        // Check trip access
+        $currentMembership = $this->checkTripAccess((int)$tripId);
+        if (!$currentMembership) {
+            return $this->response->setBody("Error: Anda tidak memiliki akses ke trip ini.")->setStatusCode(403);
+        }
+
+        $selectedTrip = $this->tripModel->find($tripId);
+        if (!$selectedTrip) {
+            return $this->response->setBody("Error: Trip tidak ditemukan.")->setStatusCode(404);
+        }
+
+        // Get installments visible to user in this trip
+        $installments = $this->installmentModel->getVisibleByUser($userId, (int)$tripId);
+        $userIdInt = (int)$userId;
+
+        // Filter by role
+        $installments = array_values(array_filter($installments, function($inst) use ($userIdInt, $role) {
+            if ($role === 'borrower') {
+                return (int)$inst['borrower_user_id'] === $userIdInt;
+            } else {
+                return (int)$inst['lender_user_id'] === $userIdInt;
+            }
+        }));
+
+        if (empty($installments)) {
+            return $this->response->setBody("Error: Tidak ada data cicilan ditemukan.")->setStatusCode(404);
+        }
+
+        // Get installment payments for this specific monthCol and installment IDs
+        $installmentIds = array_column($installments, 'id');
+        $payments = $this->paymentModel
+            ->whereIn('installment_id', $installmentIds)
+            ->where('due_date', $monthCol)
+            ->findAll();
+
+        if (empty($payments)) {
+            return $this->response->setBody("Error: Tidak ada jadwal tagihan untuk bulan " . date('M Y', strtotime($monthCol)) . ".")->setStatusCode(404);
+        }
+
+        $installmentMap = [];
+        foreach ($installments as $inst) {
+            $installmentMap[$inst['id']] = $inst;
+        }
+
+        $items = [];
+        $totalAmount = 0;
+        $statusLunas = true;
+        $proofImages = [];
+
+        foreach ($payments as $p) {
+            $inst = $installmentMap[$p['installment_id']] ?? null;
+            if (!$inst) continue;
+
+            if ($p['status'] !== 'paid') {
+                $statusLunas = false;
+            }
+
+            $dueAmt = (int)$p['due_amount'];
+            $totalAmount += $dueAmt;
+
+            $isLoan = ($inst['source_type'] === 'member_loan');
+            $lenderName = $isLoan ? ($inst['lender_name'] ?? 'Anggota') : 'Pinjaman Pribadi';
+            $borrowerName = $inst['borrower_name'] ?? 'Anggota';
+
+            $items[] = [
+                'description'  => $inst['description'],
+                'source_type'  => $inst['source_type'],
+                'lender_name'  => $lenderName,
+                'borrower_name'=> $borrowerName,
+                'amount'       => $dueAmt,
+                'status'       => $p['status']
+            ];
+
+            // Try to find group payment record for proof image
+            $gpRecord = $this->groupPaymentModel
+                ->where([
+                    'trip_id'          => $inst['trip_id'],
+                    'lender_user_id'   => $inst['lender_user_id'],
+                    'borrower_user_id' => $inst['borrower_user_id'],
+                    'source_type'      => $inst['source_type'],
+                    'due_month'        => date('Y-m-01', strtotime($monthCol))
+                ])->first();
+
+            if ($gpRecord && !empty($gpRecord['proof_image'])) {
+                $imgPath = FCPATH . $gpRecord['proof_image'];
+                if (file_exists($imgPath)) {
+                    $type = pathinfo($imgPath, PATHINFO_EXTENSION);
+                    $data = file_get_contents($imgPath);
+                    $base64 = 'data:image/' . $type . ';base64,' . base64_encode($data);
+                    
+                    $key = ($inst['lender_user_id'] ?? 'null') . '|' . $inst['borrower_user_id'] . '|' . $inst['source_type'];
+                    if (!isset($proofImages[$key])) {
+                        $proofImages[$key] = [
+                            'base64' => $base64,
+                            'from'   => $borrowerName,
+                            'to'     => $lenderName,
+                            'amount' => $gpRecord['total_paid']
+                        ];
+                    }
+                }
+            }
+        }
+
+        // Render HTML for Dompdf
+        $userObj = user();
+        $userFullname = !empty($userObj->fullname) ? $userObj->fullname : $userObj->username;
+
+        $monthLabel = date('M Y', strtotime($monthCol));
+        
+        $html = '
+        <!DOCTYPE html>
+        <html>
+        <head>
+            <meta charset="utf-8">
+            <title>Laporan Tagihan Cicilan - ' . $monthLabel . '</title>
+            <style>
+                body {
+                    font-family: Arial, sans-serif;
+                    color: #333;
+                    line-height: 1.4;
+                    font-size: 11pt;
+                }
+                .header-table {
+                    width: 100%;
+                    border-collapse: collapse;
+                    margin-bottom: 20px;
+                }
+                .header-logo {
+                    font-size: 20pt;
+                    font-weight: bold;
+                    color: #007bff;
+                }
+                .header-title {
+                    text-align: right;
+                    font-size: 14pt;
+                    font-weight: bold;
+                    color: #555;
+                }
+                .info-section {
+                    margin-bottom: 25px;
+                }
+                .info-table {
+                    width: 100%;
+                    border-collapse: collapse;
+                }
+                .info-table td {
+                    padding: 4px 0;
+                    vertical-align: top;
+                }
+                .label {
+                    color: #777;
+                    width: 130px;
+                    font-weight: bold;
+                }
+                .status-badge {
+                    display: inline-block;
+                    padding: 4px 10px;
+                    font-weight: bold;
+                    border-radius: 4px;
+                    color: #fff;
+                    font-size: 10pt;
+                }
+                .status-lunas {
+                    background-color: #28a745;
+                }
+                .status-tertagih {
+                    background-color: #dc3545;
+                }
+                .items-table {
+                    width: 100%;
+                    border-collapse: collapse;
+                    margin-bottom: 30px;
+                }
+                .items-table th {
+                    background-color: #f1f3f5;
+                    border-bottom: 2px solid #dee2e6;
+                    padding: 8px;
+                    font-weight: bold;
+                    text-align: left;
+                    font-size: 10pt;
+                }
+                .items-table td {
+                    padding: 8px;
+                    border-bottom: 1px solid #dee2e6;
+                    font-size: 10pt;
+                }
+                .text-right {
+                    text-align: right;
+                }
+                .total-row {
+                    font-weight: bold;
+                    background-color: #f8f9fa;
+                }
+                .proof-section {
+                    page-break-inside: avoid;
+                    margin-top: 20px;
+                    border-top: 2px dashed #ccc;
+                    padding-top: 20px;
+                }
+                .proof-title {
+                    font-size: 12pt;
+                    font-weight: bold;
+                    margin-bottom: 15px;
+                    color: #333;
+                }
+                .proof-container {
+                    margin-bottom: 20px;
+                    display: inline-block;
+                    margin-right: 20px;
+                    vertical-align: top;
+                }
+                .proof-img {
+                    max-width: 250px;
+                    max-height: 250px;
+                    border: 1px solid #ddd;
+                    border-radius: 8px;
+                    padding: 4px;
+                    background-color: #fff;
+                }
+                .footer {
+                    margin-top: 30px;
+                    font-size: 8pt;
+                    color: #777;
+                    text-align: center;
+                    border-top: 1px solid #eee;
+                    padding-top: 8px;
+                }
+            </style>
+        </head>
+        <body>
+            <table class="header-table">
+                <tr>
+                    <td class="header-logo">Split Bill Keluarga</td>
+                    <td class="header-title">LAPORAN TAGIHAN CICILAN</td>
+                </tr>
+            </table>
+
+            <div class="info-section">
+                <table class="info-table">
+                    <tr>
+                        <td class="label">Bulan Tagihan:</td>
+                        <td>' . date('F Y', strtotime($monthCol)) . '</td>
+                        <td class="label" style="text-align: right;">Status Pembayaran:</td>
+                        <td style="text-align: right; width: 150px;">
+                            ' . ($statusLunas 
+                                ? '<span class="status-badge status-lunas">LUNAS</span>' 
+                                : '<span class="status-badge status-tertagih">BELUM LUNAS</span>') . '
+                        </td>
+                    </tr>
+                    <tr>
+                        <td class="label">Nama Kegiatan:</td>
+                        <td>' . esc($selectedTrip['name']) . '</td>
+                        <td class="label" style="text-align: right;">Diunduh Oleh:</td>
+                        <td style="text-align: right;">' . esc($userFullname) . ' (' . ($role === 'borrower' ? 'Peminjam' : 'Pemberi') . ')</td>
+                    </tr>
+                    <tr>
+                        <td class="label">Tanggal Cetak:</td>
+                        <td>' . date('d F Y H:i') . ' WIB</td>
+                        <td colspan="2"></td>
+                    </tr>
+                </table>
+            </div>
+
+            <table class="items-table">
+                <thead>
+                    <tr>
+                        <th style="width: 5%;">No</th>
+                        <th style="width: 40%;">Item / Deskripsi</th>
+                        <th style="width: 20%;">Sumber</th>
+                        <th style="width: 15%;">' . ($role === 'borrower' ? 'Pemberi' : 'Peminjam') . '</th>
+                        <th style="width: 20%; text-align: right;">Jumlah Angsuran</th>
+                    </tr>
+                </thead>
+                <tbody>';
+
+        $no = 1;
+        foreach ($items as $item) {
+            $sourceLabel = ($item['source_type'] === 'member_loan') ? 'Pinjaman Anggota' : 'Pinjaman Pribadi';
+            $partner = ($role === 'borrower') ? $item['lender_name'] : $item['borrower_name'];
+            
+            $html .= '
+                    <tr>
+                        <td>' . $no++ . '</td>
+                        <td>' . esc($item['description']) . '</td>
+                        <td>' . $sourceLabel . '</td>
+                        <td>' . esc($partner) . '</td>
+                        <td class="text-right">Rp ' . number_format($item['amount'], 0, ',', '.') . '</td>
+                    </tr>';
+        }
+
+        $html .= '
+                    <tr class="total-row">
+                        <td colspan="4" class="text-right">Total Tagihan Bulanan:</td>
+                        <td class="text-right">Rp ' . number_format($totalAmount, 0, ',', '.') . '</td>
+                    </tr>
+                </tbody>
+            </table>';
+
+        if (!empty($proofImages)) {
+            $html .= '
+            <div class="proof-section">
+                <div class="proof-title">Bukti Pelunasan / Transfer</div>';
+            foreach ($proofImages as $pi) {
+                $html .= '
+                <div class="proof-container">
+                    <div style="font-size: 9pt; font-weight: bold; margin-bottom: 5px; color: #555;">
+                        Dari: ' . esc($pi['from']) . ' &rarr; Kepada: ' . esc($pi['to']) . ' <br>
+                        Sejumlah: Rp ' . number_format($pi['amount'], 0, ',', '.') . '
+                    </div>
+                    <img class="proof-img" src="' . $pi['base64'] . '" alt="Bukti Transfer">
+                </div>';
+            }
+            $html .= '
+            </div>';
+        }
+
+        $html .= '
+            <div class="footer">
+                Laporan ini di-generate secara otomatis oleh Sistem Split Bill Keluarga. Hak Cipta &copy; ' . date('Y') . '.
+            </div>
+        </body>
+        </html>';
+
+        // Instantiate and build Dompdf
+        $dompdf = new \Dompdf\Dompdf([
+            'isHtml5ParserEnabled' => true,
+            'isRemoteEnabled'      => true
+        ]);
+        
+        $dompdf->loadHtml($html);
+        $dompdf->setPaper('A4', 'portrait');
+        $dompdf->render();
+
+        return $this->response
+            ->setHeader('Content-Type', 'application/pdf')
+            ->setHeader('Content-Disposition', 'inline; filename="laporan_tagihan_' . date('Y_m', strtotime($monthCol)) . '.pdf"')
+            ->setBody($dompdf->output());
+    }
+
+    public function printAllPdf()
+    {
+        $userId = user_id();
+        $role = $this->request->getGet('role') ?? 'borrower';
+        $tripId = $this->request->getGet('trip_id');
+
+        // Optional filters matching the client-side JQuery filters
+        $filterMonth  = $this->request->getGet('filter_month');
+        $filterTrip   = $this->request->getGet('filter_trip');
+        $filterLender = $this->request->getGet('filter_lender');
+        $filterStatus = $this->request->getGet('filter_status');
+
+        if (empty($tripId)) {
+            return $this->response->setBody("Error: Trip ID tidak boleh kosong.")->setStatusCode(400);
+        }
+
+        // Check trip access
+        $currentMembership = $this->checkTripAccess((int)$tripId);
+        if (!$currentMembership) {
+            return $this->response->setBody("Error: Anda tidak memiliki akses ke trip ini.")->setStatusCode(403);
+        }
+
+        $selectedTrip = $this->tripModel->find($tripId);
+        if (!$selectedTrip) {
+            return $this->response->setBody("Error: Trip tidak ditemukan.")->setStatusCode(404);
+        }
+
+        // Get installments visible to user in this trip
+        $installments = $this->installmentModel->getVisibleByUser($userId, (int)$tripId);
+        $userIdInt = (int)$userId;
+
+        // Populate trip_name since getVisibleByUser doesn't load it
+        foreach ($installments as &$inst) {
+            $inst['trip_name'] = $selectedTrip['name'];
+        }
+        unset($inst);
+
+        // Filter by role
+        $installments = array_values(array_filter($installments, function($inst) use ($userIdInt, $role) {
+            if ($role === 'borrower') {
+                return (int)$inst['borrower_user_id'] === $userIdInt;
+            } else {
+                return (int)$inst['lender_user_id'] === $userIdInt;
+            }
+        }));
+
+        if (empty($installments)) {
+            return $this->response->setBody("Error: Tidak ada data cicilan ditemukan.")->setStatusCode(404);
+        }
+
+        // Get installment payments
+        $installmentIds = array_column($installments, 'id');
+        $allPayments = $this->paymentModel
+            ->whereIn('installment_id', $installmentIds)
+            ->orderBy('due_date', 'ASC')
+            ->findAll();
+
+        // Group payments by installment ID
+        $paymentMap = [];
+        $monthSet = [];
+        foreach ($allPayments as $p) {
+            $paymentMap[$p['installment_id']][$p['due_date']] = $p;
+            $monthSet[$p['due_date']] = $p['due_date'];
+        }
+        ksort($monthSet);
+        $monthColumns = array_values($monthSet);
+
+        // Fetch group payment history
+        $groupPayments = $this->groupPaymentModel->getHistoryByTrip((int)$tripId, $userId);
+        $groupPaymentMap = [];
+        foreach ($groupPayments as $gp) {
+            $key = ($gp['lender_user_id'] ?? 'null') . '|' . $gp['borrower_user_id'] . '|' . $gp['source_type'] . '|' . $gp['due_month'];
+            $groupPaymentMap[$key] = $gp;
+        }
+
+        // Apply filters in PHP matching JS client-side filter
+        $filteredInstallments = [];
+        foreach ($installments as &$inst) {
+            $inst['payments'] = $paymentMap[$inst['id']] ?? [];
+
+            // 1. Filter by Status
+            if (!empty($filterStatus)) {
+                if ($filterStatus === 'active' && $inst['status'] !== 'active') continue;
+                if ($filterStatus === 'completed' && $inst['status'] !== 'completed') continue;
+                if ($filterStatus === 'unpaid') {
+                    $hasUnpaid = false;
+                    foreach ($inst['payments'] as $p) {
+                        if ($p['status'] !== 'paid') {
+                            $hasUnpaid = true;
+                            break;
+                        }
+                    }
+                    if (!$hasUnpaid) continue;
+                }
+            }
+
+            // 2. Filter by Trip Name
+            if (!empty($filterTrip) && strtolower($inst['trip_name']) !== strtolower($filterTrip)) {
+                continue;
+            }
+
+            // 3. Filter by Lender / Source Name
+            if (!empty($filterLender)) {
+                $isLoan = ($inst['source_type'] === 'member_loan');
+                $lenderName = $isLoan ? ($inst['lender_name'] ?? 'Anggota') : 'Pinjaman Pribadi';
+                if (strtolower($lenderName) !== strtolower($filterLender)) {
+                    continue;
+                }
+            }
+
+            // 4. Filter by Month Column
+            if (!empty($filterMonth) && !isset($inst['payments'][$filterMonth])) {
+                continue;
+            }
+
+            $filteredInstallments[] = $inst;
+        }
+
+        if (!empty($filterMonth)) {
+            $monthColumns = [$filterMonth];
+        }
+
+        if (empty($filteredInstallments)) {
+            return $this->response->setBody("Error: Tidak ada data cicilan setelah filter diterapkan.")->setStatusCode(404);
+        }
+
+        // Calculate columns totals
+        $monthlyTotals = array_fill_keys($monthColumns, 0);
+        $grandTotalAll = 0;
+        foreach ($filteredInstallments as $inst) {
+            $grandTotalAll += (int)$inst['total_amount'];
+            foreach ($monthColumns as $col) {
+                if (isset($inst['payments'][$col])) {
+                    $monthlyTotals[$col] += (int)$inst['payments'][$col]['due_amount'];
+                }
+            }
+        }
+
+        // Render HTML for Dompdf Landscape
+        $userObj = user();
+        $userFullname = !empty($userObj->fullname) ? $userObj->fullname : $userObj->username;
+
+        $html = '
+        <!DOCTYPE html>
+        <html>
+        <head>
+            <meta charset="utf-8">
+            <title>Laporan Proyeksi Cicilan - ' . esc($selectedTrip['name']) . '</title>
+            <style>
+                body {
+                    font-family: Arial, sans-serif;
+                    color: #333;
+                    line-height: 1.3;
+                    font-size: 9pt;
+                }
+                .header-table {
+                    width: 100%;
+                    border-collapse: collapse;
+                    margin-bottom: 15px;
+                }
+                .header-logo {
+                    font-size: 16pt;
+                    font-weight: bold;
+                    color: #007bff;
+                }
+                .header-title {
+                    text-align: right;
+                    font-size: 12pt;
+                    font-weight: bold;
+                    color: #555;
+                }
+                .info-section {
+                    margin-bottom: 15px;
+                }
+                .info-table {
+                    width: 100%;
+                    border-collapse: collapse;
+                }
+                .info-table td {
+                    padding: 3px 0;
+                    vertical-align: top;
+                }
+                .label {
+                    color: #666;
+                    width: 120px;
+                    font-weight: bold;
+                }
+                .grid-table {
+                    width: 100%;
+                    border-collapse: collapse;
+                    margin-top: 10px;
+                    margin-bottom: 20px;
+                }
+                .grid-table th {
+                    background-color: #f1f3f5;
+                    border: 1px solid #dee2e6;
+                    padding: 6px;
+                    font-weight: bold;
+                    text-align: left;
+                    font-size: 8.5pt;
+                }
+                .grid-table td {
+                    padding: 6px;
+                    border: 1px solid #dee2e6;
+                    font-size: 8.5pt;
+                    vertical-align: middle;
+                }
+                .text-right {
+                    text-align: right;
+                }
+                .text-center {
+                    text-align: center;
+                }
+                .total-row {
+                    font-weight: bold;
+                    background-color: #f8f9fa;
+                }
+                .status-lunas {
+                    color: #28a745;
+                    font-weight: bold;
+                }
+                .status-belum-lunas {
+                    color: #6c757d;
+                }
+                .badge {
+                    display: inline-block;
+                    padding: 2px 5px;
+                    font-size: 7.5pt;
+                    font-weight: bold;
+                    border-radius: 3px;
+                    color: #fff;
+                }
+                .badge-primary { background-color: #007bff; }
+                .badge-success { background-color: #28a745; }
+                .badge-secondary { background-color: #6c757d; }
+                .footer {
+                    margin-top: 20px;
+                    font-size: 7.5pt;
+                    color: #777;
+                    text-align: center;
+                    border-top: 1px solid #eee;
+                    padding-top: 6px;
+                }
+            </style>
+        </head>
+        <body>
+            <table class="header-table">
+                <tr>
+                    <td class="header-logo">Split Bill Keluarga</td>
+                    <td class="header-title">LAPORAN PROYEKSI & RINCIAN CICILAN</td>
+                </tr>
+            </table>
+
+            <div class="info-section">
+                <table class="info-table">
+                    <tr>
+                        <td class="label">Nama Kegiatan:</td>
+                        <td>' . esc($selectedTrip['name']) . '</td>
+                        <td class="label" style="text-align: right;">Peran Tampilan:</td>
+                        <td style="text-align: right; width: 220px;">' . ($role === 'borrower' ? 'Sebagai Peminjam (Hutang)' : 'Sebagai Pemberi (Piutang)') . '</td>
+                    </tr>
+                    <tr>
+                        <td class="label">Tanggal Cetak:</td>
+                        <td>' . date('d F Y H:i') . ' WIB</td>
+                        <td class="label" style="text-align: right;">Filter Diterapkan:</td>
+                        <td style="text-align: right; font-style: italic;">
+                            ' . (!empty($filterStatus) ? 'Status: ' . esc($filterStatus) . '; ' : '') . '
+                            ' . (!empty($filterLender) ? 'Lender: ' . esc($filterLender) . '; ' : '') . '
+                            ' . (!empty($filterMonth) ? 'Bulan: ' . date('M Y', strtotime($filterMonth)) . '; ' : 'Semua Bulan') . '
+                        </td>
+                    </tr>
+                </table>
+            </div>
+
+            <table class="grid-table">
+                <thead>
+                    <tr>
+                        <th>Uraian Cicilan</th>
+                        <th>Jenis</th>
+                        <th>' . ($role === 'borrower' ? 'Pemberi / Sumber' : 'Peminjam') . '</th>
+                        <th class="text-right">Total Pinjaman</th>';
+        foreach ($monthColumns as $col) {
+            $html .= '<th class="text-right">' . date('M\'y', strtotime($col)) . '</th>';
+        }
+        $html .= '
+                    </tr>
+                </thead>
+                <tbody>';
+
+        foreach ($filteredInstallments as $inst) {
+            $isLoan = ($inst['source_type'] === 'member_loan');
+            $partner = ($role === 'borrower') 
+                ? ($isLoan ? $inst['lender_name'] : 'Pinjaman Pribadi')
+                : $inst['borrower_name'];
+            $sourceLabel = $isLoan ? 'Pinjaman Anggota' : 'Pinjaman Pribadi';
+            $badgeClass = $isLoan ? 'badge-primary' : 'badge-success';
+
+            $html .= '
+                    <tr>
+                        <td><strong>' . esc($inst['description']) . '</strong></td>
+                        <td><span class="badge ' . $badgeClass . '">' . $sourceLabel . '</span></td>
+                        <td>' . esc($partner) . '</td>
+                        <td class="text-right">Rp ' . number_format($inst['total_amount'], 0, ',', '.') . '</td>';
+
+            foreach ($monthColumns as $col) {
+                $payment = $inst['payments'][$col] ?? null;
+                if ($payment) {
+                    if ($payment['status'] === 'paid') {
+                        $html .= '<td class="text-right status-lunas">Lunas<br><span style="font-size: 7.5pt; color: #555;">Rp ' . number_format($payment['due_amount'], 0, ',', '.') . '</span></td>';
+                    } else {
+                        $html .= '<td class="text-right status-belum-lunas">Belum<br><span style="font-size: 7.5pt; color: #dc3545; font-weight: bold;">Rp ' . number_format($payment['due_amount'], 0, ',', '.') . '</span></td>';
+                    }
+                } else {
+                    $html .= '<td class="text-right text-muted">—</td>';
+                }
+            }
+            $html .= '
+                    </tr>';
+        }
+
+        $html .= '
+                    <tr class="total-row">
+                        <td colspan="3" class="text-right">Total Tagihan Bulanan:</td>
+                        <td class="text-right">Rp ' . number_format($grandTotalAll, 0, ',', '.') . '</td>';
+        foreach ($monthColumns as $col) {
+            $html .= '<td class="text-right">Rp ' . number_format($monthlyTotals[$col], 0, ',', '.') . '</td>';
+        }
+        $html .= '
+                    </tr>
+                </tbody>
+            </table>
+
+            <div class="footer">
+                Laporan Proyeksi Rekapitulasi Cicilan - Dicetak secara otomatis oleh Sistem Split Bill Keluarga. Hak Cipta &copy; ' . date('Y') . '.
+            </div>
+        </body>
+        </html>';
+
+        // Render PDF in Landscape mode
+        $dompdf = new \Dompdf\Dompdf([
+            'isHtml5ParserEnabled' => true,
+            'isRemoteEnabled'      => true
+        ]);
+        $dompdf->loadHtml($html);
+        $dompdf->setPaper('A4', 'landscape');
+        $dompdf->render();
+
+        return $this->response
+            ->setHeader('Content-Type', 'application/pdf')
+            ->setHeader('Content-Disposition', 'inline; filename="laporan_rekap_cicilan.pdf"')
+            ->setBody($dompdf->output());
+    }
 }

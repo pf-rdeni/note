@@ -523,11 +523,18 @@ if (!empty($allInstallmentsForSummary)) {
                 <h3 class="card-title font-weight-bold text-primary mb-0" style="font-size:0.95rem;">
                     <i class="fas fa-calendar-alt mr-2"></i>Rincian &amp; Proyeksi Pembayaran Bulanan
                 </h3>
-                <div class="custom-control custom-switch my-1">
-                    <input type="checkbox" class="custom-control-input" id="togglePaidMonths">
-                    <label class="custom-control-label text-muted small font-weight-bold" for="togglePaidMonths" style="cursor: pointer;">
-                        Tampilkan Bulan Lunas
-                    </label>
+                <div class="d-flex align-items-center flex-wrap" style="gap: 12px;">
+                    <?php if (!empty($allInstallmentsForSummary)) : ?>
+                        <button type="button" id="btnPrintAllPdf" class="btn btn-xs btn-danger font-weight-bold shadow-sm my-1" style="border-radius: 6px; padding: 4px 10px;">
+                            <i class="fas fa-file-pdf mr-1"></i>Cetak Laporan PDF
+                        </button>
+                    <?php endif; ?>
+                    <div class="custom-control custom-switch my-1">
+                        <input type="checkbox" class="custom-control-input" id="togglePaidMonths">
+                        <label class="custom-control-label text-muted small font-weight-bold" for="togglePaidMonths" style="cursor: pointer;">
+                            Tampilkan Bulan Lunas
+                        </label>
+                    </div>
                 </div>
             </div>
             <div class="card-body p-0">
@@ -754,6 +761,16 @@ if (!empty($allInstallmentsForSummary)) {
                                         ?>
                                         <span class="badge badge-success text-xs lunas-badge" style="<?= $badgeStyle ?>"><i class="fas fa-check mr-1"></i>Lunas</span>
                                         <span class="text-muted na-badge" style="<?= $hasAnyPayment ? 'display: none;' : '' ?>">—</span>
+                                        
+                                        <?php if ($hasAnyPayment) : ?>
+                                            <a href="<?= base_url('backend/installments/download-pdf/' . $col . '?role=' . $role . '&trip_id=' . $selectedTripId) ?>" 
+                                               target="_blank" 
+                                               class="btn btn-xs btn-outline-danger mt-2 btn-block btn-download-pdf shadow-xs" 
+                                               style="font-size: 0.65rem; padding: 2px 4px; border-radius: 4px;" 
+                                               title="Unduh PDF Laporan Bulanan">
+                                                <i class="fas fa-file-pdf mr-1"></i>PDF Laporan
+                                            </a>
+                                        <?php endif; ?>
                                     </td>
                                 <?php endforeach; ?>
                                 <?php if ($role === 'borrower') : ?>
@@ -1938,6 +1955,26 @@ $(function () {
 
     // Jalankan filter default status (Belum Lunas) pada saat page load
     $('#filterSummaryStatus').trigger('change');
+
+    // ---- Cetak Laporan PDF Keseluruhan ----
+    $('#btnPrintAllPdf').on('click', function() {
+        const tripId = $('#tripSelect').val() || '';
+        const role = '<?= $role ?>';
+        const filterMonth = $('#filterSummaryMonth').val() || '';
+        const filterTrip = $('#filterSummaryTrip').val() || '';
+        const filterLender = $('#filterSummaryLender').val() || '';
+        const filterStatus = $('#filterSummaryStatus').val() || '';
+
+        const url = '<?= base_url('backend/installments/print-all-pdf') ?>' + 
+                    '?trip_id=' + encodeURIComponent(tripId) + 
+                    '&role=' + encodeURIComponent(role) + 
+                    '&filter_month=' + encodeURIComponent(filterMonth) + 
+                    '&filter_trip=' + encodeURIComponent(filterTrip) + 
+                    '&filter_lender=' + encodeURIComponent(filterLender) + 
+                    '&filter_status=' + encodeURIComponent(filterStatus);
+        
+        window.open(url, '_blank');
+    });
 
     // ---- SweetAlert2 Notifications ----
     <?php if (session()->getFlashdata('success')) : ?>

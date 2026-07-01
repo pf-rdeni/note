@@ -81,6 +81,8 @@ $routes->group('backend', ['filter' => 'login', 'namespace' => 'App\Controllers\
         $routes->post('delete/(:num)', 'Installments::delete/$1');
         $routes->post('pay-group', 'Installments::payGroup');
         $routes->post('mark-self-paid', 'Installments::markSelfPaid');
+        $routes->get('download-pdf/(:any)', 'Installments::downloadPdf/$1');
+        $routes->get('print-all-pdf', 'Installments::printAllPdf');
     });
 
     // Panduan & Bantuan
