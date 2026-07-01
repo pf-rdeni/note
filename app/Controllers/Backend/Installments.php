@@ -93,7 +93,15 @@ class Installments extends BaseController
 
         if ($this->request->getGet('reset') !== null) {
             $session->remove('inst_last_trip_id');
+            $session->remove('inst_role');
             return redirect()->to('backend/installments');
+        }
+
+        $role = $this->request->getGet('role');
+        if ($role !== null) {
+            $session->set('inst_role', $role);
+        } else {
+            $role = $session->get('inst_role') ?? 'borrower';
         }
 
         $selectedTripId = $this->request->getGet('trip_id');
@@ -125,6 +133,16 @@ class Installments extends BaseController
 
             // Ambil installments yang boleh dilihat user ini
             $installments = $this->installmentModel->getVisibleByUser($userId, (int)$selectedTripId);
+
+            // Filter by role (borrower vs lender)
+            $userIdInt = (int)$userId;
+            $installments = array_values(array_filter($installments, function($inst) use ($userIdInt, $role) {
+                if ($role === 'borrower') {
+                    return (int)$inst['borrower_user_id'] === $userIdInt;
+                } else {
+                    return (int)$inst['lender_user_id'] === $userIdInt;
+                }
+            }));
 
             // Ambil jadwal pembayaran per installment
             $installmentIds = array_column($installments, 'id');
@@ -196,6 +214,16 @@ class Installments extends BaseController
 
         if (!empty($allTripIds)) {
             $allInstallmentsForSummary = $this->installmentModel->getVisibleByUserAllTrips($userId, $allTripIds);
+
+            // Filter by role (borrower vs lender)
+            $userIdInt = (int)$userId;
+            $allInstallmentsForSummary = array_values(array_filter($allInstallmentsForSummary, function($inst) use ($userIdInt, $role) {
+                if ($role === 'borrower') {
+                    return (int)$inst['borrower_user_id'] === $userIdInt;
+                } else {
+                    return (int)$inst['lender_user_id'] === $userIdInt;
+                }
+            }));
             $allInstallmentIds = array_column($allInstallmentsForSummary, 'id');
             $allPaymentsForSummary = [];
             if (!empty($allInstallmentIds)) {
@@ -234,6 +262,7 @@ class Installments extends BaseController
 
         return view('backend/installments/index', [
             'pageTitle'                 => 'Cicilan',
+            'role'                      => $role,
             'availableTrips'            => $availableTrips,
             'selectedTripId'            => $selectedTripId,
             'selectedTrip'              => $selectedTrip,
@@ -399,9 +428,13 @@ class Installments extends BaseController
             foreach ($borrowers as $borrowerId) {
                 $borrowerId = (int)$borrowerId;
 
-                // Skip jika peminjam sama dengan pemberi pinjaman
+                $sourceTypeForThis = $sourceType;
+                $lenderIdForThis   = $lenderId;
+
+                // Jika peminjam sama dengan pemberi pinjaman, konversi menjadi "Pinjaman Pribadi" (tidak memiliki lender di grup)
                 if ($borrowerId === $lenderId) {
-                    continue;
+                    $sourceTypeForThis = 'credit_card';
+                    $lenderIdForThis   = null;
                 }
 
                 $individualTotal   = $totalAmount;
@@ -415,8 +448,8 @@ class Installments extends BaseController
                 $installmentId = $this->installmentModel->insert([
                     'trip_id'            => $tripId,
                     'description'        => $this->request->getPost('description'),
-                    'source_type'        => $sourceType,
-                    'lender_user_id'     => $lenderId,
+                    'source_type'        => $sourceTypeForThis,
+                    'lender_user_id'     => $lenderIdForThis,
                     'borrower_user_id'   => $borrowerId,
                     'total_amount'       => $individualTotal,
                     'start_date'         => date('Y-m-01', strtotime($startDate)),

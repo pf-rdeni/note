@@ -2,17 +2,26 @@
 <?= $this->section('content') ?>
 
 
-<!-- Page Header -->
-<div class="row mb-2">
+<div class="row mb-2 align-items-center">
     <div class="col-sm-6">
-        <h1 class="m-0"><i class="fas fa-credit-card mr-2 text-primary"></i>Cicilan</h1>
+        <h1 class="m-0"><i class="fas fa-hand-holding-usd mr-2 text-primary"></i>Cicilan</h1>
         <p class="text-muted small mb-0">Kelola cicilan pinjaman anggota &amp; kartu kredit pribadi</p>
     </div>
-    <div class="col-sm-6 text-right">
+    <div class="col-sm-6 text-right d-flex justify-content-end align-items-center flex-wrap">
+        <!-- Switch Role View Toggle -->
+        <div class="btn-group btn-group-toggle shadow-sm mr-3" role="group">
+            <a href="<?= base_url('backend/installments?role=borrower') ?>" class="btn btn-sm <?= $role === 'borrower' ? 'btn-primary active' : 'btn-outline-primary' ?>">
+                <i class="fas fa-file-invoice-dollar mr-1"></i> Sebagai Peminjam
+            </a>
+            <a href="<?= base_url('backend/installments?role=lender') ?>" class="btn btn-sm <?= $role === 'lender' ? 'btn-primary active' : 'btn-outline-primary' ?>">
+                <i class="fas fa-hand-holding-usd mr-1"></i> Sebagai Pemberi Pinjaman
+            </a>
+        </div>
+
         <?php 
         $btnStyle = empty($selectedTripId) ? 'display: none;' : '';
         ?>
-        <button type="button" class="btn btn-primary btn-sm" id="btnTambahCicilan" data-toggle="modal" data-target="#modalTambahCicilan" style="<?= $btnStyle ?>">
+        <button type="button" class="btn btn-primary btn-sm shadow-sm" id="btnTambahCicilan" data-toggle="modal" data-target="#modalTambahCicilan" style="<?= $btnStyle ?>">
             <i class="fas fa-plus mr-1"></i> Tambah Cicilan
         </button>
     </div>
@@ -24,6 +33,7 @@
         <div class="card card-outline card-primary shadow-sm">
             <div class="card-body py-2 px-3">
                 <form method="GET" action="<?= base_url('backend/installments') ?>" class="form-inline flex-wrap" id="filterForm">
+                    <input type="hidden" name="role" value="<?= esc($role) ?>">
                     <label class="mr-2 font-weight-bold"><i class="fas fa-route mr-1 text-primary"></i>Kegiatan:</label>
                     <select name="trip_id" class="form-control form-control-sm mr-2" id="tripSelect" onchange="this.form.submit()">
                         <option value="">-- Semua Kegiatan --</option>
@@ -82,9 +92,16 @@ if (!empty($allInstallmentsForSummary)) {
 
         foreach ($summaryMonthColumns as $col) {
             foreach ($summaryGroups as $groupKey => $group) {
-                $isSelf = ((int)$group['borrower_user_id'] === (int)user_id());
-                if (!$isSelf) {
-                    continue;
+                if ($role === 'borrower') {
+                    $isSelf = ((int)$group['borrower_user_id'] === (int)user_id());
+                    if (!$isSelf) {
+                        continue;
+                    }
+                } else {
+                    $isSelf = ((int)$group['lender_user_id'] === (int)user_id());
+                    if (!$isSelf) {
+                        continue;
+                    }
                 }
 
                 $isLoan = ($group['source_type'] === 'member_loan');
@@ -120,7 +137,9 @@ if (!empty($allInstallmentsForSummary)) {
                         'trip_name'    => $group['trip_name'],
                         'source_type'  => $group['source_type'],
                         'lender_id'    => $group['lender_user_id'],
-                        'lender_name'  => $isLoan ? ($group['lender_name'] ?? 'Anggota') : 'Pinjaman Pribadi',
+                        'lender_name'  => ($role === 'borrower') 
+                            ? ($isLoan ? ($group['lender_name'] ?? 'Anggota') : 'Pinjaman Pribadi')
+                            : ($group['borrower_name'] ?? 'Anggota'),
                         'borrower_id'  => $group['borrower_user_id'],
                         'amount'       => $groupAmount,
                         'is_paid'      => $groupPaid,
@@ -180,6 +199,13 @@ if (!empty($allInstallmentsForSummary)) {
             }
         }
     }
+
+    // Role-based dynamic labels
+    $labelTotalActive = ($role === 'borrower') ? 'TOTAL PINJAMAN AKTIF' : 'TOTAL PIUTANG AKTIF';
+    $labelThisMonth   = ($role === 'borrower') ? 'TAGIHAN BULAN INI' : 'TAGIHAN MASUK BULAN INI';
+    $labelNextMonth   = ($role === 'borrower') ? 'PROYEKSI BULAN DEPAN' : 'PROYEKSI MASUK BULAN DEPAN';
+    $descActiveCount  = ($role === 'borrower') ? 'cicilan berjalan' : 'piutang berjalan';
+    $descUnfinished   = ($role === 'borrower') ? 'Harus dilunasi berkala' : 'Akan diterima berkala';
     ?>
 
     <?php if (!empty($allInstallmentsForSummary)) : ?>
@@ -191,7 +217,7 @@ if (!empty($allInstallmentsForSummary)) {
                     <div class="card-body p-3">
                         <div class="d-flex align-items-center justify-content-between">
                             <div>
-                                <p class="text-uppercase text-white-50 font-weight-bold mb-1" style="font-size: 0.72rem; letter-spacing: 1px;">TOTAL PINJAMAN AKTIF</p>
+                                <p class="text-uppercase text-white-50 font-weight-bold mb-1" style="font-size: 0.72rem; letter-spacing: 1px;"><?= $labelTotalActive ?></p>
                                 <h4 class="mb-0 font-weight-bold" style="font-size: 1.35rem;">
                                     Rp <?= number_format($statTotalLoan, 0, ',', '.') ?>
                                 </h4>
@@ -201,7 +227,7 @@ if (!empty($allInstallmentsForSummary)) {
                             </div>
                         </div>
                         <div class="mt-2 text-white-50 small">
-                            <i class="fas fa-info-circle mr-1"></i>Dari <?= $statActiveCount ?> cicilan berjalan
+                            <i class="fas fa-info-circle mr-1"></i>Dari <?= $statActiveCount ?> <?= $descActiveCount ?>
                         </div>
                     </div>
                 </div>
@@ -219,7 +245,7 @@ if (!empty($allInstallmentsForSummary)) {
                     <div class="card-body p-3">
                         <div class="d-flex align-items-center justify-content-between">
                             <div>
-                                <p class="text-uppercase <?= $card2TextMuted ?> font-weight-bold mb-1" style="font-size: 0.72rem; letter-spacing: 1px;">TAGIHAN BULAN INI</p>
+                                <p class="text-uppercase <?= $card2TextMuted ?> font-weight-bold mb-1" style="font-size: 0.72rem; letter-spacing: 1px;"><?= $labelThisMonth ?></p>
                                 <h4 class="mb-0 font-weight-bold" style="font-size: 1.35rem;">
                                     Rp <?= number_format($statThisMonthDue, 0, ',', '.') ?>
                                 </h4>
@@ -241,7 +267,7 @@ if (!empty($allInstallmentsForSummary)) {
                     <div class="card-body p-3">
                         <div class="d-flex align-items-center justify-content-between">
                             <div>
-                                <p class="text-uppercase text-white-50 font-weight-bold mb-1" style="font-size: 0.72rem; letter-spacing: 1px;">PROYEKSI BULAN DEPAN</p>
+                                <p class="text-uppercase text-white-50 font-weight-bold mb-1" style="font-size: 0.72rem; letter-spacing: 1px;"><?= $labelNextMonth ?></p>
                                 <h4 class="mb-0 font-weight-bold" style="font-size: 1.35rem;">
                                     Rp <?= number_format($statNextMonthDue, 0, ',', '.') ?>
                                 </h4>
@@ -273,7 +299,7 @@ if (!empty($allInstallmentsForSummary)) {
                             </div>
                         </div>
                         <div class="mt-2 text-white-50 small">
-                            <i class="fas fa-tasks mr-1"></i>Harus dilunasi berkala
+                            <i class="fas fa-tasks mr-1"></i><?= $descUnfinished ?>
                         </div>
                     </div>
                 </div>
@@ -496,7 +522,7 @@ if (!empty($allInstallmentsForSummary)) {
                             <tr>
                                 <th>Uraian Cicilan</th>
                                 <th>Jenis</th>
-                                <th>Pemberi / Sumber</th>
+                                <th><?= $role === 'borrower' ? 'Pemberi / Sumber' : 'Peminjam' ?></th>
                                 <th>Kegiatan</th>
                                 <th class="text-right" style="min-width:110px;">Total Pinjaman</th>
                                 <?php foreach ($summaryMonthColumns as $col) : ?>
@@ -504,7 +530,9 @@ if (!empty($allInstallmentsForSummary)) {
                                         <?= date('M\'y', strtotime($col)) ?>
                                     </th>
                                 <?php endforeach; ?>
-                                <th class="text-center" style="width: 60px;">Aksi</th>
+                                <?php if ($role === 'borrower') : ?>
+                                    <th class="text-center" style="width: 60px;">Aksi</th>
+                                <?php endif; ?>
                             </tr>
                         </thead>
                         <tbody>
@@ -530,10 +558,14 @@ if (!empty($allInstallmentsForSummary)) {
                                         <?php endif; ?>
                                     </td>
                                     <td>
-                                        <?php if ($isLoan) : ?>
-                                            <span class="text-primary"><?= esc($inst['lender_name']) ?></span>
+                                        <?php if ($role === 'borrower') : ?>
+                                            <?php if ($isLoan) : ?>
+                                                <span class="text-primary"><?= esc($inst['lender_name']) ?></span>
+                                            <?php else : ?>
+                                                <span class="text-success">Pinjaman Pribadi</span>
+                                            <?php endif; ?>
                                         <?php else : ?>
-                                            <span class="text-success">Pinjaman Pribadi</span>
+                                            <span class="text-primary"><?= esc($inst['borrower_name']) ?></span>
                                         <?php endif; ?>
                                     </td>
                                     <td><span class="text-muted"><?= esc($inst['trip_name']) ?></span></td>
@@ -566,41 +598,43 @@ if (!empty($allInstallmentsForSummary)) {
                                             <?php endif; ?>
                                         </td>
                                     <?php endforeach; ?>
-                                    <td class="text-center">
-                                        <?php if ($inst['status'] !== 'completed') : ?>
-                                            <?php
-                                            $paidCountForEdit = 0;
-                                            foreach ($inst['payments'] as $p) {
-                                                if ($p['status'] === 'paid') {
-                                                    $paidCountForEdit++;
+                                    <?php if ($role === 'borrower') : ?>
+                                        <td class="text-center">
+                                            <?php if ($inst['status'] !== 'completed') : ?>
+                                                <?php
+                                                $paidCountForEdit = 0;
+                                                foreach ($inst['payments'] as $p) {
+                                                    if ($p['status'] === 'paid') {
+                                                        $paidCountForEdit++;
+                                                    }
                                                 }
-                                            }
-                                            ?>
-                                            <div class="d-flex justify-content-center">
-                                                <button type="button" class="btn btn-xs btn-outline-primary btn-edit-inst mr-1"
-                                                    data-id="<?= $inst['id'] ?>"
-                                                    data-desc="<?= esc($inst['description']) ?>"
-                                                    data-source="<?= $inst['source_type'] ?>"
-                                                    data-lender="<?= $inst['lender_user_id'] ?? '' ?>"
-                                                    data-total="<?= $inst['total_amount'] ?>"
-                                                    data-monthly="<?= $inst['monthly_amount'] ?>"
-                                                    data-months="<?= $inst['installment_months'] ?>"
-                                                    data-start="<?= date('Y-m', strtotime($inst['start_date'])) ?>"
-                                                    data-note="<?= esc($inst['note'] ?? '') ?>"
-                                                    data-paid-count="<?= $paidCountForEdit ?>"
-                                                    title="Edit">
-                                                    <i class="fas fa-edit"></i>
-                                                </button>
-                                                <button type="button" class="btn btn-xs btn-outline-danger btn-delete-inst"
-                                                    data-id="<?= $inst['id'] ?>"
-                                                    data-desc="<?= esc($inst['description']) ?>"
-                                                    data-trip="<?= $inst['trip_id'] ?>"
-                                                    title="Hapus">
-                                                    <i class="fas fa-trash"></i>
-                                                </button>
-                                            </div>
-                                        <?php endif; ?>
-                                    </td>
+                                                ?>
+                                                <div class="d-flex justify-content-center">
+                                                    <button type="button" class="btn btn-xs btn-outline-primary btn-edit-inst mr-1"
+                                                        data-id="<?= $inst['id'] ?>"
+                                                        data-desc="<?= esc($inst['description']) ?>"
+                                                        data-source="<?= $inst['source_type'] ?>"
+                                                        data-lender="<?= $inst['lender_user_id'] ?? '' ?>"
+                                                        data-total="<?= $inst['total_amount'] ?>"
+                                                        data-monthly="<?= $inst['monthly_amount'] ?>"
+                                                        data-months="<?= $inst['installment_months'] ?>"
+                                                        data-start="<?= date('Y-m', strtotime($inst['start_date'])) ?>"
+                                                        data-note="<?= esc($inst['note'] ?? '') ?>"
+                                                        data-paid-count="<?= $paidCountForEdit ?>"
+                                                        title="Edit">
+                                                        <i class="fas fa-edit"></i>
+                                                    </button>
+                                                    <button type="button" class="btn btn-xs btn-outline-danger btn-delete-inst"
+                                                        data-id="<?= $inst['id'] ?>"
+                                                        data-desc="<?= esc($inst['description']) ?>"
+                                                        data-trip="<?= $inst['trip_id'] ?>"
+                                                        title="Hapus">
+                                                        <i class="fas fa-trash"></i>
+                                                    </button>
+                                                </div>
+                                            <?php endif; ?>
+                                        </td>
+                                    <?php endif; ?>
                                 </tr>
                             <?php endforeach; ?>
                         </tbody>
@@ -616,7 +650,9 @@ if (!empty($allInstallmentsForSummary)) {
                                         <?= $monthlyTotals[$col] > 0 ? 'Rp ' . number_format($monthlyTotals[$col], 0, ',', '.') : '—' ?>
                                     </td>
                                 <?php endforeach; ?>
-                                <td></td>
+                                <?php if ($role === 'borrower') : ?>
+                                    <td></td>
+                                <?php endif; ?>
                             </tr>
                             <!-- Row Aksi Pelunasan -->
                             <tr>
@@ -641,6 +677,7 @@ if (!empty($allInstallmentsForSummary)) {
                                                         'lender_id'   => $inst['lender_user_id'],
                                                         'lender_name' => $lenderNameVal,
                                                         'borrower_id' => $inst['borrower_user_id'],
+                                                        'borrower_name' => $inst['borrower_name'] ?? 'Anggota',
                                                         'source_type' => $inst['source_type'],
                                                         'amount'      => 0
                                                     ];
@@ -651,29 +688,42 @@ if (!empty($allInstallmentsForSummary)) {
 
                                         // Render unpaid buttons wrapper
                                         foreach ($unpaidPayments as $up) {
-                                            $btnClass = $up['source_type'] === 'member_loan' ? 'btn-primary' : 'btn-success';
-                                            $btnIcon = $up['source_type'] === 'member_loan' ? 'fa-paper-plane' : 'fa-check';
-                                            $btnText = $up['source_type'] === 'member_loan' ? 'Bayar ' . esc($up['lender_name']) : 'Bayar Pribadi';
-                                            ?>
-                                            <div class="unpaid-btn-wrapper mb-1" 
-                                                 data-trip="<?= esc($up['trip_name']) ?>" 
-                                                 data-lender="<?= esc($up['lender_name']) ?>" 
-                                                 data-month-col="<?= $col ?>">
-                                                <button type="button" class="btn btn-xs <?= $btnClass ?> btn-pay-month btn-block text-left px-1"
-                                                    data-trip="<?= $up['trip_id'] ?>"
-                                                    data-lender="<?= $up['lender_id'] ?>"
-                                                    data-borrower="<?= $up['borrower_id'] ?>"
-                                                    data-month="<?= $col ?>"
-                                                    data-total="<?= $up['amount'] ?>"
-                                                    data-label="<?= date('M Y', strtotime($col)) ?>"
-                                                    data-lender-name="<?= esc($up['lender_name']) ?>"
-                                                    data-source="<?= $up['source_type'] ?>"
-                                                    style="font-size: 0.68rem; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;"
-                                                    title="Bayar ke <?= esc($up['lender_name']) ?>: Rp <?= number_format($up['amount'], 0, ',', '.') ?>">
-                                                    <i class="fas <?= $btnIcon ?> mr-1"></i><?= $btnText ?>
-                                                </button>
-                                            </div>
-                                            <?php
+                                            if ($role === 'lender') {
+                                                ?>
+                                                <div class="unpaid-btn-wrapper mb-1" 
+                                                     data-trip="<?= esc($up['trip_name']) ?>" 
+                                                     data-lender="<?= esc($up['lender_name']) ?>" 
+                                                     data-month-col="<?= $col ?>">
+                                                    <span class="text-secondary small font-weight-bold" style="white-space: nowrap;">
+                                                        <i class="far fa-clock text-warning mr-1"></i>Belum Lunas (<?= esc($up['borrower_name']) ?>)
+                                                    </span>
+                                                </div>
+                                                <?php
+                                            } else {
+                                                $btnClass = $up['source_type'] === 'member_loan' ? 'btn-primary' : 'btn-success';
+                                                $btnIcon = $up['source_type'] === 'member_loan' ? 'fa-paper-plane' : 'fa-check';
+                                                $btnText = $up['source_type'] === 'member_loan' ? 'Bayar ' . esc($up['lender_name']) : 'Bayar Pribadi';
+                                                ?>
+                                                <div class="unpaid-btn-wrapper mb-1" 
+                                                     data-trip="<?= esc($up['trip_name']) ?>" 
+                                                     data-lender="<?= esc($up['lender_name']) ?>" 
+                                                     data-month-col="<?= $col ?>">
+                                                    <button type="button" class="btn btn-xs <?= $btnClass ?> btn-pay-month btn-block text-left px-1"
+                                                        data-trip="<?= $up['trip_id'] ?>"
+                                                        data-lender="<?= $up['lender_id'] ?>"
+                                                        data-borrower="<?= $up['borrower_id'] ?>"
+                                                        data-month="<?= $col ?>"
+                                                        data-total="<?= $up['amount'] ?>"
+                                                        data-label="<?= date('M Y', strtotime($col)) ?>"
+                                                        data-lender-name="<?= esc($up['lender_name']) ?>"
+                                                        data-source="<?= $up['source_type'] ?>"
+                                                        style="font-size: 0.68rem; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;"
+                                                        title="Bayar ke <?= esc($up['lender_name']) ?>: Rp <?= number_format($up['amount'], 0, ',', '.') ?>">
+                                                        <i class="fas <?= $btnIcon ?> mr-1"></i><?= $btnText ?>
+                                                    </button>
+                                                </div>
+                                                <?php
+                                            }
                                         }
 
                                         // Check untuk badge lunas / na
@@ -691,7 +741,9 @@ if (!empty($allInstallmentsForSummary)) {
                                         <span class="text-muted na-badge" style="<?= $hasAnyPayment ? 'display: none;' : '' ?>">—</span>
                                     </td>
                                 <?php endforeach; ?>
-                                <td></td>
+                                <?php if ($role === 'borrower') : ?>
+                                    <td></td>
+                                <?php endif; ?>
                             </tr>
                         </tfoot>
                     </table>
@@ -778,7 +830,7 @@ if (!empty($allInstallmentsForSummary)) {
                         </div>
                         <small class="form-text text-muted">
                             <i class="fas fa-info-circle mr-1"></i>
-                            Pilih siapa saja anggota yang ikut berhutang. Catatan: Peminjam yang sama dengan Pemberi Pinjaman akan otomatis dilewati saat penyimpanan.
+                            Pilih siapa saja anggota yang ikut berhutang. Catatan: Peminjam yang sama dengan Pemberi Pinjaman akan otomatis dicatat sebagai Pinjaman Pribadi.
                         </small>
                     </div>
 
